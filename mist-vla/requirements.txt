@@ -1,0 +1,33 @@
+torch==2.2.0
+torchvision==0.17.0
+transformers==4.40.1
+tokenizers==0.19.1
+timm==0.9.10
+flash-attn==2.5.5
+
+# Interpretability tools
+transformer-lens
+captum
+
+# Simulation
+robosuite
+mujoco
+gymnasium
+
+# ML utilities
+scikit-learn
+numpy
+scipy
+
+# Utilities
+wandb
+matplotlib
+seaborn
+tqdm
+einops
+pyyaml
+
+# Development
+pytest
+black
+isort

@@ -1,0 +1,33 @@
+# Base configuration for MIST-VLA
+
+model:
+  name: "openvla/openvla-7b"
+  device: "cuda"
+  dtype: "bfloat16"
+
+failure_detection:
+  detector_type: "mlp"  # or "lstm"
+  hidden_dim: 4096
+  alpha: 0.1  # Conformal prediction significance level
+
+steering:
+  coefficient: 1.0  # Steering strength
+  layers: null  # null = use last 8 layers
+
+recovery:
+  fusion_alpha: 0.5  # Blend factor for action fusion
+
+training:
+  epochs: 50
+  batch_size: 32
+  learning_rate: 1e-4
+  max_seq_len: 50
+
+evaluation:
+  n_episodes: 50
+  max_steps: 200
+
+paths:
+  data_dir: "data"
+  checkpoints_dir: "checkpoints"
+  results_dir: "results"

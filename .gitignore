@@ -1,0 +1,85 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+conda-env/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb_checkpoints
+
+# PyTorch
+*.pth
+*.pt
+*.ckpt
+*.pkl
+
+# Data files
+*.h5
+*.hdf5
+*.pkl
+*.pickle
+data/rollouts/
+data/calibration_sets/
+data/steering_vectors/
+
+# Logs
+*.log
+logs/
+wandb/
+
+# Experiments
+experiments/*/checkpoints/
+experiments/*/logs/
+experiments/*/results/
+
+# Model checkpoints
+checkpoints/
+*.pth.tar
+
+# Environment files
+.env
+.env.local
+
+# Large model files (uncomment if you don't want to track models)
+# *.safetensors
+# *.bin
+
+# Compiled files
+*.o
+*.a
+
+# OS
+Thumbs.db
