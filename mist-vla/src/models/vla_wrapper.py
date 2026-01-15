@@ -1,115 +1,103 @@
 """
-Unified interface for different VLA models (OpenVLA, pi0).
+Minimal OpenVLA wrapper for action generation + feature extraction.
 """
 
+from __future__ import annotations
+
+from typing import Optional
+
 import torch
-import torch.nn as nn
-from typing import Union, Tuple, Optional
-from abc import ABC, abstractmethod
+from transformers import AutoModelForVision2Seq, AutoProcessor
+from PIL import Image
+import numpy as np
+
+from src.data_collection.hooks import HiddenStateCollector
 
 
-class VLAWrapper(ABC):
-    """Abstract base class for VLA model wrappers."""
-
-    @abstractmethod
-    def get_action(self, image, instruction: str) -> torch.Tensor:
-        """Get action from VLA given image and instruction."""
-        pass
-
-    @abstractmethod
-    def get_action_with_features(
-        self,
-        image,
-        instruction: str
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Get action and latent features."""
-        pass
-
-    @abstractmethod
-    def get_last_layer_features(self, image, instruction: str) -> torch.Tensor:
-        """Extract features from the last layer for failure detection."""
-        pass
-
-
-class OpenVLAWrapper(VLAWrapper):
-    """Wrapper for OpenVLA model."""
-
+class OpenVLAWrapper:
     def __init__(
         self,
-        model_name: str = "openvla/openvla-7b",
-        device: str = "cuda"
-    ):
-        from .hooked_openvla import HookedOpenVLA
-
-        self.model = HookedOpenVLA(model_name, device)
+        model_name: str,
+        device: str = "cuda",
+        torch_dtype: torch.dtype = torch.bfloat16,
+        model: Optional[AutoModelForVision2Seq] = None,
+        processor: Optional[AutoProcessor] = None,
+    ) -> None:
         self.device = device
+        self.model_name = model_name
+        self.processor = processor or AutoProcessor.from_pretrained(
+            model_name,
+            trust_remote_code=True,
+        )
 
-    def get_action(self, image, instruction: str) -> torch.Tensor:
-        """Get action from OpenVLA."""
-        prompt = f"In: What action should the robot take to {instruction}?\nOut:"
-        inputs = self.model.processor(prompt, image).to(self.device)
+        if model is None:
+            # Try FlashAttention2; fall back to eager if unavailable.
+            try:
+                import flash_attn  # noqa: F401
 
+                attn_impl = "flash_attention_2"
+            except Exception:
+                attn_impl = "eager"
+
+            self.model = AutoModelForVision2Seq.from_pretrained(
+                model_name,
+                torch_dtype=torch_dtype,
+                trust_remote_code=True,
+                attn_implementation=attn_impl,
+            ).to(device)
+        else:
+            self.model = model
+
+        self.collector = HiddenStateCollector(self.model)
+        self.collector.register_hooks()
+
+    def _to_pil(self, image):
+        if isinstance(image, Image.Image):
+            return image
+        if isinstance(image, np.ndarray):
+            return Image.fromarray(image)
+        if torch.is_tensor(image):
+            return Image.fromarray(image.detach().cpu().numpy())
+        return image
+
+    def _prepare_inputs(self, image, instruction: str) -> dict:
+        prompt = f"In: {instruction}\nOut:"
+        image = self._to_pil(image)
+        inputs = self.processor(prompt, image, return_tensors="pt")
+        inputs = {k: v.to(self.device) for k, v in inputs.items()}
+        if "pixel_values" in inputs:
+            inputs["pixel_values"] = inputs["pixel_values"].to(
+                self.device, dtype=self.model.dtype
+            )
+        return inputs
+
+    def _generate_action(self, inputs: dict) -> torch.Tensor:
         with torch.no_grad():
-            outputs = self.model.model.generate(
+            outputs = self.model.generate(
                 **inputs,
                 max_new_tokens=7,
-                do_sample=False
+                do_sample=False,
             )
+        action_tokens = outputs[:, inputs["input_ids"].shape[1] :]
+        action = (action_tokens.float() - 128) / 128
+        action = torch.clamp(action, -1, 1)
+        return action[0]
 
-        action_tokens = outputs[:, inputs['input_ids'].shape[1]:]
-        action = self._decode_action(action_tokens)
+    def _extract_features(self, inputs: dict) -> torch.Tensor:
+        self.collector.clear()
+        self.collector._active = True
+        with torch.no_grad():
+            _ = self.model(**inputs)
+        self.collector._active = False
+        return self.collector.get_last_layer(pool="mean")
 
-        return action
-
-    def get_action_with_features(
-        self,
-        image,
-        instruction: str
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Get action and latent features."""
-        action_tokens, cache = self.model.run_with_cache(image, instruction)
-        action = self._decode_action(action_tokens)
-
-        # Get last layer features
-        n_layers = len([k for k in cache if 'hook_mlp_out' in k])
-        last_layer_key = f"blocks.{n_layers-1}.hook_mlp_out"
-        features = cache[last_layer_key]
-
+    def get_action_with_features(self, image, instruction: str):
+        inputs = self._prepare_inputs(image, instruction)
+        action = self._generate_action(inputs)
+        features = self._extract_features(inputs)
         return action, features
 
-    def get_last_layer_features(self, image, instruction: str) -> torch.Tensor:
-        """Extract features from the last transformer layer."""
-        return self.model.get_last_layer_features(image, instruction)
+    def close(self) -> None:
+        self.collector.remove_hooks()
+        del self.model
 
-    def _decode_action(self, action_tokens: torch.Tensor) -> torch.Tensor:
-        """Decode action tokens to continuous values."""
-        # OpenVLA uses 256-bin discretization
-        # Each token represents a bin in [-1, 1]
-        action_values = (action_tokens.float() - 128) / 128
-        return action_values
-
-
-def create_vla_wrapper(
-    model_type: str = "openvla",
-    model_name: Optional[str] = None,
-    device: str = "cuda"
-) -> VLAWrapper:
-    """
-    Factory function to create appropriate VLA wrapper.
-
-    Args:
-        model_type: Type of VLA model ('openvla' or 'pi0')
-        model_name: Specific model name/path
-        device: Device to load model on
-
-    Returns:
-        VLAWrapper instance
-    """
-    if model_type.lower() == "openvla":
-        model_name = model_name or "openvla/openvla-7b"
-        return OpenVLAWrapper(model_name, device)
-    elif model_type.lower() == "pi0":
-        # TODO: Implement pi0 wrapper when needed
-        raise NotImplementedError("pi0 wrapper not yet implemented")
-    else:
-        raise ValueError(f"Unknown model type: {model_type}")

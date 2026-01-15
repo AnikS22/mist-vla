@@ -2039,9 +2039,16 @@ def evaluate_libero(
     all_failures_detected = []
     all_recoveries = []
     
+    from libero.libero.envs import OffScreenRenderEnv
     for task_id in tqdm(range(len(suite.tasks)), desc="Tasks"):
-        env = suite.make_env(task_id)
-        instruction = suite.get_task_instruction(task_id)
+        bddl_file = suite.get_task_bddl_file_path(task_id)
+        env = OffScreenRenderEnv(
+            bddl_file_name=bddl_file,
+            render_camera="agentview",
+            camera_heights=128,
+            camera_widths=128,
+        )
+        instruction = suite.get_task(task_id).language
         
         task_results = []
         

@@ -8,7 +8,7 @@ echo "========================================="
 
 # HPC login details
 HPC_USER="asahai2024"
-HPC_HOST="athene-login.fau.edu"
+HPC_HOST="athene-login.hpc.fau.edu"
 HPC_PATH="~/mist-vla"
 
 echo "Transferring to: ${HPC_USER}@${HPC_HOST}:${HPC_PATH}"

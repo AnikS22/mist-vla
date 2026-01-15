@@ -14,6 +14,7 @@ print("\n[Test 1] Importing LIBERO...")
 try:
     import libero.libero.envs
     from libero.libero import benchmark
+    from libero.libero.envs import OffScreenRenderEnv
     print("✓ LIBERO imports successful")
 except Exception as e:
     print(f"✗ LIBERO import failed: {e}")
@@ -31,7 +32,7 @@ except Exception as e:
 # Test 3: Load a task suite
 print("\n[Test 3] Loading LIBERO-Spatial task suite...")
 try:
-    task_suite = benchmark_dict['libero_spatial']()
+    task_suite = benchmark_dict["libero_spatial"]()
     n_tasks = len(task_suite.tasks)
     print(f"✓ Task suite loaded with {n_tasks} tasks")
 except Exception as e:
@@ -41,8 +42,14 @@ except Exception as e:
 # Test 4: Create environment
 print("\n[Test 4] Creating environment for first task...")
 try:
-    env = task_suite.make_env(task_id=0)
-    instruction = task_suite.get_task_instruction(task_id=0)
+    bddl_file = task_suite.get_task_bddl_file_path(0)
+    env = OffScreenRenderEnv(
+        bddl_file_name=bddl_file,
+        render_camera="agentview",
+        camera_heights=128,
+        camera_widths=128,
+    )
+    instruction = task_suite.get_task(0).language
     print(f"✓ Environment created")
     print(f"  Task instruction: '{instruction}'")
 except Exception as e:
@@ -69,12 +76,13 @@ except Exception as e:
 # Test 6: Take random actions
 print("\n[Test 6] Taking random actions in simulation...")
 try:
-    action_dim = env.action_space.shape[0]
+    low, high = env.env.action_spec
+    action_dim = low.shape[0]
     print(f"  Action dimension: {action_dim}")
 
     for step in range(5):
-        # Random action
-        action = np.random.uniform(-1, 1, size=action_dim)
+        # Random action within env bounds
+        action = np.random.uniform(low, high)
         obs, reward, done, info = env.step(action)
         print(f"  Step {step+1}: reward={reward:.3f}, done={done}")
 

@@ -1,236 +1,179 @@
-# MIST-VLA: Mechanistic Interpretability for Steering and Transparent VLA Failure Recovery
+# MIST-VLA: Mechanistic Interpretability for Safe VLA Execution
 
-A snap-on module that uses mechanistic interpretability to detect, explain, and correct failures in Vision-Language-Action (VLA) models through activation steering.
+A collision avoidance system for Vision-Language-Action (VLA) models using mechanistic interpretability to predict and prevent collisions through opposition-based steering.
 
-## Overview
+## Key Features
 
-MIST-VLA combines three key components:
-1. **Failure Detection**: SAFE-style detector that monitors VLA internal features
-2. **Failure Attribution**: Integrated Gradients to identify WHY the VLA is failing
-3. **Activation Steering**: FFN-based steering to correct failure-inducing behaviors
-
-All without retraining the base VLA model.
-
-## Installation
-
-### 1. Clone Repository
-
-```bash
-git clone <this-repo>
-cd mist-vla
-```
-
-### 2. Create Environment
-
-```bash
-conda create -n mist-vla python=3.10 -y
-conda activate mist-vla
-```
-
-### 3. Install Dependencies
-
-```bash
-# Core dependencies
-pip install torch==2.2.0 torchvision==0.17.0 --index-url https://download.pytorch.org/whl/cu121
-pip install transformers==4.40.1 tokenizers==0.19.1 timm==0.9.10
-
-# Flash attention
-pip install flash-attn==2.5.5 --no-build-isolation
-
-# Interpretability tools
-pip install transformer-lens captum
-
-# Install MIST-VLA
-pip install -e .
-```
-
-### 4. Install LIBERO (for evaluation)
-
-```bash
-cd ..
-git clone https://github.com/Lifelong-Robot-Learning/LIBERO.git
-cd LIBERO
-pip install -r requirements.txt
-pip install -e .
-cd ../mist-vla
-```
-
-### 5. Install OpenVLA
-
-```bash
-cd ..
-git clone https://github.com/openvla/openvla.git
-cd openvla
-pip install -e .
-cd ../mist-vla
-```
+- **Per-Dimension Risk Prediction**: Predict collision risk for each action dimension (x, y, z, roll, pitch, yaw, gripper)
+- **Physics-Based Detection**: MuJoCo collision detection with contact geometry
+- **Opposition-Based Steering**: If moving right is risky → steer left (intelligent intervention)
+- **No Model Retraining**: Works as a snap-on module for any VLA
 
 ## Quick Start
 
-### 1. Collect Failure Data
+### 1. Installation
 
 ```bash
-python scripts/collect_failure_data.py \
-  --env libero_spatial \
-  --n_success 100 \
-  --n_failure 100 \
-  --save_dir data/rollouts
+# Create environment
+conda create -n mist-vla python=3.10
+conda activate mist-vla
+
+# Install dependencies
+pip install torch torchvision transformers
+pip install mujoco robosuite
+pip install scikit-learn matplotlib
+
+# Install LIBERO benchmark
+git clone https://github.com/Lifelong-Robot-Learning/LIBERO.git
+cd LIBERO && pip install -e . && cd ..
+
+# Install OpenVLA
+pip install openvla
 ```
 
-### 2. Train Failure Detector
+### 2. Verify Setup
 
 ```bash
-python scripts/train_failure_detector.py \
-  --data_dir data/rollouts \
-  --detector_type mlp \
-  --epochs 50
+python test_implementation.py
 ```
 
-### 3. Extract Steering Vectors
+### 3. Run Full Pipeline
+
+See `claude.md` for complete instructions. Quick overview:
 
 ```bash
-python scripts/extract_steering_vectors.py \
-  --model openvla/openvla-7b \
-  --save_path data/steering_vectors
+# Collect data
+python scripts/collect_phase1_data.py --num-rollouts 2000
+
+# Compute risk labels
+python scripts/compute_risk_labels.py
+
+# Train risk predictor
+python scripts/train_risk_predictor.py --epochs 50
+
+# Extract steering vectors
+python scripts/extract_steering_vectors.py
+
+# Run evaluation
+python scripts/run_evaluation.py
 ```
 
-### 4. Run Evaluation
+## How It Works
 
-```bash
-python scripts/run_libero_eval.py \
-  --task_suite libero_spatial \
-  --model_path openvla/openvla-7b \
-  --detector_path checkpoints/best_detector.pt \
-  --steering_path data/steering_vectors/all_vectors.pt \
-  --n_episodes 50
+### 1. Per-Dimension Risk Prediction
+
+```python
+# Train MLP probe on VLA hidden states
+risk_predictor: [hidden_dim=4096] → [512] → [256] → [7 risks]
 ```
 
-## Architecture
+### 2. Directional Risk Labels
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    MIST-VLA SYSTEM                           │
-├─────────────────────────────────────────────────────────────┤
-│                                                              │
-│  Input (Image + Instruction)                                 │
-│          ↓                                                   │
-│  ┌──────────────────┐                                        │
-│  │    BASE VLA      │  (OpenVLA/pi0, frozen)                 │
-│  │  + Hook Points   │                                        │
-│  └────────┬─────────┘                                        │
-│           ↓                                                  │
-│  ┌─────────────────────────────────────┐                    │
-│  │     MIST MODULE (Snap-on)           │                    │
-│  │                                     │                    │
-│  │  1. Failure Detector                │                    │
-│  │     → Monitors latent features       │                    │
-│  │                                     │                    │
-│  │  2. Failure Localizer               │                    │
-│  │     → Attributes failure cause       │                    │
-│  │                                     │                    │
-│  │  3. Activation Steerer              │                    │
-│  │     → Injects corrections            │                    │
-│  │                                     │                    │
-│  │  4. Recovery Orchestrator           │                    │
-│  │     → Coordinates all components     │                    │
-│  └─────────────────────────────────────┘                    │
-│           ↓                                                  │
-│  Corrected Action + Explanation                             │
-└─────────────────────────────────────────────────────────────┘
+```python
+# Risk based on collision geometry
+risk_i = max(0, action_i * collision_direction_i)
 ```
 
-## Directory Structure
+Example: If robot moving right (action[0]=+0.5) toward obstacle (direction[0]=+1.0):
+- Risk = max(0, 0.5 × 1.0) = 0.5 (HIGH RISK)
+
+If robot moving left (action[0]=-0.5) away from obstacle:
+- Risk = max(0, -0.5 × 1.0) = 0.0 (NO RISK)
+
+### 3. Opposition-Based Steering
+
+```python
+# If high risk detected
+if risk[0] > threshold:
+    if action[0] > 0:  # Moving right
+        steer('left')   # Apply left steering
+    else:               # Moving left
+        steer('right')  # Apply right steering
+```
+
+### 4. Activation Steering
+
+```python
+# Inject steering into VLA hidden states
+hidden = hidden + beta * steering_vector
+```
+
+## Project Structure
 
 ```
 mist-vla/
-├── configs/              # Configuration files
-├── src/                  # Source code
-│   ├── models/          # VLA wrappers with hooks
-│   ├── failure_detection/  # SAFE-style detector
-│   ├── attribution/     # Failure localization
-│   ├── steering/        # Activation steering
-│   ├── recovery/        # Main orchestrator
-│   └── utils/           # Utilities
-├── scripts/             # Training & evaluation
-├── data/                # Data and artifacts
-├── experiments/         # Experiment results
-└── notebooks/           # Analysis notebooks
+├── src/
+│   ├── data_collection/      # Hidden states & collision detection
+│   ├── training/              # Risk predictor training
+│   ├── steering/              # Steering vector extraction & injection
+│   └── evaluation/            # Baselines & metrics
+├── scripts/                   # Pipeline scripts
+├── claude.md                  # Complete specification
+└── test_implementation.py     # Verification tests
 ```
 
-## Key Components
+## Evaluation
 
-### 1. HookedOpenVLA
-Wraps OpenVLA with hook points at every FFN layer for:
-- Activation caching (for monitoring)
-- Activation steering (for correction)
+We compare 5 methods:
 
-### 2. SAFE Detector
-Monitors VLA internal features to predict failure probability with:
-- MLP or LSTM failure classifier
-- Conformal prediction for calibrated thresholds
+1. **none**: Vanilla VLA (no intervention)
+2. **safe_stop**: Stop when risk detected
+3. **random_steer**: Random steering direction
+4. **generic_slow**: Always steer 'slow'
+5. **mist**: Opposition-based steering (ours)
 
-### 3. Failure Localizer
-Uses Integrated Gradients to identify:
-- Which visual patches caused failure
-- Which language tokens caused failure
-- Human-readable explanations
+### Metrics
 
-### 4. Activation Steerer
-Modifies FFN activations to correct behavior:
-- Extracts semantic directions from FFN weights
-- Maps failure causes to steering directions
-- Applies real-time activation injection
+- **Collision Rate** ↓: % of episodes with collisions
+- **Success Rate** ↑: % of episodes completing task
+- **Recovery Rate** ↑: % of risky situations recovered from
 
-### 5. Recovery Orchestrator
-Coordinates the full pipeline:
-1. Detect failure
-2. Attribute cause
-3. Apply steering
-4. Generate corrected action
-5. Fuse with original for smooth motion
+### Expected Results
 
-## Experiments
+MIST should achieve:
+- Lowest collision rate (best safety)
+- High success rate (minimal task disruption)
+- Highest recovery rate (best risk mitigation)
 
-### Baseline Comparisons
-- SAFE: Detection only
-- FailSafe: VLM-based recovery
-- FPC-VLA: Supervisor-based correction
-- Vanilla VLA: No intervention
+## Hardware Requirements
 
-### Ablations
-- Detection only (no steering)
-- Steering only (no attribution)
-- Random steering vs. attributed steering
-- Different layer ranges for steering
+- **Minimum**: 1× RTX 4090 (24GB VRAM)
+- **Recommended**: 1× A100 (40GB VRAM)
+- **Disk**: ~500GB for data and models
 
-### Evaluation Metrics
-- Success Rate
-- Recovery Rate (% of detected failures recovered)
-- Detection Latency
-- Inference Overhead
-- Explanation Quality
+## Implementation Status
+
+- ✅ Phase 0: Environment setup
+- ✅ Phase 1: Data collection (hooks, collision detection, risk labels)
+- ✅ Phase 2: Risk predictor training
+- ✅ Phase 3: Steering vector extraction
+- ✅ Phase 4: Steering implementation
+- ✅ Phase 5: Evaluation harness
+
+**Ready for HPC execution!**
+
+## Documentation
+
+- `claude.md` - Complete project specification and implementation guide
+- `REAL_PROJECT_SPEC.md` - Detailed phase-by-phase specification
+- `test_implementation.py` - Local verification tests
 
 ## Citation
 
-If you use this code, please cite:
-
 ```bibtex
-@article{mist-vla,
-  title={MIST-VLA: Mechanistic Interpretability for Steering and Transparent VLA Failure Recovery},
+@article{mistvla2024,
+  title={MIST-VLA: Mechanistic Interpretability for Safe VLA Execution},
   author={Your Name},
-  journal={arXiv preprint},
-  year={2025}
+  year={2024}
 }
 ```
 
 ## References
 
-- SAFE: arXiv 2506.09937
-- VLA Steering: arXiv 2509.00328
-- FailSafe: arXiv 2510.01642
-- OpenVLA: arXiv 2406.09246
-- LIBERO: arXiv 2306.03310
+- **OpenVLA**: [kim2024openvla](https://arxiv.org/abs/2406.09246)
+- **LIBERO**: [liu2024libero](https://lifelong-robot-learning.github.io/LIBERO/)
+- **Activation Steering**: [Turner et al. 2023](https://arxiv.org/abs/2308.10248)
 
 ## License
 
-MIT License
+MIT License - See LICENSE file for details
