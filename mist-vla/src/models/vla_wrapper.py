@@ -91,7 +91,7 @@ class OpenVLAWrapper:
         self.collector._active = False
         return self.collector.get_last_layer(pool="mean")
 
-    def get_action_with_features(self, image, instruction: str):
+    def get_action_with_features(self, image, instruction: str, obs: Optional[dict] = None):
         inputs = self._prepare_inputs(image, instruction)
         action = self._generate_action(inputs)
         features = self._extract_features(inputs)
@@ -100,4 +100,30 @@ class OpenVLAWrapper:
     def close(self) -> None:
         self.collector.remove_hooks()
         del self.model
+
+
+def create_vla_wrapper(
+    model_type: str,
+    model_name: str,
+    device: Optional[str] = None,
+    torch_dtype: Optional[torch.dtype] = None,
+) -> OpenVLAWrapper:
+    """
+    Factory for VLA wrappers. Currently supports OpenVLA.
+    """
+    if model_type == "openvla_oft":
+        from src.models.openvla_oft_wrapper import OpenVLAOFTWrapper
+
+        return OpenVLAOFTWrapper(model_name, device=device)
+    if model_type != "openvla":
+        raise ValueError(f"Unsupported model_type: {model_type}")
+    if device is None:
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+    if torch_dtype is None:
+        if device == "cuda":
+            # Turing GPUs (e.g., 2080 Ti) do not support bfloat16 well.
+            torch_dtype = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
+        else:
+            torch_dtype = torch.float32
+    return OpenVLAWrapper(model_name, device=device, torch_dtype=torch_dtype)
 
