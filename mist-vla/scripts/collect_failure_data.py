@@ -243,9 +243,11 @@ def run_episode(env, policy, instruction, max_steps, init_states, rng):
         "features": [],
         "rewards": [],
         "robot_states": [],
+        "steps": [],
         "success": False,
         "collision_occurred": False,
         "collision_steps": 0,
+        "collision_step": None,
         "instruction": instruction,
     }
 
@@ -262,15 +264,30 @@ def run_episode(env, policy, instruction, max_steps, init_states, rng):
         if torch.is_tensor(features):
             features = features.float().cpu().numpy()
 
+        robot_state = _get_robot_state(env)
         trajectory["observations"].append(obs)
         trajectory["actions"].append(action)
         trajectory["features"].append(features)
-        trajectory["robot_states"].append(_get_robot_state(env))
+        trajectory["robot_states"].append(robot_state)
 
-        has_collision, _ = detector.check_collision()
+        has_collision, pos, normal, geom1, geom2 = detector.check_collision_details()
         if has_collision:
             trajectory["collision_occurred"] = True
             trajectory["collision_steps"] += 1
+            if trajectory["collision_step"] is None:
+                trajectory["collision_step"] = len(trajectory["actions"])
+
+        trajectory["steps"].append(
+            {
+                "action": np.array(action, dtype=np.float32),
+                "hidden_state": np.array(features, dtype=np.float32),
+                "collision": bool(has_collision),
+                "collision_pos": None if pos is None else pos.tolist(),
+                "collision_normal": None if normal is None else normal.tolist(),
+                "collision_geoms": [geom1, geom2],
+                "robot_state": robot_state,
+            }
+        )
 
         obs, reward, done, info = env.step(action)
         trajectory["rewards"].append(reward)
@@ -295,9 +312,11 @@ def run_episode_with_perturbation(env, policy, instruction, max_steps, init_stat
         "features": [],
         "rewards": [],
         "robot_states": [],
+        "steps": [],
         "success": False,
         "collision_occurred": False,
         "collision_steps": 0,
+        "collision_step": None,
         "instruction": instruction,
         "perturbation_type": None,
         "perturbation_step": None,
@@ -327,15 +346,30 @@ def run_episode_with_perturbation(env, policy, instruction, max_steps, init_stat
         if step >= perturbation_step and step < perturbation_step + 10:
             action = apply_perturbation(action, perturbation_type)
 
+        robot_state = _get_robot_state(env)
         trajectory["observations"].append(obs)
         trajectory["actions"].append(action)
         trajectory["features"].append(features)
-        trajectory["robot_states"].append(_get_robot_state(env))
+        trajectory["robot_states"].append(robot_state)
 
-        has_collision, _ = detector.check_collision()
+        has_collision, pos, normal, geom1, geom2 = detector.check_collision_details()
         if has_collision:
             trajectory["collision_occurred"] = True
             trajectory["collision_steps"] += 1
+            if trajectory["collision_step"] is None:
+                trajectory["collision_step"] = len(trajectory["actions"])
+
+        trajectory["steps"].append(
+            {
+                "action": np.array(action, dtype=np.float32),
+                "hidden_state": np.array(features, dtype=np.float32),
+                "collision": bool(has_collision),
+                "collision_pos": None if pos is None else pos.tolist(),
+                "collision_normal": None if normal is None else normal.tolist(),
+                "collision_geoms": [geom1, geom2],
+                "robot_state": robot_state,
+            }
+        )
 
         obs, reward, done, info = env.step(action)
         trajectory["rewards"].append(reward)

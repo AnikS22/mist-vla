@@ -291,12 +291,13 @@ def _run_episode(cfg, env, task_description, init_states, resize_size, vla, proc
         if features is None:
             features = np.zeros((1,), dtype=np.float32)
 
+        robot_state = _get_robot_state(env)
         trajectory["observations"].append(obs)
         trajectory["actions"].append(action)
         trajectory["features"].append(features)
-        trajectory["robot_states"].append(_get_robot_state(env))
+        trajectory["robot_states"].append(robot_state)
 
-        has_collision, _ = detector.check_collision()
+        has_collision, pos, normal, geom1, geom2 = detector.check_collision_details()
         if has_collision:
             trajectory["collision_occurred"] = True
             trajectory["collision_steps"] += 1
@@ -310,6 +311,10 @@ def _run_episode(cfg, env, task_description, init_states, resize_size, vla, proc
                 "action": np.array(action, dtype=np.float32),
                 "hidden_state": np.array(features, dtype=np.float32),
                 "collision": bool(has_collision),
+                "collision_pos": None if pos is None else pos.tolist(),
+                "collision_normal": None if normal is None else normal.tolist(),
+                "collision_geoms": [geom1, geom2],
+                "robot_state": robot_state,
             }
         )
         if _check_success(env, info):

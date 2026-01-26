@@ -61,22 +61,34 @@ class CollisionDetector:
             - is_collision: True if robot collides with environment
             - collision_position: 3D position of collision [x, y, z], or None
         """
+        hit, pos, _, _, _ = self.check_collision_details()
+        return hit, pos
+
+    def check_collision_details(
+        self,
+    ) -> Tuple[bool, Optional[np.ndarray], Optional[np.ndarray], Optional[str], Optional[str]]:
+        """
+        Check collision and return geometry details.
+
+        Returns:
+            (is_collision, collision_position, collision_normal, geom1_name, geom2_name)
+        """
         # Get fresh sim reference (it can become stale between calls)
         if hasattr(self.env, 'env') and hasattr(self.env.env, 'sim'):
             sim = self.env.env.sim
         elif hasattr(self.env, 'sim'):
             sim = self.env.sim
         else:
-            return False, None
+            return False, None, None, None, None
 
         try:
             ncon = sim.data.ncon
         except AttributeError:
             # If we still can't access contact data, return no collision
-            return False, None
+            return False, None, None, None, None
 
         if ncon == 0:
-            return False, None
+            return False, None, None, None, None
 
         for i in range(ncon):
             contact = sim.data.contact[i]
@@ -93,18 +105,18 @@ class CollisionDetector:
                 continue
 
             # Check if this is a robot collision
-            is_collision, pos = self._is_invalid_collision(
+            is_collision, pos, normal = self._is_invalid_collision(
                 geom1_name, geom2_name, contact
             )
 
             if is_collision:
-                return True, pos
+                return True, pos, normal, geom1_name, geom2_name
 
-        return False, None
+        return False, None, None, None, None
 
     def _is_invalid_collision(
         self, geom1: str, geom2: str, contact
-    ) -> Tuple[bool, Optional[np.ndarray]]:
+    ) -> Tuple[bool, Optional[np.ndarray], Optional[np.ndarray]]:
         """
         Determine if this contact represents an invalid collision.
 
@@ -126,18 +138,24 @@ class CollisionDetector:
         )
 
         if not robot_in_contact:
-            return False, None
+            return False, None, None
 
         # Check if this is a valid contact (e.g., gripper-object)
         if self._is_valid_contact(geom1_lower, geom2_lower):
-            return False, None
+            return False, None, None
 
         # Check if robot is colliding with environment
         if self._is_environment_collision(geom1_lower, geom2_lower):
             collision_pos = contact.pos.copy()
-            return True, collision_pos
+            try:
+                # MuJoCo contact.frame is 3x3 (flattened). First column is normal.
+                frame = np.array(contact.frame).reshape(3, 3)
+                collision_normal = frame[:, 0].copy()
+            except Exception:
+                collision_normal = None
+            return True, collision_pos, collision_normal
 
-        return False, None
+        return False, None, None
 
     def _is_robot_geom(self, geom_name: str) -> bool:
         """Check if geom belongs to robot."""
