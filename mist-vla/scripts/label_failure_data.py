@@ -71,10 +71,10 @@ def _label_rollout(
         )
 
         # Per-dimension risk (heuristic until predictor is trained):
-        # Mark dimensions with large action magnitude if collision is imminent.
+        # Mark dimensions with large action magnitude if failure/collision is imminent.
         action = np.array(step.get("action", np.zeros(7)), dtype=np.float32)
         per_dim_risk = (np.abs(action) >= action_thresh).astype(np.int32)
-        if collision_within_k == 0:
+        if (collision_within_k == 0) and (fail_within_k == 0):
             per_dim_risk = np.zeros_like(per_dim_risk)
 
         step["labels"] = {

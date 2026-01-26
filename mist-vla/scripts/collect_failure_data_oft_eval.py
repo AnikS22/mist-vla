@@ -255,9 +255,11 @@ def _run_episode(cfg, env, task_description, init_states, resize_size, vla, proc
         "features": [],
         "rewards": [],
         "robot_states": [],
+        "steps": [],
         "success": False,
         "collision_occurred": False,
         "collision_steps": 0,
+        "collision_step": None,
         "instruction": task_description,
     }
 
@@ -298,9 +300,18 @@ def _run_episode(cfg, env, task_description, init_states, resize_size, vla, proc
         if has_collision:
             trajectory["collision_occurred"] = True
             trajectory["collision_steps"] += 1
+            if trajectory["collision_step"] is None:
+                trajectory["collision_step"] = len(trajectory["actions"])
 
         obs, reward, done, info = env.step(action.tolist())
         trajectory["rewards"].append(reward)
+        trajectory["steps"].append(
+            {
+                "action": np.array(action, dtype=np.float32),
+                "hidden_state": np.array(features, dtype=np.float32),
+                "collision": bool(has_collision),
+            }
+        )
         if _check_success(env, info):
             trajectory["success"] = True
             break
