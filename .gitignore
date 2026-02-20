@@ -83,3 +83,26 @@ checkpoints/
 
 # OS
 Thumbs.db
+
+# External dependencies and cloned repos
+FailSafe_code/
+LIBERO/
+LIBERO-PRO/
+SAELens/
+SimplerEnv/
+TransformerLens/
+openpi/
+open-pi-zero/
+openvla/
+openvla-oft/
+
+# Data & model artifacts (keep out of git)
+mist-vla/data/
+mist-vla/experiments/
+mist-vla/archive/old_checkpoints/
+mist-vla/logs/
+*.safetensors
+*.bin
+
+# Project-specific
+claude.md

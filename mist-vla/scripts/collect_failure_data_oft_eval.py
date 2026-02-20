@@ -4,11 +4,13 @@ while logging MIST-VLA signals (actions, hidden states, collisions, robot state)
 """
 import argparse
 import pickle
+import time
 from collections import deque
 from pathlib import Path
 
 import numpy as np
 import torch
+import imageio.v2 as imageio
 
 # Ensure torch.load maps to CPU when CUDA is unavailable.
 if not torch.cuda.is_available():
@@ -38,11 +40,17 @@ from experiments.robot.openvla_utils import (
     prepare_images_for_vla,
     resize_image_for_policy,
 )
-from experiments.robot.robot_utils import get_image_resize_size
+from experiments.robot.robot_utils import get_action, get_image_resize_size
 from prismatic.vla.constants import ACTION_DIM, NUM_ACTIONS_CHUNK
-from experiments.robot.libero.run_libero_eval import GenerateConfig, TASK_MAX_STEPS
+from experiments.robot.libero.run_libero_eval import (
+    GenerateConfig,
+    TASK_MAX_STEPS,
+    prepare_observation,
+    process_action,
+)
 
 from src.data_collection.collision_detection import CollisionDetector
+from src.data_collection.hooks import HiddenStateCollector
 
 
 def _check_success(env, info):
@@ -63,6 +71,10 @@ def _get_robot_state(env):
     sim = None
     if hasattr(env, "env") and hasattr(env.env, "sim"):
         sim = env.env.sim
+    elif hasattr(env, "env") and hasattr(env.env, "env") and hasattr(env.env.env, "sim"):
+        sim = env.env.env.sim
+    elif hasattr(env, "_env") and hasattr(env._env, "sim"):
+        sim = env._env.sim
     elif hasattr(env, "sim"):
         sim = env.sim
     if sim is None:
@@ -94,72 +106,7 @@ def _get_robot_state(env):
     return state
 
 
-def _prepare_observation(obs, resize_size):
-    img = get_libero_image(obs)
-    wrist_img = get_libero_wrist_image(obs)
-    img_resized = resize_image_for_policy(img, resize_size)
-    wrist_img_resized = resize_image_for_policy(wrist_img, resize_size)
-    observation = {
-        "full_image": img_resized,
-        "wrist_image": wrist_img_resized,
-        "state": np.concatenate(
-            (obs["robot0_eef_pos"], quat2axisangle(obs["robot0_eef_quat"]), obs["robot0_gripper_qpos"])
-        ),
-    }
-    return observation, img
-
-
-def _get_vla_action_with_features(cfg, vla, processor, obs, task_label, action_head, proprio_projector):
-    with torch.inference_mode():
-        all_images = [obs["full_image"]]
-        if cfg.num_images_in_input > 1:
-            all_images.extend([obs[k] for k in obs.keys() if "wrist" in k])
-
-        all_images = prepare_images_for_vla(all_images, cfg)
-        primary_image = all_images.pop(0)
-        prompt = f"In: What action should the robot take to {task_label.lower()}?\nOut:"
-
-        device = next(vla.parameters()).device
-        inputs = processor(prompt, primary_image).to(device, dtype=torch.bfloat16)
-        if all_images:
-            all_wrist_inputs = [processor(prompt, image_wrist).to(device, dtype=torch.bfloat16) for image_wrist in all_images]
-            primary_pixel_values = inputs["pixel_values"]
-            all_wrist_pixel_values = [wrist_inputs["pixel_values"] for wrist_inputs in all_wrist_inputs]
-            inputs["pixel_values"] = torch.cat([primary_pixel_values] + all_wrist_pixel_values, dim=1)
-
-        proprio = None
-        if cfg.use_proprio:
-            proprio = obs["state"]
-            proprio_norm_stats = vla.norm_stats[cfg.unnorm_key]["proprio"]
-            proprio = normalize_proprio(proprio, proprio_norm_stats)
-
-        actions, actions_hidden_states = vla.predict_action(
-            **inputs,
-            unnorm_key=cfg.unnorm_key,
-            do_sample=False,
-            proprio=proprio,
-            proprio_projector=proprio_projector,
-            action_head=action_head,
-            use_film=cfg.use_film,
-        )
-
-    actions = [actions[i] for i in range(len(actions))]
-    if actions_hidden_states is not None and actions_hidden_states.ndim == 3:
-        features = actions_hidden_states.mean(dim=1).detach().cpu().float().numpy()[0]
-    elif actions_hidden_states is not None:
-        features = actions_hidden_states.detach().cpu().float().numpy()
-    else:
-        features = None
-    return actions, features
-
-
-def _process_action(action, model_family):
-    from experiments.robot.robot_utils import normalize_gripper_action, invert_gripper_action
-
-    action = normalize_gripper_action(action, binarize=True)
-    if model_family == "openvla":
-        action = invert_gripper_action(action)
-    return action
+# Use official prepare_observation and process_action from run_libero_eval.py
 
 
 def _resolve_unnorm_key(cfg, vla):
@@ -170,7 +117,39 @@ def _resolve_unnorm_key(cfg, vla):
         cfg.unnorm_key = unnorm_key
 
 
-def collect_rollouts(cfg, save_dir, n_success, n_failure, max_attempts_per_task, seed):
+def _write_checkpoint(save_dir, success_rollouts, failure_rollouts):
+    save_path = Path(save_dir)
+    save_path.mkdir(parents=True, exist_ok=True)
+    with open(save_path / "success_rollouts_partial.pkl", "wb") as f:
+        pickle.dump(success_rollouts, f)
+    with open(save_path / "failure_rollouts_partial.pkl", "wb") as f:
+        pickle.dump(failure_rollouts, f)
+    print(
+        f"[checkpoint] success={len(success_rollouts)} failure={len(failure_rollouts)}",
+        flush=True,
+    )
+
+
+def _write_status(save_dir, message):
+    save_path = Path(save_dir)
+    save_path.mkdir(parents=True, exist_ok=True)
+    with open(save_path / "status.txt", "a") as f:
+        f.write(message + "\n")
+
+
+def collect_rollouts(
+    cfg,
+    save_dir,
+    n_success,
+    n_failure,
+    max_attempts_per_task,
+    seed,
+    checkpoint_every=25,
+    store_observations=False,
+    save_video=False,
+    video_dir=None,
+    video_fps=30,
+):
     torch.manual_seed(seed)
     np.random.seed(seed)
 
@@ -178,61 +157,93 @@ def collect_rollouts(cfg, save_dir, n_success, n_failure, max_attempts_per_task,
     task_suite = benchmark_dict[cfg.task_suite_name]()
     num_tasks = task_suite.n_tasks
 
+    print("[status] loading VLA...", flush=True)
+    _write_status(save_dir, "[status] loading VLA...")
     vla = get_vla(cfg)
+    print("[status] VLA loaded", flush=True)
+    _write_status(save_dir, "[status] VLA loaded")
     _resolve_unnorm_key(cfg, vla)
     processor = get_processor(cfg)
     action_head = get_action_head(cfg, vla.llm_dim)
     proprio_projector = get_proprio_projector(cfg, vla.llm_dim, proprio_dim=8)
+    collector = HiddenStateCollector(vla)
+    collector.register_hooks()
 
     resize_size = get_image_resize_size(cfg)
     success_rollouts, failure_rollouts = [], []
 
-    for task_id in range(num_tasks):
+    total_rollouts = 0
+    for task_id in range(num_taskxplain s):
         task = task_suite.get_task(task_id)
+        print(f"[status] init env task={task_id}", flush=True)
+        _write_status(save_dir, f"[status] init env task={task_id}")
         env, task_description = get_libero_env(task, cfg.model_family, resolution=cfg.env_img_res)
+        print(f"[status] env ready task={task_id}", flush=True)
+        _write_status(save_dir, f"[status] env ready task={task_id}")
         init_states = task_suite.get_task_init_states(task_id)
 
+        # Count per-task successes and failures
+        task_successes = 0
+        task_failures = 0
         attempts = 0
-        while len(success_rollouts) < n_success and attempts < max_attempts_per_task:
-            attempts += 1
-            rollout = _run_episode(
-                cfg,
-                env,
-                task_description,
-                init_states,
-                resize_size,
-                vla,
-                processor,
-                action_head,
-                proprio_projector,
-            )
-            rollout["task_id"] = task_id
-            if rollout["success"]:
-                success_rollouts.append(rollout)
-            else:
-                failure_rollouts.append(rollout)
+        episode_idx = 0
 
-        attempts = 0
-        while len(failure_rollouts) < n_failure and attempts < max_attempts_per_task:
+        # Collect n_success successes AND n_failure failures for THIS task
+        while (task_successes < n_success or task_failures < n_failure) and attempts < max_attempts_per_task:
             attempts += 1
+            initial_state = init_states[episode_idx % len(init_states)] if init_states is not None else None
+            episode_idx += 1
             rollout = _run_episode(
                 cfg,
                 env,
                 task_description,
-                init_states,
                 resize_size,
                 vla,
                 processor,
                 action_head,
                 proprio_projector,
+                collector,
+                initial_state=initial_state,
+                store_observations=store_observations,
+                save_video=save_video,
+                video_dir=video_dir,
+                video_fps=video_fps,
             )
             rollout["task_id"] = task_id
-            if not rollout["success"]:
-                failure_rollouts.append(rollout)
+
+            if rollout["success"]:
+                if task_successes < n_success:
+                    success_rollouts.append(rollout)
+                    task_successes += 1
+            else:
+                if task_failures < n_failure:
+                    failure_rollouts.append(rollout)
+                    task_failures += 1
+
+            total_rollouts += 1
+            print(
+                f"[progress] task={task_id} total={total_rollouts} "
+                f"task_succ={task_successes}/{n_success} task_fail={task_failures}/{n_failure} "
+                f"global_succ={len(success_rollouts)} global_fail={len(failure_rollouts)}",
+                flush=True,
+            )
+            if checkpoint_every and total_rollouts % checkpoint_every == 0:
+                _write_checkpoint(save_dir, success_rollouts, failure_rollouts)
 
         env.close()
-        if len(success_rollouts) >= n_success and len(failure_rollouts) >= n_failure:
-            break
+
+        # Free GPU/CPU cache between tasks to prevent OOM
+        import gc
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+
+        print(
+            f"[status] task={task_id} done: {task_successes} success, {task_failures} failure "
+            f"in {attempts} attempts",
+            flush=True,
+        )
+        _write_status(save_dir, f"[status] task={task_id} done: {task_successes}S/{task_failures}F")
 
     save_path = Path(save_dir)
     save_path.mkdir(parents=True, exist_ok=True)
@@ -244,13 +255,30 @@ def collect_rollouts(cfg, save_dir, n_success, n_failure, max_attempts_per_task,
     return success_rollouts, failure_rollouts
 
 
-def _run_episode(cfg, env, task_description, init_states, resize_size, vla, processor, action_head, proprio_projector):
+def _run_episode(
+    cfg,
+    env,
+    task_description,
+    resize_size,
+    vla,
+    processor,
+    action_head,
+    proprio_projector,
+    collector,
+    initial_state=None,
+    store_observations=False,
+    save_video=False,
+    video_dir=None,
+    video_fps=30,
+):
     env.reset()
-    obs = env.set_init_state(init_states[np.random.randint(0, len(init_states))])
+    if initial_state is not None:
+        obs = env.set_init_state(initial_state)
+    else:
+        obs = env.get_observation()
     detector = CollisionDetector(env)
 
     trajectory = {
-        "observations": [],
         "actions": [],
         "features": [],
         "rewards": [],
@@ -268,61 +296,100 @@ def _run_episode(cfg, env, task_description, init_states, resize_size, vla, proc
     t = 0
     last_features = None
 
-    while t < max_steps + cfg.num_steps_wait:
-        if t < cfg.num_steps_wait:
-            obs, reward, done, info = env.step(get_libero_dummy_action(cfg.model_family))
-            t += 1
-            continue
+    video_writer = None
+    video_path = None
+    if save_video and video_dir:
+        video_dir = Path(video_dir)
+        video_dir.mkdir(parents=True, exist_ok=True)
+        stamp = int(time.time())
+        video_path = video_dir / f"episode_{stamp}.mp4"
+        video_writer = imageio.get_writer(str(video_path), fps=video_fps)
 
-        observation, _ = _prepare_observation(obs, resize_size)
+    try:
+        while t < max_steps + cfg.num_steps_wait:
+            if t < cfg.num_steps_wait:
+                obs, reward, done, info = env.step(get_libero_dummy_action(cfg.model_family))
+                t += 1
+                continue
 
-        if len(action_queue) == 0:
-            actions, features = _get_vla_action_with_features(
-                cfg, vla, processor, observation, task_description, action_head, proprio_projector
+            observation, raw_img = prepare_observation(obs, resize_size)
+
+            if len(action_queue) == 0:
+                collector.clear()
+                with collector:
+                    actions = get_action(
+                        cfg,
+                        vla,
+                        observation,
+                        task_description,
+                        processor=processor,
+                        action_head=action_head,
+                        proprio_projector=proprio_projector,
+                        noisy_action_projector=None,
+                        use_film=cfg.use_film,
+                    )
+                action_queue.extend(actions)
+                feats = collector.get_last_layer(pool="mean")
+                last_features = None if feats is None else feats.detach().cpu().float().numpy()[0]
+                features = last_features
+            else:
+                features = last_features
+
+            action = np.asarray(action_queue.popleft(), dtype=np.float32)
+            action = process_action(action, cfg.model_family)
+
+            if features is None:
+                features = np.zeros((1,), dtype=np.float32)
+
+            if video_writer is not None and raw_img is not None:
+                video_writer.append_data(raw_img)
+
+            # Execute action in environment (matching official OFT eval order)
+            obs, reward, done, info = env.step(action.tolist())
+            
+            # Check collision AFTER step (on new state)
+            has_collision, pos, normal, geom1, geom2 = detector.check_collision_details()
+            if has_collision:
+                trajectory["collision_occurred"] = True
+                trajectory["collision_steps"] += 1
+                if trajectory["collision_step"] is None:
+                    trajectory["collision_step"] = len(trajectory["actions"])
+
+            # Get robot state AFTER step
+            robot_state = _get_robot_state(env)
+            
+            # Log action and features (from BEFORE step, as they were used to generate the action)
+            if store_observations:
+                trajectory.setdefault("observations", []).append(obs)
+            trajectory["actions"].append(action)
+            trajectory["features"].append(features)
+            trajectory["robot_states"].append(robot_state)
+            trajectory["rewards"].append(reward)
+            
+            # Log step data
+            trajectory["steps"].append(
+                {
+                    "action": np.array(action, dtype=np.float32),
+                    "hidden_state": np.array(features, dtype=np.float32),
+                    "collision": bool(has_collision),
+                    "collision_pos": None if pos is None else pos.tolist(),
+                    "collision_normal": None if normal is None else normal.tolist(),
+                    "collision_geoms": [geom1, geom2],
+                    "robot_state": robot_state,
+                    "done": bool(done),
+                }
             )
-            action_queue.extend(actions)
-            last_features = features
-        else:
-            features = last_features
-
-        action = action_queue.popleft()
-        action = _process_action(action, cfg.model_family)
-
-        if features is None:
-            features = np.zeros((1,), dtype=np.float32)
-
-        robot_state = _get_robot_state(env)
-        trajectory["observations"].append(obs)
-        trajectory["actions"].append(action)
-        trajectory["features"].append(features)
-        trajectory["robot_states"].append(robot_state)
-
-        has_collision, pos, normal, geom1, geom2 = detector.check_collision_details()
-        if has_collision:
-            trajectory["collision_occurred"] = True
-            trajectory["collision_steps"] += 1
-            if trajectory["collision_step"] is None:
-                trajectory["collision_step"] = len(trajectory["actions"])
-
-        obs, reward, done, info = env.step(action.tolist())
-        trajectory["rewards"].append(reward)
-        trajectory["steps"].append(
-            {
-                "action": np.array(action, dtype=np.float32),
-                "hidden_state": np.array(features, dtype=np.float32),
-                "collision": bool(has_collision),
-                "collision_pos": None if pos is None else pos.tolist(),
-                "collision_normal": None if normal is None else normal.tolist(),
-                "collision_geoms": [geom1, geom2],
-                "robot_state": robot_state,
-            }
-        )
-        if _check_success(env, info):
-            trajectory["success"] = True
-            break
-        if done:
-            break
-        t += 1
+            
+            # Match official OFT eval: if done, treat as success and break immediately
+            if done:
+                trajectory["success"] = True
+                break
+            t += 1
+    finally:
+        if video_writer is not None:
+            video_writer.close()
+        if video_path is not None:
+            trajectory["video_path"] = str(video_path)
 
     return trajectory
 
@@ -336,6 +403,12 @@ if __name__ == "__main__":
     parser.add_argument("--max-attempts-per-task", type=int, default=20)
     parser.add_argument("--camera-res", type=int, default=256)
     parser.add_argument("--save_dir", default="data/rollouts")
+    parser.add_argument("--checkpoint-every", type=int, default=25)
+    parser.add_argument("--store-observations", action="store_true")
+    parser.add_argument("--save-video", action="store_true")
+    parser.add_argument("--video-dir", default="data/rollouts_videos")
+    parser.add_argument("--video-fps", type=int, default=30)
+    parser.add_argument("--num-images", type=int, default=2)
     parser.add_argument("--seed", type=int, default=0)
     args = parser.parse_args()
 
@@ -349,7 +422,7 @@ if __name__ == "__main__":
         use_l1_regression=True,
         use_diffusion=False,
         center_crop=True,
-        num_images_in_input=2,
+        num_images_in_input=args.num_images,
     )
 
     success_rollouts, failure_rollouts = collect_rollouts(
@@ -359,6 +432,11 @@ if __name__ == "__main__":
         args.n_failure,
         args.max_attempts_per_task,
         args.seed,
+        args.checkpoint_every,
+        args.store_observations,
+        args.save_video,
+        args.video_dir,
+        args.video_fps,
     )
 
     print(

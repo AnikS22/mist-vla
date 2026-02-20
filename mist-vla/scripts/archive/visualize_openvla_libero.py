@@ -22,7 +22,7 @@ if str(REPO_ROOT) not in sys.path:
 from libero.libero import benchmark, get_libero_path
 from libero.libero.envs import OffScreenRenderEnv
 
-from src.models.vla_wrapper import OpenVLAWrapper
+from src.models.vla_wrapper import create_vla_wrapper
 
 
 def _to_pil(image):
@@ -45,6 +45,8 @@ def main() -> None:
     parser.add_argument("--camera-height", type=int, default=256)
     parser.add_argument("--camera-width", type=int, default=256)
     parser.add_argument("--save-frames", type=str, default="")
+    parser.add_argument("--model-type", default="openvla", choices=["openvla", "openvla_oft"])
+    parser.add_argument("--model-name", default="openvla/openvla-7b")
     args = parser.parse_args()
 
     # PyTorch 2.6+ weights_only default breaks LIBERO init states
@@ -85,7 +87,11 @@ def main() -> None:
             torch.cuda.set_device(0)
         except Exception:
             pass
-    policy = OpenVLAWrapper("openvla/openvla-7b", device=args.device)
+    policy = create_vla_wrapper(
+        model_type=args.model_type,
+        model_name=args.model_name,
+        device=args.device,
+    )
 
     save_dir = Path(args.save_frames) if args.save_frames else None
     if save_dir:
@@ -109,7 +115,7 @@ def main() -> None:
         if image is None:
             image = obs.get("image")
         image = _to_pil(image)
-        action, _ = policy.get_action_with_features(image, instruction)
+        action, _ = policy.get_action_with_features(image, instruction, obs=obs)
         action_np = action.detach().cpu().numpy()
 
         if show:

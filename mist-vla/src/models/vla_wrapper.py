@@ -31,13 +31,17 @@ class OpenVLAWrapper:
         )
 
         if model is None:
-            # Try FlashAttention2; fall back to eager if unavailable.
-            try:
-                import flash_attn  # noqa: F401
+            # Try FlashAttention2 on Ampere+ GPUs; fall back to eager otherwise.
+            attn_impl = "eager"
+            if device.startswith("cuda") and torch.cuda.is_available():
+                try:
+                    major, _minor = torch.cuda.get_device_capability()
+                    if major >= 8:
+                        import flash_attn  # noqa: F401
 
-                attn_impl = "flash_attention_2"
-            except Exception:
-                attn_impl = "eager"
+                        attn_impl = "flash_attention_2"
+                except Exception:
+                    attn_impl = "eager"
 
             self.model = AutoModelForVision2Seq.from_pretrained(
                 model_name,

@@ -39,12 +39,12 @@ class HookedOpenVLA:
             except Exception:
                 attn_impl = "eager"
 
-            self.model = AutoModelForVision2Seq.from_pretrained(
-                model_name,
+        self.model = AutoModelForVision2Seq.from_pretrained(
+            model_name,
                 torch_dtype=torch_dtype,
-                trust_remote_code=True,
+            trust_remote_code=True,
                 attn_implementation=attn_impl,
-            ).to(device)
+        ).to(device)
         else:
             self.model = model
 

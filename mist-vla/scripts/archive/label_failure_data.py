@@ -65,6 +65,7 @@ def _label_rollout(
     action_thresh_trans: float,
     action_thresh_rot: float,
     action_thresh_grip: float,
+    ang_vel_thresh: float,
 ):
     steps = traj.get("steps", [])
     if not steps:
@@ -118,6 +119,9 @@ def _label_rollout(
             per_dim_risk[:3] = (np.abs(action[:3]) >= action_thresh_trans).astype(np.int32)
 
         rot_mask = (np.abs(action[3:6]) >= action_thresh_rot).astype(np.int32)
+        if robot_state and "eef_ang_vel" in robot_state:
+            eef_ang_vel = np.array(robot_state["eef_ang_vel"], dtype=np.float32)
+            rot_mask = np.maximum(rot_mask, (np.abs(eef_ang_vel) >= ang_vel_thresh).astype(np.int32))
         grip_mask = 1 if abs(action[6]) >= action_thresh_grip else 0
         per_dim_risk[3:6] = np.maximum(per_dim_risk[3:6], rot_mask)
         per_dim_risk[6] = max(per_dim_risk[6], grip_mask)
@@ -142,8 +146,9 @@ def main() -> None:
     parser.add_argument("--k-collision", type=int, default=10)
     parser.add_argument("--action-thresh", type=float, default=0.2)
     parser.add_argument("--action-thresh-trans", type=float, default=0.05)
-    parser.add_argument("--action-thresh-rot", type=float, default=0.2)
+    parser.add_argument("--action-thresh-rot", type=float, default=0.05)
     parser.add_argument("--action-thresh-grip", type=float, default=0.2)
+    parser.add_argument("--ang-vel-thresh", type=float, default=0.1)
     parser.add_argument("--normal-thresh", type=float, default=0.3)
     args = parser.parse_args()
 
@@ -161,6 +166,7 @@ def main() -> None:
             args.action_thresh_trans,
             args.action_thresh_rot,
             args.action_thresh_grip,
+            args.ang_vel_thresh,
         )
 
     metadata = dict(metadata)
@@ -172,6 +178,7 @@ def main() -> None:
         "action_thresh_trans": args.action_thresh_trans,
         "action_thresh_rot": args.action_thresh_rot,
         "action_thresh_grip": args.action_thresh_grip,
+        "ang_vel_thresh": args.ang_vel_thresh,
     }
     _save_rollouts(out_path, trajectories, metadata)
 

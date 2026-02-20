@@ -212,10 +212,10 @@ def collect_rollout(
 
     # Check success one more time in case info only appears at the end
     if isinstance(info, dict):
-        if 'success' in info:
-            trajectory['success'] = info['success']
-        elif 'is_success' in info:
-            trajectory['success'] = info['is_success']
+    if 'success' in info:
+        trajectory['success'] = info['success']
+    elif 'is_success' in info:
+        trajectory['success'] = info['is_success']
 
     trajectory['failure'] = not trajectory['success']
     return trajectory
@@ -273,7 +273,7 @@ def collect_data(
     if device == "cpu":
         model = model.to(device=device, dtype=torch.float32)
     else:
-        model = model.to(device)
+    model = model.to(device)
     model.eval()
     print(f"  ✓ Model loaded on {device}")
 

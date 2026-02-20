@@ -1,0 +1,10 @@
+{
+  "datasets": [
+    {
+      "model_name": "openvla_oft",
+      "data_path": "data/training_datasets/openvla_oft_dataset.pkl",
+      "description": "OpenVLA-OFT fine-tuned on LIBERO"
+    }
+  ],
+  "note": "Add more datasets here as you collect data from other models"
+}

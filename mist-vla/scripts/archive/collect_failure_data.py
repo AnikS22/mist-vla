@@ -75,6 +75,10 @@ def _get_robot_state(env):
     sim = None
     if hasattr(env, "env") and hasattr(env.env, "sim"):
         sim = env.env.sim
+    elif hasattr(env, "env") and hasattr(env.env, "env") and hasattr(env.env.env, "sim"):
+        sim = env.env.env.sim
+    elif hasattr(env, "_env") and hasattr(env._env, "sim"):
+        sim = env._env.sim
     elif hasattr(env, "sim"):
         sim = env.sim
     if sim is None:
@@ -428,10 +432,11 @@ if __name__ == "__main__":
     parser.add_argument("--checkpoint-every", type=int, default=25)
     parser.add_argument("--model-type", default="openvla", choices=["openvla", "openvla_oft"])
     parser.add_argument("--model-name", default="openvla/openvla-7b")
+    parser.add_argument("--device", default=None, help="Device for model (cpu or cuda)")
     parser.add_argument("--no-perturbations", action="store_true")
     args = parser.parse_args()
 
-    policy = create_vla_wrapper(args.model_type, args.model_name)
+    policy = create_vla_wrapper(args.model_type, args.model_name, device=args.device)
 
     collect_rollouts(
         args.env,

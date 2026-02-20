@@ -114,6 +114,52 @@ class CollisionDetector:
 
         return False, None, None, None, None
 
+    # Backwards-compatible alias for older call sites.
+    def get_collision_details(self) -> Dict:
+        """
+        Return a debug-friendly dict plus collision summary.
+        """
+        details = {
+            "num_contacts": 0,
+            "contacts": [],
+            "has_collision": False,
+            "collision_position": None,
+            "collision_normal": None,
+            "collision_geoms": [None, None],
+        }
+
+        hit, pos, normal, geom1, geom2 = self.check_collision_details()
+        details["has_collision"] = bool(hit)
+        details["collision_position"] = pos
+        details["collision_normal"] = normal
+        details["collision_geoms"] = [geom1, geom2]
+
+        # Populate contact list for debugging.
+        if hasattr(self.env, "env") and hasattr(self.env.env, "sim"):
+            sim = self.env.env.sim
+        elif hasattr(self.env, "sim"):
+            sim = self.env.sim
+        else:
+            return details
+
+        details["num_contacts"] = int(getattr(sim.data, "ncon", 0))
+        for i in range(min(details["num_contacts"], 10)):
+            contact = sim.data.contact[i]
+            try:
+                geom1_name = sim.model.geom_id2name(contact.geom1)
+                geom2_name = sim.model.geom_id2name(contact.geom2)
+                details["contacts"].append(
+                    {
+                        "geom1": geom1_name,
+                        "geom2": geom2_name,
+                        "position": contact.pos.copy(),
+                    }
+                )
+            except Exception:
+                continue
+
+        return details
+
     def _is_invalid_collision(
         self, geom1: str, geom2: str, contact
     ) -> Tuple[bool, Optional[np.ndarray], Optional[np.ndarray]]:
@@ -227,55 +273,6 @@ class CollisionDetector:
             except:
                 # Last resort: return origin
                 return np.array([0.0, 0.0, 0.0])
-
-    def get_collision_details(self) -> Dict:
-        """
-        Get detailed collision information for debugging.
-
-        Returns:
-            Dictionary with collision details
-        """
-        # Get fresh sim reference
-        if hasattr(self.env, 'env') and hasattr(self.env.env, 'sim'):
-            sim = self.env.env.sim
-        elif hasattr(self.env, 'sim'):
-            sim = self.env.sim
-        else:
-            return {
-                'num_contacts': 0,
-                'contacts': [],
-                'has_collision': False,
-                'collision_position': None,
-            }
-
-        details = {
-            'num_contacts': sim.data.ncon,
-            'contacts': [],
-            'has_collision': False,
-            'collision_position': None,
-        }
-
-        has_collision, collision_pos = self.check_collision()
-        details['has_collision'] = has_collision
-        details['collision_position'] = collision_pos
-
-        for i in range(min(sim.data.ncon, 10)):  # Limit to 10 for debug
-            contact = sim.data.contact[i]
-            try:
-                geom1_name = sim.model.geom_id2name(contact.geom1)
-                geom2_name = sim.model.geom_id2name(contact.geom2)
-
-                details['contacts'].append({
-                    'geom1': geom1_name,
-                    'geom2': geom2_name,
-                    'position': contact.pos.copy(),
-                    'force': np.linalg.norm(contact.force) if hasattr(contact, 'force') else 0.0,
-                })
-            except:
-                continue
-
-        return details
-
 
 def test_collision_detector():
     """Test collision detector on a LIBERO environment."""
