@@ -13,7 +13,7 @@
 ###############################################################################
 #  OCTO DATA COLLECTION — Separate JAX-based VLA
 #
-#  Step 1: Setup octo conda env (if not exists)
+#  Step 1: Setup octo conda env (rebuild to fix deps)
 #  Step 2: Collect rollouts on libero_spatial using Octo-Base
 ###############################################################################
 
@@ -36,11 +36,10 @@ eval "$(conda shell.bash hook)"
 
 cd /mnt/onefs/home/asahai2024/mist-vla
 
-# ─── Step 1: Rebuild Octo env with bundled CUDA ───
+# ─── Step 1: Rebuild Octo env ───
 ENV_NAME="octo-env"
 
-# Force rebuild to fix cuSPARSE issue
-echo "Rebuilding Octo environment with bundled CUDA..."
+echo "Rebuilding Octo environment to fix JAX/CUDA + flax deps..."
 conda remove -n "${ENV_NAME}" --all -y 2>/dev/null || true
 bash scripts/hpc/setup_octo_env.sh
 
@@ -57,10 +56,9 @@ export PYOPENGL_PLATFORM=egl
 export MUJOCO_GL=egl
 export PYTHONUNBUFFERED=1
 
-# *** Critical for JAX GPU detection on SLURM ***
+# JAX GPU detection
 export XLA_FLAGS="--xla_gpu_cuda_data_dir=$(dirname $(dirname $(which nvcc)))"
 export LD_LIBRARY_PATH="/mnt/beegfs/home/asahai2024/.conda/envs/octo-env/lib:${LD_LIBRARY_PATH:-}"
-# Force JAX to use the allocated GPU
 export JAX_PLATFORMS="cuda"
 export XLA_PYTHON_CLIENT_PREALLOCATE=false
 
@@ -79,7 +77,15 @@ python3 -c "
 import jax
 print(f'  JAX version: {jax.__version__}')
 print(f'  JAX devices: {jax.devices()}')
-print(f'  GPU available: {len(jax.devices(\"gpu\")) > 0}')
+try:
+    gpu_devs = jax.devices('gpu')
+    print(f'  GPU devices: {gpu_devs}')
+except:
+    print('  WARNING: No GPU found - will try anyway')
+import flax
+print(f'  Flax: {flax.__version__}')
+from octo.model.octo_model import OctoModel
+print(f'  OctoModel: importable')
 "
 echo ""
 
@@ -92,7 +98,7 @@ python -u scripts/collect_octo_data.py \
     --env libero_spatial \
     --n_success 50 \
     --n_failure 50 \
-    --max-attempts-per-task 30 \
+    --max-attempts-per-task 500 \
     --save_dir data/multi_model/octo_spatial \
     --seed 42
 

@@ -91,7 +91,7 @@ python -u scripts/collect_baseline_data.py \
     --checkpoint checkpoints/act/best_model.pt \
     --env libero_spatial \
     --n-success 50 --n-failure 50 \
-    --max-attempts-per-task 200 \
+    --max-attempts-per-task 500 \
     --save-dir data/multi_model/act_spatial
 
 echo ""

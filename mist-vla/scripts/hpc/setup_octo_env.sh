@@ -4,6 +4,7 @@
 #  Run this interactively on a GPU node, or as a short SLURM job.
 #
 #  Octo is JAX-based (not PyTorch), so we need a separate conda env.
+#  Pinned to JAX 0.4.35 for Octo compatibility + CUDA 12 support.
 ###############################################################################
 
 set -eo pipefail
@@ -30,20 +31,28 @@ fi
 
 conda activate "${ENV_NAME}"
 
-# Install JAX with CUDA support (use cuda12_pip to bundle CUDA libs)
-echo "Installing JAX with bundled CUDA 12 support..."
-pip install --upgrade "jax[cuda12_pip]" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
-# Also install nvidia-cusparse-cu12 explicitly in case it's missing
-pip install nvidia-cusparse-cu12 nvidia-cusolver-cu12 nvidia-cuda-runtime-cu12 nvidia-cudnn-cu12 2>/dev/null || true
+# ─── Install JAX 0.4.x with CUDA 12 support ───
+# Octo requires JAX 0.4.x; 0.5+ breaks API compatibility
+# Use the jax_cuda_releases index for proper CUDA-bundled jaxlib
+echo "Installing JAX 0.4.35 with CUDA 12 support..."
+pip install "jax==0.4.35" "jaxlib==0.4.35+cuda12.cudnn92" \
+    -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
 
-# Install Octo from GitHub (not on PyPI)
+# ─── Install Octo core deps that the pip install misses ───
+echo "Installing flax and other Octo dependencies..."
+pip install flax==0.8.5 orbax-checkpoint==0.6.4 distrax==0.1.5 \
+    chex==0.1.87 optax==0.2.3 tensorflow_probability==0.24.0
+
+# ─── Install Octo from GitHub ───
 echo "Installing Octo from source..."
-pip install "git+https://github.com/octo-models/octo.git"
+pip install "git+https://github.com/octo-models/octo.git" --no-deps
+# Now install remaining deps that Octo needs but we haven't covered
+pip install dlimp absl-py ml-collections einops 2>/dev/null || true
 
-# Install LIBERO dependencies (needed for env)
+# ─── Install LIBERO dependencies (needed for env) ───
 echo "Installing LIBERO + MuJoCo dependencies..."
 pip install mujoco
-pip install robosuite
+pip install "robosuite==1.4.0"
 pip install libero
 pip install imageio[ffmpeg]
 pip install torch torchvision  # For data processing utilities
@@ -57,8 +66,13 @@ python3 -c "
 import jax
 print(f'JAX version: {jax.__version__}')
 print(f'JAX devices: {jax.devices()}')
-import octo
-print(f'Octo: installed')
+try:
+    gpu_devs = jax.devices('gpu')
+    print(f'GPU devices: {gpu_devs}')
+except:
+    print('WARNING: No GPU devices found')
+import flax
+print(f'Flax version: {flax.__version__}')
 from octo.model.octo_model import OctoModel
 print(f'OctoModel: importable')
 print('✓ All good!')

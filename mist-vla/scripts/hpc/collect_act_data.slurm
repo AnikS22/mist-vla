@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH --job-name=train_dp
-#SBATCH --output=/mnt/onefs/home/asahai2024/mist-vla/logs/train_dp_%j.out
-#SBATCH --error=/mnt/onefs/home/asahai2024/mist-vla/logs/train_dp_%j.err
+#SBATCH --job-name=col_act
+#SBATCH --output=/mnt/onefs/home/asahai2024/mist-vla/logs/col_act_%j.out
+#SBATCH --error=/mnt/onefs/home/asahai2024/mist-vla/logs/col_act_%j.err
 #SBATCH --time=5:59:00
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
@@ -11,17 +11,15 @@
 #SBATCH --partition=shortq7
 
 ###############################################################################
-#  DIFFUSION POLICY — Train on LIBERO demos → Collect full rollout data
-#  (SafeVLA format: features + EEF + actions + success/failure)
-#
-#  Row 5 of the paper table
+#  ACT — Collect rollout data ONLY (model already trained)
+#  Checkpoint: checkpoints/act/best_model.pt
 ###############################################################################
 
 set -eo pipefail
 export PYTHONUNBUFFERED=1
 
 echo "================================================================"
-echo "  DIFFUSION POLICY — Train + Collect Data"
+echo "  ACT — Collect Rollout Data"
 echo "================================================================"
 echo "  Job:  ${SLURM_JOB_ID}"
 echo "  Node: ${SLURM_NODELIST:-unknown}"
@@ -54,49 +52,26 @@ export PYTHONPATH="/mnt/onefs/home/asahai2024/mist-vla/scripts:${PYTHONPATH:-}"
 
 python3 -c "import torch; print(f'CUDA: {torch.cuda.is_available()}, {torch.cuda.device_count()} GPUs')"
 
-DATASET_DIR=$(python3 -c "from libero.libero import get_libero_path; print(get_libero_path('datasets'))")
-echo "  Dataset dir: ${DATASET_DIR}"
-
-N_HDF5=$(find "${DATASET_DIR}" -name "*.hdf5" 2>/dev/null | wc -l)
-if [ "${N_HDF5}" -eq 0 ]; then
-    echo "ERROR: No LIBERO demo HDF5 files found!"
+# Verify checkpoint exists
+CKPT="checkpoints/act/best_model.pt"
+if [ ! -f "${CKPT}" ]; then
+    echo "ERROR: Checkpoint not found: ${CKPT}"
     exit 1
 fi
-echo "  Found ${N_HDF5} HDF5 demo files"
+echo "  Checkpoint: ${CKPT} ($(du -h ${CKPT} | cut -f1))"
 
-mkdir -p checkpoints/diffusion_policy data/multi_model/dp_spatial
-
-# ─── Phase 1: Train ───
-echo ""
-echo "================================================================"
-echo "  Phase 1: Training Diffusion Policy on LIBERO spatial"
-echo "================================================================"
-
-python -u scripts/train_diffusion_policy_libero.py \
-    --dataset-dir "${DATASET_DIR}" \
-    --benchmark LIBERO_SPATIAL \
-    --output-dir checkpoints/diffusion_policy \
-    --epochs 200 \
-    --batch-size 256 \
-    --seed 42
-
-# ─── Phase 2: Collect rollout data (SafeVLA format) ───
-echo ""
-echo "================================================================"
-echo "  Phase 2: Collecting rollout data (SafeVLA format)"
-echo "================================================================"
+mkdir -p data/multi_model/act_spatial
 
 python -u scripts/collect_baseline_data.py \
-    --model-type diffusion_policy \
-    --checkpoint checkpoints/diffusion_policy/best_model.pt \
+    --model-type act \
+    --checkpoint "${CKPT}" \
     --env libero_spatial \
     --n-success 50 --n-failure 50 \
     --max-attempts-per-task 500 \
-    --save-dir data/multi_model/dp_spatial
+    --save-dir data/multi_model/act_spatial
 
 echo ""
 echo "================================================================"
-echo "  DIFFUSION POLICY — COMPLETE"
-echo "  Data:    data/multi_model/dp_spatial/"
-echo "  Model:   checkpoints/diffusion_policy/best_model.pt"
+echo "  ACT COLLECTION — COMPLETE"
+echo "  Data: data/multi_model/act_spatial/"
 echo "================================================================"

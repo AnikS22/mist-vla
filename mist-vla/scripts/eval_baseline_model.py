@@ -24,7 +24,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from libero.libero import benchmark as libero_benchmark
+from libero.libero import benchmark as libero_benchmark, get_libero_path
 from libero.libero.envs import OffScreenRenderEnv
 import robosuite.utils.transform_utils as T
 
@@ -193,8 +193,11 @@ def main():
         init_states = task_suite.get_task_init_states(task_id)
 
         # Create environment
+        task_bddl_file = str(
+            Path(get_libero_path("bddl_files")) / task.problem_folder / task.bddl_file
+        )
         env_args = {
-            "bddl_file_name": task.problem_folder,
+            "bddl_file_name": task_bddl_file,
             "camera_heights": 128,
             "camera_widths": 128,
         }
