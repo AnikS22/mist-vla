@@ -34,14 +34,16 @@ conda activate "${ENV_NAME}"
 # ─── Install JAX 0.4.x with CUDA 12 support ───
 # Octo requires JAX 0.4.x; 0.5+ breaks API compatibility
 # Use the jax_cuda_releases index for proper CUDA-bundled jaxlib
-echo "Installing JAX 0.4.35 with CUDA 12 support..."
-pip install "jax==0.4.35" "jaxlib==0.4.35+cuda12.cudnn92" \
+# Available CUDA builds: 0.4.28+cuda12.cudnn89 is the last stable one
+echo "Installing JAX 0.4.28 with CUDA 12 support..."
+pip install "jax==0.4.28" "jaxlib==0.4.28+cuda12.cudnn89" \
     -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
 
 # ─── Install Octo core deps that the pip install misses ───
 echo "Installing flax and other Octo dependencies..."
-pip install flax==0.8.5 orbax-checkpoint==0.6.4 distrax==0.1.5 \
-    chex==0.1.87 optax==0.2.3 tensorflow_probability==0.24.0
+pip install "flax>=0.7.0,<0.9.0" "orbax-checkpoint>=0.5.0,<0.7.0" \
+    "distrax>=0.1.3" "chex>=0.1.80" "optax>=0.1.7" \
+    "tensorflow_probability>=0.22.0,<0.25.0"
 
 # ─── Install Octo from GitHub ───
 echo "Installing Octo from source..."

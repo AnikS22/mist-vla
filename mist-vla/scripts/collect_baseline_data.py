@@ -89,11 +89,12 @@ class DPWrapper:
 
         if len(self.action_queue) == 0:
             with torch.no_grad():
-                # Extract features from the observation encoder
+                # encode_obs expects 5D (B, T, C, H, W) / 3D (B, T, obs_dim)
+                # and internally selects the last timestep with [:, -1]
                 imgs = img_tensor.unsqueeze(1).expand(-1, 2, -1, -1, -1)
                 proprios = proprio_tensor.unsqueeze(1).expand(-1, 2, -1)
                 features = self.model.encode_obs(
-                    imgs[:, -1], proprios[:, -1])  # (1, 256)
+                    imgs, proprios)  # (1, 256)
                 self.last_features = features[0].cpu().numpy()
 
                 # Get action chunk
