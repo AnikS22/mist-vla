@@ -77,29 +77,32 @@ pip install \
     "numpy<2" scipy toolz etils tensorstore \
     nest-asyncio absl-py clu
 
-# ─── Step 3: tensorflow-cpu (Octo uses tf for data loading only) ───
+# ─── Step 3: tensorflow 2.15 CPU + dlimp (Octo's data loading) ───
+# dlimp requires tensorflow ~= 2.15. We install the CPU variant to avoid
+# nvidia-cudnn conflicts with JAX's bundled cuDNN 8.9.
 echo ""
-echo "[3/7] Installing tensorflow-cpu..."
-pip install --no-deps tensorflow-cpu
-# TF's non-GPU deps
-pip install flatbuffers gast google-pasta h5py keras libclang \
-    ml-dtypes opt-einsum protobuf termcolor wrapt grpcio \
-    tensorboard markdown werkzeug 2>/dev/null || true
+echo "[3/7] Installing tensorflow 2.15 (CPU) + dlimp..."
+pip install "tensorflow-cpu==2.15.*"
+
+# dlimp (from kvablack/dlimp) — install with --no-deps to prevent it
+# pulling the full GPU tensorflow which would overwrite our CPU version
+pip install --no-deps "git+https://github.com/kvablack/dlimp.git"
+# dlimp's runtime deps (that aren't already installed)
+pip install tensorflow_datasets simple_parsing immutabledict
 
 # ─── Step 4: tensorflow_probability (--no-deps) ───
 echo ""
-echo "[4/7] Installing tensorflow_probability (--no-deps)..."
-pip install --no-deps "tensorflow_probability>=0.22.0,<0.25.0"
-pip install decorator dm-tree  # its actual deps
+echo "[4/7] Installing tensorflow_probability..."
+pip install --no-deps "tensorflow_probability==0.23.*"
+pip install decorator dm-tree cloudpickle  # its actual deps
 
 # ─── Step 5: Install Octo from GitHub (--no-deps) ───
 echo ""
 echo "[5/7] Installing Octo from source (--no-deps)..."
 pip install --no-deps "git+https://github.com/octo-models/octo.git"
 
-# Octo's remaining deps — these MUST succeed
-echo "  Installing Octo's required deps (dlimp, ml-collections, einops)..."
-pip install dlimp
+# Octo's remaining deps
+echo "  Installing Octo's remaining deps..."
 pip install ml-collections einops
 
 # ─── Step 6: LIBERO + rendering + torch CPU ───
@@ -110,6 +113,9 @@ pip install imageio pillow scikit-learn
 
 # CPU-only torch — does NOT install nvidia-cudnn-cu12 v9
 pip install torch torchvision --index-url "${TORCH_CPU_INDEX}"
+
+# Ensure numpy < 2 (jaxlib 0.4.28 needs numpy 1.x)
+pip install "numpy<2"
 
 # ─── Step 7: FORCE reinstall CUDA jaxlib (nuclear guarantee) ───
 echo ""
