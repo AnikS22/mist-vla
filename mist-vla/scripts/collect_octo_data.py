@@ -210,7 +210,15 @@ def run_octo_episode(model, env, task_description, max_steps=250, resolution=256
 
 def collect_rollouts(model, env, task_description, task_id, n_success, n_failure,
                      max_attempts, init_states=None, resolution=256):
-    """Collect success and failure rollouts for one task."""
+    """Collect success and failure rollouts for one task.
+
+    Early-exit logic: if after PATIENCE attempts one quota is completely empty
+    (0 successes or 0 failures), we give up on that quota — the model simply
+    can't produce that outcome.  This prevents spinning for thousands of
+    attempts when a model has ~0 % success rate (e.g. Octo-Base, DP).
+    """
+    PATIENCE = min(150, max_attempts)  # attempts before early-exit check
+
     successes = []
     failures = []
     attempt = 0
@@ -240,6 +248,21 @@ def collect_rollouts(model, env, task_description, task_id, n_success, n_failure
               f"S={len(successes)}/{n_success}  F={len(failures)}/{n_failure}",
               flush=True)
 
+        # ── Early exit: one quota full, other stuck at 0 ──
+        if attempt >= PATIENCE:
+            if len(failures) >= n_failure and len(successes) == 0:
+                print(f"    ⚠ Early exit (Task {task_id}): 0 successes after "
+                      f"{attempt} attempts — model cannot solve this task.",
+                      flush=True)
+                break
+            if len(successes) >= n_success and len(failures) == 0:
+                print(f"    ⚠ Early exit (Task {task_id}): 0 failures after "
+                      f"{attempt} attempts — model is perfect on this task.",
+                      flush=True)
+                break
+
+    print(f"    ── Task {task_id} done: {len(successes)}S + {len(failures)}F "
+          f"({attempt} attempts) ──", flush=True)
     return successes, failures
 
 
@@ -313,7 +336,7 @@ def main():
         s, f = collect_rollouts(
             model, env, task_desc, task_id,
             args.n_success, args.n_failure,
-            args.max_attempts_per_task * (args.n_success + args.n_failure),
+            args.max_attempts_per_task,
             init_states=init_states,
             resolution=args.resolution,
         )
@@ -322,15 +345,16 @@ def main():
 
         env.close()
 
-        # Checkpoint
+        # Checkpoint after every task (so partial data survives job timeouts)
         total = len(all_successes) + len(all_failures)
-        if total > 0 and total % args.checkpoint_every == 0:
+        if total > 0:
             with open(save_dir / "success_rollouts_partial.pkl", "wb") as fp:
                 pickle.dump(all_successes, fp)
             with open(save_dir / "failure_rollouts_partial.pkl", "wb") as fp:
                 pickle.dump(all_failures, fp)
-            print(f"  [checkpoint] {len(all_successes)}S + {len(all_failures)}F saved",
-                  flush=True)
+            elapsed_so_far = time.time() - t0
+            print(f"  [checkpoint] {len(all_successes)}S + {len(all_failures)}F saved "
+                  f"({elapsed_so_far/60:.1f} min elapsed)", flush=True)
 
         print(flush=True)
 

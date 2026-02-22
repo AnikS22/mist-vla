@@ -137,7 +137,7 @@ python -u scripts/collect_octo_data.py \
     --env libero_spatial \
     --n_success 50 \
     --n_failure 50 \
-    --max-attempts-per-task 500 \
+    --max-attempts-per-task 200 \
     --save_dir data/multi_model/octo_spatial \
     --seed 42
 
