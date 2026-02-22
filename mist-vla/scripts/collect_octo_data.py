@@ -77,65 +77,44 @@ def get_eef_pos(env):
     return np.zeros(3)
 
 
-def extract_octo_embeddings(model, task, images, pad_mask=None):
+def extract_octo_embeddings(model, task_input, observation):
     """
-    Run Octo inference and extract the transformer bottleneck embeddings.
+    Run Octo's full forward pass and extract transformer readout tokens.
 
-    Octo's architecture:
-      Image → ViT encoder → tokens
-      Language → tokenizer → tokens
-      Concat → Transformer (readout tokens) → Diffusion head → actions
-
-    We extract the readout tokens from the transformer as our hidden state.
+    Uses model.module.apply to run the OctoModule.__call__ which returns
+    (transformer_outputs, head_outputs). We mean-pool the transformer
+    outputs across the token dimension to get a single embedding vector.
     """
-    # Build observation dict for Octo
-    observation = {
-        "image_primary": images[np.newaxis],  # (1, T, H, W, 3)
-        "pad_mask": pad_mask if pad_mask is not None else np.ones((1, images.shape[0]), dtype=bool),
-    }
-
-    # Add task (language conditioning)
-    task_input = model.create_tasks(texts=[task])
-
-    # Run the transformer to get internal states
-    # We need to call the model's transformer directly
-    @jax.jit
-    def get_embeddings(obs, task_in):
-        # Tokenize observations
-        obs_tokens = model.module.apply(
-            {"params": model.params},
-            obs,
-            task_in,
-            method=model.module.octo_transformer.encode,
-        )
-        return obs_tokens
-
     try:
-        embeddings = get_embeddings(observation, task_input)
-        # embeddings shape: (1, n_tokens, embed_dim)
-        # Pool across tokens to get a single vector
-        if isinstance(embeddings, dict):
-            # Some Octo versions return a dict
-            embed = list(embeddings.values())[0]
+        # OctoModule.__call__(observations, tasks, pad_mask, train=False)
+        # Returns: transformer_outputs (readout tokens from transformer)
+        pad_mask = observation["timestep_pad_mask"]
+
+        @jax.jit
+        def _forward(params, obs, task_in, mask):
+            return model.module.apply(
+                {"params": params}, obs, task_in, mask, train=False
+            )
+
+        transformer_out, _ = _forward(
+            model.params, observation, task_input, pad_mask
+        )
+
+        # transformer_out is typically a TokenGroup or array: (batch, n_tokens, embed_dim)
+        if hasattr(transformer_out, "tokens"):
+            embed = transformer_out.tokens  # TokenGroup
+        elif isinstance(transformer_out, dict):
+            embed = list(transformer_out.values())[0]
         else:
-            embed = embeddings
-        # Mean pool across token dimension
-        pooled = np.array(jnp.mean(embed, axis=1))  # (1, embed_dim)
+            embed = transformer_out
+
+        # Mean pool across token dim → (batch, embed_dim)
+        pooled = np.array(jnp.mean(embed, axis=1))
         return pooled[0]  # (embed_dim,)
+
     except Exception as e:
         print(f"  ⚠ Embedding extraction failed: {e}", flush=True)
-        print(f"    Falling back to simple forward pass...", flush=True)
-
-        # Fallback: run full forward and extract from action head input
-        try:
-            actions = model.sample_actions(
-                observation, task_input, rng=jax.random.PRNGKey(0)
-            )
-            # Return zeros if we can't get embeddings — we'll fix this per-model
-            return np.zeros(512, dtype=np.float32)
-        except Exception as e2:
-            print(f"  ⚠ Full forward also failed: {e2}", flush=True)
-            return np.zeros(512, dtype=np.float32)
+        return np.zeros(512, dtype=np.float32)
 
 
 def run_octo_episode(model, env, task_description, max_steps=250, resolution=256):
@@ -186,28 +165,27 @@ def run_octo_episode(model, env, task_description, max_steps=250, resolution=256
 
         images = np.stack(image_history, axis=0)  # (T, H, W, 3)
 
-        # Get Octo action + embeddings
+        # Build Octo observation dict (note: "timestep_pad_mask", NOT "pad_mask")
         observation = {
-            "image_primary": images[np.newaxis],  # (1, T, H, W, 3)
-            "pad_mask": np.ones((1, WINDOW_SIZE), dtype=bool),
+            "image_primary": images[np.newaxis],        # (1, T, H, W, 3)
+            "timestep_pad_mask": np.ones((1, WINDOW_SIZE), dtype=bool),
         }
 
+        # Get action
         try:
             rng = jax.random.PRNGKey(step)
             actions = model.sample_actions(observation, task_input, rng=rng)
             action = np.array(actions[0, 0])  # First batch, first timestep
         except Exception as e:
-            print(f"  ⚠ Action prediction failed at step {step}: {e}", flush=True)
+            if step == 0:
+                print(f"  ⚠ Action failed at step {step}: {e}", flush=True)
             action = np.zeros(7, dtype=np.float32)
 
-        # Extract embeddings (do this less frequently to save compute)
-        if step % 1 == 0:  # Every step for now
-            try:
-                features = extract_octo_embeddings(model, task_description, images)
-            except Exception:
-                features = np.zeros(512, dtype=np.float32)
-        else:
-            features = trajectory["features"][-1] if trajectory["features"] else np.zeros(512, dtype=np.float32)
+        # Extract embeddings every step
+        try:
+            features = extract_octo_embeddings(model, task_input, observation)
+        except Exception:
+            features = np.zeros(512, dtype=np.float32)
 
         # Get robot state
         eef_pos = get_eef_pos(env)
@@ -311,8 +289,13 @@ def main():
     # Check embedding dimension
     print("  Probing embedding dimension...", flush=True)
     dummy_img = np.zeros((2, args.resolution, args.resolution, 3), dtype=np.uint8)
+    dummy_obs = {
+        "image_primary": dummy_img[np.newaxis],
+        "timestep_pad_mask": np.ones((1, 2), dtype=bool),
+    }
+    dummy_task = model.create_tasks(texts=["test"])
     try:
-        embed = extract_octo_embeddings(model, "test", dummy_img)
+        embed = extract_octo_embeddings(model, dummy_task, dummy_obs)
         embed_dim = embed.shape[-1]
         print(f"  ✓ Embedding dimension: {embed_dim}", flush=True)
     except Exception as e:
