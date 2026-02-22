@@ -77,34 +77,17 @@ def get_eef_pos(env):
     return np.zeros(3)
 
 
-# ── Cache for JIT-compiled embedding function ──
-_embed_fn = None
-
-
 def extract_octo_embeddings(model, task_input, observation):
     """
-    Run ONLY Octo's transformer (not the diffusion action head) to extract
-    readout token embeddings.
-
-    The diffusion head requires (time, noisy_actions) which we don't have,
-    so we call model.module.octo_transformer directly via `method=`.
+    Use model.run_transformer() to get transformer readout tokens.
+    This is already JIT-compiled and skips the diffusion action head.
     """
-    global _embed_fn
-
     try:
         pad_mask = observation["timestep_pad_mask"]
 
-        if _embed_fn is None:
-            @jax.jit
-            def _forward(params, obs, task_in, mask):
-                return model.module.apply(
-                    {"params": params}, obs, task_in, mask, train=False,
-                    method=model.module.octo_transformer,
-                )
-            _embed_fn = _forward
-
-        transformer_out = _embed_fn(
-            model.params, observation, task_input, pad_mask
+        # run_transformer is already @jax.jit decorated in OctoModel
+        transformer_out = model.run_transformer(
+            observation, task_input, pad_mask, train=False
         )
 
         # transformer_out is a TokenGroup with .tokens: (batch, n_tokens, embed_dim)
