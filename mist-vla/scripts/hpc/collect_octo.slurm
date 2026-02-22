@@ -102,27 +102,30 @@ mkdir -p logs data/multi_model/octo_spatial
 
 echo ""
 echo "=== JAX/GPU Verification (on compute node) ==="
-python3 -c "
-import jaxlib
-print(f'  jaxlib: {jaxlib.__version__}')
-
+python3 << 'VERIFY'
 import jax
+# Compat shim: Octo uses jax.random.KeyArray removed in JAX 0.4.25+
+if not hasattr(jax.random, "KeyArray"):
+    jax.random.KeyArray = jax.Array
+
+import jaxlib
+print(f"  jaxlib: {jaxlib.__version__}")
 devs = jax.devices()
-print(f'  JAX devices: {devs}')
-gpu_devs = [d for d in devs if d.platform == 'gpu']
+print(f"  JAX devices: {devs}")
+gpu_devs = [d for d in devs if d.platform == "gpu"]
 if gpu_devs:
-    print(f'  GPU devices: {gpu_devs}')
+    print(f"  GPU devices: {gpu_devs}")
 else:
-    print('  ERROR: No GPU detected!')
+    print("  ERROR: No GPU detected!")
     import sys; sys.exit(1)
 
 import tensorflow as tf
-print(f'  TF: {tf.__version__}')
+print(f"  TF: {tf.__version__}")
 
 from octo.model.octo_model import OctoModel
-print(f'  OctoModel: OK')
-print('  All checks passed.')
-"
+print(f"  OctoModel: OK")
+print("  All checks passed.")
+VERIFY
 echo ""
 
 # ─── Phase 2: Collect Data ───
