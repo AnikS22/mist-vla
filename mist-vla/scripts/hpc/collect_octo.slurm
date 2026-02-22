@@ -11,10 +11,10 @@
 #SBATCH --partition=shortq7
 
 ###############################################################################
-#  OCTO DATA COLLECTION — Separate JAX-based VLA
+#  OCTO DATA COLLECTION — JAX-based VLA
 #
-#  Step 1: Setup octo conda env (rebuild to fix deps)
-#  Step 2: Collect rollouts on libero_spatial using Octo-Base
+#  Phase 1: Build octo-env from scratch (if missing or broken)
+#  Phase 2: Collect rollouts on libero_spatial
 ###############################################################################
 
 set -eo pipefail
@@ -25,7 +25,7 @@ echo "================================================================"
 echo "Job ID:  ${SLURM_JOB_ID}"
 echo "Node:    ${SLURM_NODELIST:-unknown}"
 echo "Date:    $(date)"
-echo "GPU:     $(nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null || echo 'N/A')"
+echo "GPU:     $(nvidia-smi --query-gpu=name,memory.total --format=csv,noheader 2>/dev/null || echo 'N/A')"
 echo "================================================================"
 
 module purge
@@ -36,16 +36,36 @@ eval "$(conda shell.bash hook)"
 
 cd /mnt/onefs/home/asahai2024/mist-vla
 
-# ─── Step 1: Rebuild Octo env ───
+# ─── Phase 1: Ensure Octo env works ───
 ENV_NAME="octo-env"
 
-echo "Rebuilding Octo environment to fix JAX/CUDA + flax deps..."
-conda remove -n "${ENV_NAME}" --all -y 2>/dev/null || true
-bash scripts/hpc/setup_octo_env.sh
+# Quick check: can we import octo + tensorflow + get CUDA jaxlib?
+echo ""
+echo "Testing existing Octo environment..."
+ENV_OK=false
+if conda env list | grep -q "${ENV_NAME}"; then
+    conda activate "${ENV_NAME}" 2>/dev/null || true
+    if python3 -c "
+import jaxlib; assert '0.4.28' in jaxlib.__version__
+import tensorflow
+from octo.model.octo_model import OctoModel
+print('ENV OK')
+" 2>/dev/null | grep -q "ENV OK"; then
+        ENV_OK=true
+        echo "  Existing env is healthy, skipping rebuild."
+    else
+        echo "  Existing env is broken, rebuilding..."
+        conda deactivate 2>/dev/null || true
+    fi
+fi
 
-conda activate "${ENV_NAME}"
+if [ "${ENV_OK}" = false ]; then
+    echo "Building Octo environment from scratch..."
+    bash scripts/hpc/setup_octo_env.sh
+    conda activate "${ENV_NAME}"
+fi
 
-# GPU / rendering
+# ─── GPU / Rendering setup ───
 if [ -n "${SLURM_JOB_GPUS:-}" ]; then
     export CUDA_VISIBLE_DEVICES="$(echo "$SLURM_JOB_GPUS" | tr ',' '\n' | head -n1)"
 elif [ -n "${SLURM_GPUS_ON_NODE:-}" ]; then
@@ -56,13 +76,14 @@ export PYOPENGL_PLATFORM=egl
 export MUJOCO_GL=egl
 export PYTHONUNBUFFERED=1
 
-# JAX GPU detection
-export XLA_FLAGS="--xla_gpu_cuda_data_dir=$(dirname $(dirname $(which nvcc)))"
-export LD_LIBRARY_PATH="/mnt/beegfs/home/asahai2024/.conda/envs/octo-env/lib:${LD_LIBRARY_PATH:-}"
+# JAX GPU detection — point to CUDA toolkit and ensure cuDNN is found
+CUDA_DIR=$(dirname $(dirname $(which nvcc)))
+export XLA_FLAGS="--xla_gpu_cuda_data_dir=${CUDA_DIR}"
+export LD_LIBRARY_PATH="${CONDA_PREFIX}/lib:${CUDA_DIR}/lib64:${LD_LIBRARY_PATH:-}"
 export JAX_PLATFORMS="cuda"
 export XLA_PYTHON_CLIENT_PREALLOCATE=false
 
-# HuggingFace cache
+# HuggingFace cache (shared across jobs)
 CACHE_ROOT="/mnt/onefs/home/asahai2024/hf_cache"
 mkdir -p "${CACHE_ROOT}"
 export HF_HOME="${CACHE_ROOT}"
@@ -72,24 +93,31 @@ export PYTHONPATH="/mnt/onefs/home/asahai2024/mist-vla:${PYTHONPATH:-}"
 mkdir -p logs data/multi_model/octo_spatial
 
 echo ""
-echo "JAX/GPU verification:"
+echo "=== JAX/GPU Verification (on compute node) ==="
 python3 -c "
+import jaxlib
+print(f'  jaxlib: {jaxlib.__version__}')
+
 import jax
-print(f'  JAX version: {jax.__version__}')
-print(f'  JAX devices: {jax.devices()}')
-try:
-    gpu_devs = jax.devices('gpu')
+devs = jax.devices()
+print(f'  JAX devices: {devs}')
+gpu_devs = [d for d in devs if d.platform == 'gpu']
+if gpu_devs:
     print(f'  GPU devices: {gpu_devs}')
-except:
-    print('  WARNING: No GPU found - will try anyway')
-import flax
-print(f'  Flax: {flax.__version__}')
+else:
+    print('  ERROR: No GPU detected!')
+    import sys; sys.exit(1)
+
+import tensorflow as tf
+print(f'  TF: {tf.__version__}')
+
 from octo.model.octo_model import OctoModel
-print(f'  OctoModel: importable')
+print(f'  OctoModel: OK')
+print('  All checks passed.')
 "
 echo ""
 
-# ─── Step 2: Collect Data ───
+# ─── Phase 2: Collect Data ───
 echo "Starting Octo data collection on libero_spatial..."
 echo ""
 

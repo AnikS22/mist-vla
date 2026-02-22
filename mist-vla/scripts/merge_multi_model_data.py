@@ -1,10 +1,11 @@
 """
-Merge multi-suite data into a unified training dataset.
+Merge multi-model data into a unified training dataset.
 
-Merges ALL existing OpenVLA-OFT data across 4 LIBERO suites.
-Namespaces task_ids to prevent cross-suite matching during training.
+Merges rollouts from ALL collected models (OpenVLA-OFT, ACT, DP, Octo)
+across LIBERO suites. Namespaces task_ids to prevent cross-suite/model
+matching during training.
 
-Original task_id=3 in libero_object → "libero_object__3"
+Original task_id=3 from ACT on libero_spatial → "act__libero_spatial__3"
 
 Usage:
     python scripts/merge_multi_model_data.py --output data/merged_all
@@ -18,7 +19,11 @@ from pathlib import Path
 
 
 def load_and_tag(directory, model_tag, suite_tag):
-    """Load rollouts, tag with model/suite, and namespace task_ids."""
+    """Load rollouts, tag with model/suite, and namespace task_ids.
+
+    Namespace format: "{model_tag}__{suite_tag}__{original_task_id}"
+    This ensures task_ids are unique across models AND suites.
+    """
     d = Path(directory)
     successes, failures = [], []
 
@@ -32,10 +37,10 @@ def load_and_tag(directory, model_tag, suite_tag):
                 r["model_tag"] = model_tag
                 r["suite_tag"] = suite_tag
                 r["source_dir"] = str(directory)
-                # Namespace task_id to prevent cross-suite matching
+                # Namespace task_id to prevent cross-model/suite matching
                 raw_tid = r.get("task_id", 0)
                 r["original_task_id"] = raw_tid
-                r["task_id"] = f"{suite_tag}__{raw_tid}"
+                r["task_id"] = f"{model_tag}__{suite_tag}__{raw_tid}"
             container.extend(rollouts)
         else:
             print(f"  ⚠ {path} not found, skipping")
@@ -78,23 +83,22 @@ def main():
     all_failures = []
 
     # ─── All existing data sources ───
-    # Order matters: combined has the most spatial data, then multi_suite adds
-    # the remaining suites. We merge ALL.
+    # Each tuple: (directory, model_tag, suite_tag)
+    # model_tag is used for:
+    #   1. Namespacing task_ids
+    #   2. Selecting per-model input projection in the universal MLP
+    #   3. Paper table rows
     sources = [
-        # Original 724-rollout dataset (libero_spatial)
-        ("data/combined",                    "openvla-oft", "libero_spatial"),
-        # Earlier multi-suite collections
-        ("data/multi_suite/libero_spatial",  "openvla-oft", "libero_spatial"),
-        ("data/multi_suite/libero_object",   "openvla-oft", "libero_object"),
-        ("data/multi_suite/libero_goal",     "openvla-oft", "libero_goal"),
-        ("data/multi_suite/libero_10",       "openvla-oft", "libero_10"),
-        # New multi-model data (when collected)
-        ("data/multi_model/openvla_oft__libero_object",       "openvla-oft", "libero_object"),
-        ("data/multi_model/openvla_oft__libero_goal",         "openvla-oft", "libero_goal"),
-        ("data/multi_model/openvla_oft__libero_10",           "openvla-oft", "libero_10"),
-        ("data/multi_model/openvla_oft__libero_spatial_topup","openvla-oft", "libero_spatial"),
-        ("data/multi_model/openvla_oft_allsuite__libero_spatial", "openvla-oft-allsuite", "libero_spatial"),
-        ("data/multi_model/octo_spatial",                     "octo-base",   "libero_spatial"),
+        # ── OpenVLA-OFT (4096-dim features) ──
+        ("data/combined",                                         "openvla-oft", "libero_spatial"),
+        ("data/multi_model/openvla_oft_allsuite__libero_spatial", "openvla-oft", "libero_spatial"),
+        ("data/multi_model/openvla_oft__libero_object",           "openvla-oft", "libero_object"),
+        # ── ACT (256-dim features) ──
+        ("data/multi_model/act_spatial",                          "act",         "libero_spatial"),
+        # ── Diffusion Policy (256-dim features) ──
+        ("data/multi_model/dp_spatial",                           "dp",          "libero_spatial"),
+        # ── Octo (if/when collected) ──
+        ("data/multi_model/octo_spatial",                         "octo-base",   "libero_spatial"),
     ]
 
     print("=" * 70)

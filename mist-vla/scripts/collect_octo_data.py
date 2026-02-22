@@ -28,18 +28,20 @@ from octo.model.octo_model import OctoModel
 from octo.utils.train_callbacks import supply_rng
 
 # LIBERO imports
-from libero.libero import benchmark
+from pathlib import Path as _Path
+from libero.libero import benchmark, get_libero_path
 from libero.libero.envs import OffScreenRenderEnv
-import robosuite.utils.transform_utils as T
 
 from PIL import Image
 
 
 def get_libero_env(task, resolution=256):
     """Create a LIBERO environment for a given task."""
-    task_name = task.name
     task_description = task.language
-    task_bddl_file = task.bddl_file
+    # Full BDDL path — just task.bddl_file alone causes "does not exist" errors
+    task_bddl_file = str(
+        _Path(get_libero_path("bddl_files")) / task.problem_folder / task.bddl_file
+    )
 
     env_args = {
         "bddl_file_name": task_bddl_file,
