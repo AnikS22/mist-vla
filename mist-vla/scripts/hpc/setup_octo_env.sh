@@ -110,6 +110,9 @@ pip install -c "${CONSTRAINTS}" ml-collections einops
 pip install -c "${CONSTRAINTS}" mujoco "robosuite==1.4.0" libero
 pip install -c "${CONSTRAINTS}" imageio pillow scikit-learn
 
+# Pin transformers to 4.x (Octo needs FlaxAutoModel, removed in transformers 5.x)
+pip install -c "${CONSTRAINTS}" "transformers>=4.36,<5.0"
+
 # ─── 7. FORCE reinstall CUDA jaxlib + cuDNN 8.9 (nuclear guarantee) ───
 echo ""
 echo "[7/7] Force-reinstalling CUDA jaxlib + cuDNN 8.9..."
