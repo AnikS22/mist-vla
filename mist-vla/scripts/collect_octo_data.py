@@ -77,32 +77,39 @@ def get_eef_pos(env):
     return np.zeros(3)
 
 
+# ── Cache for JIT-compiled embedding function ──
+_embed_fn = None
+
+
 def extract_octo_embeddings(model, task_input, observation):
     """
-    Run Octo's full forward pass and extract transformer readout tokens.
+    Run ONLY Octo's transformer (not the diffusion action head) to extract
+    readout token embeddings.
 
-    Uses model.module.apply to run the OctoModule.__call__ which returns
-    (transformer_outputs, head_outputs). We mean-pool the transformer
-    outputs across the token dimension to get a single embedding vector.
+    The diffusion head requires (time, noisy_actions) which we don't have,
+    so we call model.module.octo_transformer directly via `method=`.
     """
+    global _embed_fn
+
     try:
-        # OctoModule.__call__(observations, tasks, pad_mask, train=False)
-        # Returns: transformer_outputs (readout tokens from transformer)
         pad_mask = observation["timestep_pad_mask"]
 
-        @jax.jit
-        def _forward(params, obs, task_in, mask):
-            return model.module.apply(
-                {"params": params}, obs, task_in, mask, train=False
-            )
+        if _embed_fn is None:
+            @jax.jit
+            def _forward(params, obs, task_in, mask):
+                return model.module.apply(
+                    {"params": params}, obs, task_in, mask, train=False,
+                    method=model.module.octo_transformer,
+                )
+            _embed_fn = _forward
 
-        transformer_out, _ = _forward(
+        transformer_out = _embed_fn(
             model.params, observation, task_input, pad_mask
         )
 
-        # transformer_out is typically a TokenGroup or array: (batch, n_tokens, embed_dim)
+        # transformer_out is a TokenGroup with .tokens: (batch, n_tokens, embed_dim)
         if hasattr(transformer_out, "tokens"):
-            embed = transformer_out.tokens  # TokenGroup
+            embed = transformer_out.tokens
         elif isinstance(transformer_out, dict):
             embed = list(transformer_out.values())[0]
         else:
