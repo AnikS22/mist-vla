@@ -212,12 +212,12 @@ def collect_rollouts(model, env, task_description, task_id, n_success, n_failure
                      max_attempts, init_states=None, resolution=256):
     """Collect success and failure rollouts for one task.
 
-    Early-exit logic: if after PATIENCE attempts one quota is completely empty
-    (0 successes or 0 failures), we give up on that quota — the model simply
-    can't produce that outcome.  This prevents spinning for thousands of
-    attempts when a model has ~0 % success rate (e.g. Octo-Base, DP).
+    Early-exit logic: once one quota is full and the other has 0 entries,
+    we give a small buffer of extra attempts then move on.  This prevents
+    spinning for thousands of wasted attempts when a model has ~0 % success
+    rate (e.g. Octo-Base, DP).
     """
-    PATIENCE = min(150, max_attempts)  # attempts before early-exit check
+    EARLY_EXIT_BUFFER = 10  # extra attempts after one quota full + other at 0
 
     successes = []
     failures = []
@@ -249,17 +249,18 @@ def collect_rollouts(model, env, task_description, task_id, n_success, n_failure
               flush=True)
 
         # ── Early exit: one quota full, other stuck at 0 ──
-        if attempt >= PATIENCE:
-            if len(failures) >= n_failure and len(successes) == 0:
-                print(f"    ⚠ Early exit (Task {task_id}): 0 successes after "
-                      f"{attempt} attempts — model cannot solve this task.",
-                      flush=True)
-                break
-            if len(successes) >= n_success and len(failures) == 0:
-                print(f"    ⚠ Early exit (Task {task_id}): 0 failures after "
-                      f"{attempt} attempts — model is perfect on this task.",
-                      flush=True)
-                break
+        if len(failures) >= n_failure and len(successes) == 0 \
+                and attempt >= n_failure + EARLY_EXIT_BUFFER:
+            print(f"    ⚠ Early exit (Task {task_id}): 0 successes after "
+                  f"{attempt} attempts — model cannot solve this task.",
+                  flush=True)
+            break
+        if len(successes) >= n_success and len(failures) == 0 \
+                and attempt >= n_success + EARLY_EXIT_BUFFER:
+            print(f"    ⚠ Early exit (Task {task_id}): 0 failures after "
+                  f"{attempt} attempts — model is perfect on this task.",
+                  flush=True)
+            break
 
     print(f"    ── Task {task_id} done: {len(successes)}S + {len(failures)}F "
           f"({attempt} attempts) ──", flush=True)
