@@ -76,10 +76,16 @@ export PYOPENGL_PLATFORM=egl
 export MUJOCO_GL=egl
 export PYTHONUNBUFFERED=1
 
-# JAX GPU detection — point to CUDA toolkit and ensure cuDNN is found
+# JAX GPU detection — point to CUDA toolkit and nvidia-cudnn-cu12 pip package
 CUDA_DIR=$(dirname $(dirname $(which nvcc)))
 export XLA_FLAGS="--xla_gpu_cuda_data_dir=${CUDA_DIR}"
-export LD_LIBRARY_PATH="${CONDA_PREFIX}/lib:${CUDA_DIR}/lib64:${LD_LIBRARY_PATH:-}"
+# Include nvidia pip packages in library path (cuDNN .so lives here)
+NVIDIA_PKGS="${CONDA_PREFIX}/lib/python3.10/site-packages/nvidia"
+CUDNN_LIB=""
+if [ -d "${NVIDIA_PKGS}/cudnn/lib" ]; then
+    CUDNN_LIB="${NVIDIA_PKGS}/cudnn/lib"
+fi
+export LD_LIBRARY_PATH="${CUDNN_LIB}:${CONDA_PREFIX}/lib:${CUDA_DIR}/lib64:${LD_LIBRARY_PATH:-}"
 export JAX_PLATFORMS="cuda"
 export XLA_PYTHON_CLIENT_PREALLOCATE=false
 

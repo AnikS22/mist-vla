@@ -54,10 +54,14 @@ echo ""
 echo "[1/7] Installing core numeric stack..."
 pip install -c "${CONSTRAINTS}" "numpy>=1.24,<2" scipy
 
-# ─── 2. JAX + CUDA jaxlib ─────────────────────────────────────────────
+# ─── 2. JAX + CUDA jaxlib + cuDNN 8.9 ─────────────────────────────────
+# jaxlib 0.4.28+cuda12.cudnn89 does NOT bundle cuDNN; it expects
+# nvidia-cudnn-cu12 to provide the .so files. We pin v8.9 specifically
+# (GPU torch would install v9 which is incompatible).
 echo ""
-echo "[2/7] Installing JAX + CUDA jaxlib..."
+echo "[2/7] Installing JAX + CUDA jaxlib + cuDNN 8.9..."
 pip install -c "${CONSTRAINTS}" "jax==0.4.28" "${JAXLIB_WHEEL}" \
+    "nvidia-cudnn-cu12==8.9.7.29" \
     -f "${JAX_FIND_LINKS}"
 
 # ─── 3. CPU-only PyTorch (BEFORE libero so libero doesn't pull GPU torch) ──
@@ -73,6 +77,8 @@ pip install -c "${CONSTRAINTS}" "tensorflow-cpu>=2.15,<2.16"
 
 # dlimp from GitHub (--no-deps so it doesn't pull tensorflow GPU 2.15)
 pip install --no-deps "git+https://github.com/kvablack/dlimp.git"
+# dlimp needs tensorflow_datasets at import time
+pip install -c "${CONSTRAINTS}" tensorflow_datasets simple_parsing immutabledict
 
 # tensorflow_probability (--no-deps to avoid pulling incompatible jax)
 pip install --no-deps "tensorflow_probability>=0.23,<0.24"
@@ -104,11 +110,12 @@ pip install -c "${CONSTRAINTS}" ml-collections einops
 pip install -c "${CONSTRAINTS}" mujoco "robosuite==1.4.0" libero
 pip install -c "${CONSTRAINTS}" imageio pillow scikit-learn
 
-# ─── 7. FORCE reinstall CUDA jaxlib (nuclear guarantee) ───────────────
+# ─── 7. FORCE reinstall CUDA jaxlib + cuDNN 8.9 (nuclear guarantee) ───
 echo ""
-echo "[7/7] Force-reinstalling CUDA jaxlib..."
+echo "[7/7] Force-reinstalling CUDA jaxlib + cuDNN 8.9..."
 pip install --force-reinstall --no-deps "${JAXLIB_WHEEL}" \
     -f "${JAX_FIND_LINKS}"
+pip install --force-reinstall "nvidia-cudnn-cu12==8.9.7.29"
 
 # ─── Final Verification ───────────────────────────────────────────────
 echo ""
