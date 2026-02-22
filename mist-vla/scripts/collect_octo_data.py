@@ -24,8 +24,13 @@ import numpy as np
 # JAX / Octo imports
 import jax
 import jax.numpy as jnp
+
+# ── Compatibility shim: Octo references jax.random.KeyArray which was
+#    removed in JAX 0.4.25+. Patch it before importing Octo. ──
+if not hasattr(jax.random, "KeyArray"):
+    jax.random.KeyArray = jax.Array
+
 from octo.model.octo_model import OctoModel
-from octo.utils.train_callbacks import supply_rng
 
 # LIBERO imports
 from pathlib import Path as _Path
