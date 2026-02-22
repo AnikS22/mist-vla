@@ -90,20 +90,15 @@ def extract_octo_embeddings(model, task_input, observation):
             observation, task_input, pad_mask, train=False
         )
 
-        # transformer_out is a Flax TokenGroup (struct.dataclass)
-        # .tokens is a jax array of shape (batch, n_tokens, embed_dim)
-        try:
-            embed = transformer_out.tokens  # TokenGroup → jax array
-        except (AttributeError, TypeError):
-            # Fallback: try dict-like access or use raw
-            if isinstance(transformer_out, dict):
-                embed = list(transformer_out.values())[0]
-            else:
-                embed = transformer_out
+        # transformer_out is a Flax TokenGroup (struct.dataclass).
+        # Use jax.tree_util to reliably extract the underlying arrays:
+        #   leaf[0] = tokens: (batch, n_tokens, embed_dim)
+        #   leaf[1] = mask:   (batch, n_tokens)
+        leaves = jax.tree_util.tree_leaves(transformer_out)
+        embed = leaves[0]  # tokens array
 
         # Mean pool across token dim → (batch, embed_dim)
-        embed_arr = jnp.asarray(embed)
-        pooled = np.array(jnp.mean(embed_arr, axis=1))
+        pooled = np.array(jnp.mean(embed, axis=1))
         return pooled[0]  # (embed_dim,)
 
     except Exception as e:
