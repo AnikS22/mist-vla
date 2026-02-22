@@ -39,15 +39,19 @@ cd /mnt/onefs/home/asahai2024/mist-vla
 # ─── Phase 1: Ensure Octo env works ───
 ENV_NAME="octo-env"
 
-# Quick check: can we import octo + tensorflow + get CUDA jaxlib?
+# Quick check: can we import the core deps?
 echo ""
 echo "Testing existing Octo environment..."
 ENV_OK=false
 if conda env list | grep -q "${ENV_NAME}"; then
     conda activate "${ENV_NAME}" 2>/dev/null || true
     if python3 -c "
+import jax
+if not hasattr(jax.random, 'KeyArray'):
+    jax.random.KeyArray = jax.Array
 import jaxlib; assert '0.4.28' in jaxlib.__version__
 import tensorflow
+import dlimp
 from octo.model.octo_model import OctoModel
 print('ENV OK')
 " 2>/dev/null | grep -q "ENV OK"; then
