@@ -77,11 +77,14 @@ def get_eef_pos(env):
     return np.zeros(3)
 
 
+_EMBED_DIAG_PRINTED = False
+
 def extract_octo_embeddings(model, task_input, observation):
     """
-    Use model.run_transformer() to get transformer readout tokens.
-    This is already JIT-compiled and skips the diffusion action head.
+    Use model.run_transformer() to get transformer readout tokens,
+    then mean-pool across the token dimension → (embed_dim,) vector.
     """
+    global _EMBED_DIAG_PRINTED
     try:
         pad_mask = observation["timestep_pad_mask"]
 
@@ -91,19 +94,41 @@ def extract_octo_embeddings(model, task_input, observation):
         )
 
         # transformer_out is a Flax TokenGroup (struct.dataclass).
-        # Use jax.tree_util to reliably extract the underlying arrays:
-        #   leaf[0] = tokens: (batch, n_tokens, embed_dim)
-        #   leaf[1] = mask:   (batch, n_tokens)
+        # Extract all leaf arrays and find the token tensor (largest 3D array).
         leaves = jax.tree_util.tree_leaves(transformer_out)
-        embed = leaves[0]  # tokens array
 
-        # Mean pool across token dim → (batch, embed_dim)
-        pooled = np.array(jnp.mean(embed, axis=1))
-        return pooled[0]  # (embed_dim,)
+        if not _EMBED_DIAG_PRINTED:
+            print(f"  [diag] run_transformer returned {len(leaves)} leaves:", flush=True)
+            for i, lf in enumerate(leaves):
+                arr = np.asarray(lf)
+                print(f"    leaf[{i}]: shape={arr.shape} dtype={arr.dtype}", flush=True)
+            _EMBED_DIAG_PRINTED = True
+
+        # Find the largest 3D leaf → (batch, n_tokens, embed_dim)
+        best_3d = None
+        for lf in leaves:
+            arr = np.asarray(lf)
+            if arr.ndim == 3 and (best_3d is None or arr.size > best_3d.size):
+                best_3d = arr
+
+        if best_3d is not None:
+            # (batch, n_tokens, embed_dim) → mean over tokens
+            pooled = np.mean(best_3d, axis=1)  # (batch, embed_dim)
+            return pooled[0].astype(np.float32)  # (embed_dim,)
+
+        # Fallback: try 2D leaf with embed_dim-like last axis
+        for lf in leaves:
+            arr = np.asarray(lf)
+            if arr.ndim == 2 and arr.shape[-1] >= 256:
+                return np.mean(arr, axis=0).astype(np.float32)  # (embed_dim,)
+
+        # Last resort: flatten everything
+        all_vals = np.concatenate([np.asarray(lf).flatten() for lf in leaves])
+        return all_vals[:768].astype(np.float32)
 
     except Exception as e:
         print(f"  ⚠ Embedding extraction failed: {e}", flush=True)
-        return np.zeros(512, dtype=np.float32)
+        return np.zeros(768, dtype=np.float32)
 
 
 def run_octo_episode(model, env, task_description, max_steps=250, resolution=256):
@@ -310,9 +335,10 @@ def main():
     try:
         embed = extract_octo_embeddings(model, dummy_task, dummy_obs)
         embed_dim = embed.shape[-1]
-        print(f"  ✓ Embedding dimension: {embed_dim}", flush=True)
+        assert embed.ndim == 1, f"Expected 1D embedding, got shape {embed.shape}"
+        print(f"  ✓ Embedding dimension: {embed_dim}, shape: {embed.shape}", flush=True)
     except Exception as e:
-        embed_dim = 512
+        embed_dim = 768
         print(f"  ⚠ Could not probe embedding dim ({e}), assuming {embed_dim}", flush=True)
 
     # Setup LIBERO
