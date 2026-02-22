@@ -70,12 +70,10 @@ if [ "${ENV_OK}" = false ]; then
 fi
 
 # ─── GPU / Rendering setup ───
-if [ -n "${SLURM_JOB_GPUS:-}" ]; then
-    export CUDA_VISIBLE_DEVICES="$(echo "$SLURM_JOB_GPUS" | tr ',' '\n' | head -n1)"
-elif [ -n "${SLURM_GPUS_ON_NODE:-}" ]; then
-    export CUDA_VISIBLE_DEVICES=0
-fi
-export MUJOCO_EGL_DEVICE_ID="${CUDA_VISIBLE_DEVICES:-0}"
+# With --gres=gpu:1, SLURM cgroup isolates exactly 1 GPU as device 0.
+# Do NOT use SLURM_JOB_GPUS (physical ID) — it doesn't match the cgroup view.
+export CUDA_VISIBLE_DEVICES=0
+export MUJOCO_EGL_DEVICE_ID=0
 export PYOPENGL_PLATFORM=egl
 export MUJOCO_GL=egl
 export PYTHONUNBUFFERED=1
