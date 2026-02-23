@@ -11,23 +11,25 @@
 #SBATCH --partition=shortq7
 
 ###############################################################################
-#  PAPER TABLE — Category 1: Full 4-Mode OpenVLA Ablation
+#  PAPER TABLE — Category 1: Full 6-Mode OpenVLA Ablation
 #
 #  Uses the GOOD spatial-only v4 MLP (checkpoints/eef_correction_mlp/best_model.pt)
 #
-#  Mode A: Vanilla VLA               — unsteered baseline
-#  Mode B: Random Noise (σ=0.05)     — null hypothesis
+#  Mode A: Vanilla VLA                — unsteered baseline
+#  Mode B: Random Noise (σ=0.05)      — null hypothesis
 #  Mode C: EMA Smoothing Only (β=0.9) — proves smoothing alone isn't enough
-#  Mode D: Latent Steering (Ours)    — MLP-guided correction
+#  Mode D: Random Latent Jiggle       — matched-magnitude random (proves direction)
+#  Mode E: Action MPPI                — sampling-based optimization
+#  Mode F: Latent Steering (Ours)     — MLP-guided correction
 #
-#  20 episodes × 10 tasks × 4 modes = 800 total episodes
+#  20 episodes × 10 tasks × 6 modes = 1200 total episodes
 ###############################################################################
 
 set -eo pipefail
 
 echo "================================================================"
 echo "  PAPER TABLE — Category 1: OpenVLA Ablations"
-echo "  4 modes × 10 tasks × 20 episodes = 800 episodes"
+echo "  6 modes × 10 tasks × 20 episodes = 1200 episodes"
 echo "================================================================"
 echo "  Job ID:  ${SLURM_JOB_ID}"
 echo "  Node:    ${SLURM_NODELIST:-unknown}"
@@ -109,13 +111,15 @@ python -u scripts/eval_tuning.py \
     --model-name "moojink/openvla-7b-oft-finetuned-libero-spatial" \
     --mlp-checkpoint "${MLP_CKPT}" \
     --env libero_spatial \
-    --modes vanilla noise ema_only steering \
+    --modes vanilla noise ema_only latent_jiggle mppi steering \
     --episodes-per-task 20 \
     --noise-sigma 0.05 \
     --ema-only-beta 0.9 \
     --alpha 1.0 \
     --max-correction 0.01 \
     --correction-threshold 0.005 \
+    --mppi-samples 16 \
+    --mppi-temperature 5.0 \
     --save-dir results/paper_table/category1
 
 echo ""

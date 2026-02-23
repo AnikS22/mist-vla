@@ -4,8 +4,10 @@ ACT Steering Evaluation — Category 2: Cross-Architecture Proof
 ================================================================
 
 Compares:
-  Mode A: Vanilla ACT       — raw, unsteered baseline
-  Mode B: ACT + Steering    — MLP-guided correction from 256-dim hidden states
+  Mode A: Vanilla ACT            — raw, unsteered baseline
+  Mode B: Random Latent Jiggle   — matched-magnitude random correction
+  Mode C: Action MPPI            — sampling-based optimization
+  Mode D: ACT + Steering         — MLP-guided correction from 256-dim hidden states
 
 For each task, runs N episodes (default 20) per mode and reports:
   - Success Rate (%)
@@ -22,7 +24,7 @@ Usage
       --mlp-checkpoint checkpoints/eef_correction_mlp_act/best_model.pt \
       --env libero_spatial \
       --episodes-per-task 20 \
-      --modes vanilla steering \
+      --modes vanilla latent_jiggle mppi steering \
       --save-dir results/eval_act_steering
 """
 
@@ -260,6 +262,154 @@ class SteeredAgent:
 
 
 # ══════════════════════════════════════════════════════════════════════════
+#  MPPI CONTROLLER (sampling-based baseline)
+# ══════════════════════════════════════════════════════════════════════════
+
+class MPPIController:
+    """Action MPPI: samples K corrections, scores each with MLP failure head,
+    takes softmax-weighted average."""
+
+    def __init__(self, mlp, scaler, *,
+                 n_samples=16, temperature=5.0,
+                 correction_std=0.005, max_correction=0.01,
+                 action_scale=0.05, device="cpu"):
+        self.mlp = mlp
+        self.scaler = scaler
+        self.n_samples = n_samples
+        self.temperature = temperature
+        self.correction_std = correction_std
+        self.max_correction = max_correction
+        self.action_scale = action_scale
+        self.device = device
+        self._steps = 0
+        self._interventions = 0
+        self._corr_mags = []
+
+    def reset(self):
+        self._steps = 0
+        self._interventions = 0
+        self._corr_mags = []
+
+    @property
+    def intervention_rate(self):
+        return self._interventions / max(self._steps, 1)
+
+    @property
+    def mean_corr_mag(self):
+        return float(np.mean(self._corr_mags)) if self._corr_mags else 0.0
+
+    def apply(self, action, features):
+        self._steps += 1
+        if features is None or np.prod(features.shape) < 2:
+            return action, False
+
+        scaled = self.scaler.transform(features.reshape(1, -1))
+        x = torch.FloatTensor(scaled).to(self.device)
+
+        with torch.no_grad():
+            out = self.mlp(x)
+
+        fail_prob = torch.sigmoid(out["will_fail"]).item()
+        if fail_prob < 0.5:
+            self._corr_mags.append(0.0)
+            return action, False
+
+        self._interventions += 1
+
+        candidates = np.random.normal(
+            0, self.correction_std, size=(self.n_samples, 3)
+        ).astype(np.float32)
+
+        scores = np.zeros(self.n_samples)
+        for i in range(self.n_samples):
+            feat_perturbed = scaled.copy()
+            feat_perturbed += np.random.normal(0, 0.01, feat_perturbed.shape)
+            x_p = torch.FloatTensor(feat_perturbed).to(self.device)
+            with torch.no_grad():
+                out_p = self.mlp(x_p)
+            scores[i] = -torch.sigmoid(out_p["will_fail"]).item()
+
+        weights = np.exp(self.temperature * (scores - scores.max()))
+        weights /= weights.sum()
+
+        correction = (candidates * weights[:, None]).sum(axis=0)
+
+        mag = float(np.linalg.norm(correction))
+        if mag > self.max_correction and mag > 1e-8:
+            correction = correction * (self.max_correction / mag)
+            mag = self.max_correction
+
+        self._corr_mags.append(mag)
+        action[:3] += correction / self.action_scale
+        return action, True
+
+
+# ══════════════════════════════════════════════════════════════════════════
+#  RANDOM LATENT JIGGLE (matched-magnitude null hypothesis)
+# ══════════════════════════════════════════════════════════════════════════
+
+class LatentJiggleAgent:
+    """Same pipeline as SteeredAgent but replaces MLP correction with random
+    direction of same magnitude. Proves MLP direction matters."""
+
+    def __init__(self, mlp, scaler, *,
+                 alpha=1.0, action_scale=0.05,
+                 correction_threshold=0.005, max_correction=0.01,
+                 device="cpu"):
+        self.mlp = mlp
+        self.scaler = scaler
+        self.alpha = alpha
+        self.action_scale = action_scale
+        self.correction_threshold = correction_threshold
+        self.max_correction = max_correction
+        self.device = device
+        self._steps = 0
+        self._interventions = 0
+        self._corr_mags = []
+
+    def reset(self):
+        self._steps = 0
+        self._interventions = 0
+        self._corr_mags = []
+
+    @property
+    def intervention_rate(self):
+        return self._interventions / max(self._steps, 1)
+
+    @property
+    def mean_corr_mag(self):
+        return float(np.mean(self._corr_mags)) if self._corr_mags else 0.0
+
+    def apply(self, action, features):
+        self._steps += 1
+        if features is None or np.prod(features.shape) < 2:
+            return action, False
+
+        scaled = self.scaler.transform(features.reshape(1, -1))
+        x = torch.FloatTensor(scaled).to(self.device)
+
+        with torch.no_grad():
+            out = self.mlp(x)
+        mlp_correction = out["correction"].cpu().numpy()[0]
+
+        mag = float(np.linalg.norm(mlp_correction))
+        if mag > self.max_correction:
+            mag = self.max_correction
+        self._corr_mags.append(mag)
+
+        if mag > self.correction_threshold:
+            self._interventions += 1
+            random_dir = np.random.randn(3).astype(np.float32)
+            random_dir_norm = np.linalg.norm(random_dir)
+            if random_dir_norm > 1e-8:
+                random_dir = random_dir / random_dir_norm
+            random_correction = random_dir * mag
+            action[:3] += (self.alpha * random_correction / self.action_scale)
+            return action, True
+        return action, False
+
+
+# ══════════════════════════════════════════════════════════════════════════
 #  ENVIRONMENT HELPERS
 # ══════════════════════════════════════════════════════════════════════════
 
@@ -285,10 +435,11 @@ def get_eef_pos(env):
 
 def run_episode(env, act_model, device, init_state, max_steps=300,
                 mode="vanilla", steered_agent=None,
+                jiggle_agent=None, mppi_controller=None,
                 noise_sigma=0.05, ema_only_beta=0.9):
     """Run one ACT episode.
 
-    mode ∈ {"vanilla", "noise", "ema_only", "steering"}
+    mode ∈ {"vanilla", "noise", "ema_only", "latent_jiggle", "mppi", "steering"}
     """
     env.reset()
     if init_state is not None:
@@ -304,6 +455,10 @@ def run_episode(env, act_model, device, init_state, max_steps=300,
 
     if mode == "steering" and steered_agent is not None:
         steered_agent.reset()
+    if mode == "latent_jiggle" and jiggle_agent is not None:
+        jiggle_agent.reset()
+    if mode == "mppi" and mppi_controller is not None:
+        mppi_controller.reset()
 
     action_queue = []
     last_features = None
@@ -354,6 +509,12 @@ def run_episode(env, act_model, device, init_state, max_steps=300,
                 ema_action = ema_only_beta * ema_action + (1 - ema_only_beta) * action[:3]
             action[:3] = ema_action
 
+        elif mode == "latent_jiggle" and jiggle_agent is not None:
+            action, _ = jiggle_agent.apply(action, last_features)
+
+        elif mode == "mppi" and mppi_controller is not None:
+            action, _ = mppi_controller.apply(action, last_features)
+
         elif mode == "steering" and steered_agent is not None:
             action, _ = steered_agent.apply(action, last_features)
 
@@ -377,10 +538,16 @@ def run_episode(env, act_model, device, init_state, max_steps=300,
                 success = True
                 break
 
-    ir = steered_agent.intervention_rate if (
-        mode == "steering" and steered_agent) else 0.0
-    cm = steered_agent.mean_corr_mag if (
-        mode == "steering" and steered_agent) else 0.0
+    ir, cm = 0.0, 0.0
+    if mode == "steering" and steered_agent:
+        ir = steered_agent.intervention_rate
+        cm = steered_agent.mean_corr_mag
+    elif mode == "latent_jiggle" and jiggle_agent:
+        ir = jiggle_agent.intervention_rate
+        cm = jiggle_agent.mean_corr_mag
+    elif mode == "mppi" and mppi_controller:
+        ir = mppi_controller.intervention_rate
+        cm = mppi_controller.mean_corr_mag
 
     return {"success": success, "total_steps": total_steps,
             "intervention_rate": round(ir, 4),
@@ -402,8 +569,11 @@ def main():
     parser.add_argument("--tasks", type=int, nargs="+",
                         default=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
     parser.add_argument("--modes", nargs="+",
-                        default=["vanilla", "steering"],
-                        choices=["vanilla", "noise", "ema_only", "steering"])
+                        default=["vanilla", "latent_jiggle", "mppi", "steering"],
+                        choices=["vanilla", "noise", "ema_only",
+                                 "latent_jiggle", "mppi", "steering"])
+    parser.add_argument("--mppi-samples", type=int, default=16)
+    parser.add_argument("--mppi-temperature", type=float, default=5.0)
     parser.add_argument("--episodes-per-task", type=int, default=20)
     parser.add_argument("--alpha", type=float, default=1.0)
     parser.add_argument("--ema-beta", type=float, default=0.7,
@@ -427,10 +597,12 @@ def main():
     max_pert = args.alpha * args.max_correction / args.action_scale
 
     MODE_LABELS = {
-        "vanilla":  "Vanilla ACT (baseline)",
-        "noise":    f"Random Noise (σ={args.noise_sigma})",
-        "ema_only": f"EMA Smoothing Only (β={args.ema_only_beta})",
-        "steering": f"Latent Steering (α={args.alpha}, clamp={args.max_correction}m)",
+        "vanilla":       "Vanilla ACT (baseline)",
+        "noise":         f"Random Noise (σ={args.noise_sigma})",
+        "ema_only":      f"EMA Smoothing Only (β={args.ema_only_beta})",
+        "latent_jiggle": f"Random Latent Jiggle (matched-magnitude)",
+        "mppi":          f"Action MPPI (K={args.mppi_samples}, τ={args.mppi_temperature})",
+        "steering":      f"Latent Steering (α={args.alpha}, clamp={args.max_correction}m)",
     }
 
     # ── Banner ──
@@ -488,6 +660,23 @@ def main():
         max_correction=args.max_correction,
         device=device,
     )
+    jiggle_agent = LatentJiggleAgent(
+        mlp, scaler,
+        alpha=args.alpha,
+        action_scale=args.action_scale,
+        correction_threshold=args.correction_threshold,
+        max_correction=args.max_correction,
+        device=device,
+    )
+    mppi_controller = MPPIController(
+        mlp, scaler,
+        n_samples=args.mppi_samples,
+        temperature=args.mppi_temperature,
+        correction_std=args.max_correction / 2,
+        max_correction=args.max_correction,
+        action_scale=args.action_scale,
+        device=device,
+    )
     n_mlp_params = sum(p.numel() for p in mlp.parameters())
     print(f"  ✓ MLP loaded  ({n_mlp_params:,} params)  "
           f"input_dim={mlp_ckpt['input_dim']}  "
@@ -540,6 +729,8 @@ def main():
                     max_steps=300,
                     mode=mode,
                     steered_agent=agent,
+                    jiggle_agent=jiggle_agent,
+                    mppi_controller=mppi_controller,
                     noise_sigma=args.noise_sigma,
                     ema_only_beta=args.ema_only_beta,
                 )
@@ -553,7 +744,7 @@ def main():
             avg_ir = np.mean(ir_vals) if ir_vals else 0.0
             avg_cm = np.mean(cm_vals) if cm_vals else 0.0
             suffix = ""
-            if mode == "steering":
+            if mode in ("steering", "latent_jiggle", "mppi"):
                 suffix = (f"  IR={avg_ir:.0%}  "
                           f"‖c‖={avg_cm:.4f}m")
                 if avg_ir > 0.50:

@@ -13,17 +13,17 @@
 ###############################################################################
 #  ACT STEERING EVALUATION — Category 2: Cross-Architecture Proof
 #
-#  Compares Vanilla ACT vs ACT + Latent Steering
+#  Compares Vanilla ACT vs Jiggle vs MPPI vs Steering
 #  Uses the subsampled/honest ACT MLP (256-dim input)
 #
-#  2 modes × 10 tasks × 20 episodes = 400 total episodes
+#  4 modes × 10 tasks × 20 episodes = 800 total episodes
 ###############################################################################
 
 set -eo pipefail
 
 echo "================================================================"
 echo "  ACT STEERING EVALUATION — Cross-Architecture Proof"
-echo "  2 modes × 10 tasks × 20 episodes = 400 episodes"
+echo "  4 modes × 10 tasks × 20 episodes = 800 episodes"
 echo "================================================================"
 echo "  Job ID:  ${SLURM_JOB_ID}"
 echo "  Node:    ${SLURM_NODELIST:-unknown}"
@@ -80,11 +80,13 @@ python -u scripts/eval_act_steering.py \
     --act-checkpoint "${ACT_CKPT}" \
     --mlp-checkpoint "${MLP_CKPT}" \
     --env libero_spatial \
-    --modes vanilla steering \
+    --modes vanilla latent_jiggle mppi steering \
     --episodes-per-task 20 \
     --alpha 1.0 \
     --max-correction 0.01 \
     --correction-threshold 0.005 \
+    --mppi-samples 16 \
+    --mppi-temperature 5.0 \
     --save-dir results/eval_act_steering
 
 echo ""
