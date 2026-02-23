@@ -1,0 +1,9 @@
+{
+  "model": "diffusion_policy_standalone_ddpm",
+  "suite": "libero_spatial",
+  "note": "Standalone 611K param DDPM - very low success rate (~1%). Partial data from 3/10 tasks before 6h timeout.",
+  "tasks_completed": 3,
+  "tasks_total": 10,
+  "approx_successes": 4,
+  "approx_failures": 150
+}

@@ -1,0 +1,458 @@
+{
+  "config": {
+    "env": "libero_spatial",
+    "tasks": [
+      4,
+      6,
+      7,
+      8
+    ],
+    "mag_thresholds": [
+      0.005,
+      0.01,
+      0.02,
+      0.05
+    ],
+    "pfail_thresholds": [
+      0.5,
+      0.85,
+      0.95
+    ],
+    "episodes_per_task": 5,
+    "alpha": 0.1,
+    "ema_beta": 0.7,
+    "action_scale": 0.05,
+    "seed": 42
+  },
+  "sweep_configs": [
+    {
+      "label": "mag \u03b4=0.005m",
+      "gate_mode": "magnitude",
+      "fail_threshold": 0.85,
+      "correction_threshold": 0.005
+    },
+    {
+      "label": "mag \u03b4=0.010m",
+      "gate_mode": "magnitude",
+      "fail_threshold": 0.85,
+      "correction_threshold": 0.01
+    },
+    {
+      "label": "mag \u03b4=0.020m",
+      "gate_mode": "magnitude",
+      "fail_threshold": 0.85,
+      "correction_threshold": 0.02
+    },
+    {
+      "label": "mag \u03b4=0.050m",
+      "gate_mode": "magnitude",
+      "fail_threshold": 0.85,
+      "correction_threshold": 0.05
+    },
+    {
+      "label": "pfail \u03c4=0.50",
+      "gate_mode": "p_fail",
+      "fail_threshold": 0.5,
+      "correction_threshold": 0.01
+    },
+    {
+      "label": "pfail \u03c4=0.85",
+      "gate_mode": "p_fail",
+      "fail_threshold": 0.85,
+      "correction_threshold": 0.01
+    },
+    {
+      "label": "pfail \u03c4=0.95",
+      "gate_mode": "p_fail",
+      "fail_threshold": 0.95,
+      "correction_threshold": 0.01
+    }
+  ],
+  "results": {
+    "(4, 'vanilla')": {
+      "task_id": 4,
+      "label": "vanilla",
+      "gate_mode": null,
+      "threshold": null,
+      "success_rate_pct": 20.0,
+      "n_successes": 1,
+      "n_episodes": 5,
+      "mean_intervention_rate": 0.0,
+      "mean_corr_mag": 0.0,
+      "mean_p_fail": 0.0
+    },
+    "(4, 'mag \u03b4=0.005m')": {
+      "task_id": 4,
+      "label": "mag \u03b4=0.005m",
+      "gate_mode": "magnitude",
+      "threshold": 0.005,
+      "success_rate_pct": 20.0,
+      "n_successes": 1,
+      "n_episodes": 5,
+      "mean_intervention_rate": 0.681,
+      "mean_corr_mag": 0.096894,
+      "mean_p_fail": 0.572
+    },
+    "(4, 'mag \u03b4=0.010m')": {
+      "task_id": 4,
+      "label": "mag \u03b4=0.010m",
+      "gate_mode": "magnitude",
+      "threshold": 0.01,
+      "success_rate_pct": 20.0,
+      "n_successes": 1,
+      "n_episodes": 5,
+      "mean_intervention_rate": 0.7532,
+      "mean_corr_mag": 0.118837,
+      "mean_p_fail": 0.7028
+    },
+    "(4, 'mag \u03b4=0.020m')": {
+      "task_id": 4,
+      "label": "mag \u03b4=0.020m",
+      "gate_mode": "magnitude",
+      "threshold": 0.02,
+      "success_rate_pct": 0.0,
+      "n_successes": 0,
+      "n_episodes": 5,
+      "mean_intervention_rate": 0.7227,
+      "mean_corr_mag": 0.126618,
+      "mean_p_fail": 0.7449
+    },
+    "(4, 'mag \u03b4=0.050m')": {
+      "task_id": 4,
+      "label": "mag \u03b4=0.050m",
+      "gate_mode": "magnitude",
+      "threshold": 0.05,
+      "success_rate_pct": 40.0,
+      "n_successes": 2,
+      "n_episodes": 5,
+      "mean_intervention_rate": 0.3818,
+      "mean_corr_mag": 0.08184,
+      "mean_p_fail": 0.6122
+    },
+    "(4, 'pfail \u03c4=0.50')": {
+      "task_id": 4,
+      "label": "pfail \u03c4=0.50",
+      "gate_mode": "p_fail",
+      "threshold": 0.5,
+      "success_rate_pct": 40.0,
+      "n_successes": 2,
+      "n_episodes": 5,
+      "mean_intervention_rate": 0.3927,
+      "mean_corr_mag": 0.061333,
+      "mean_p_fail": 0.3908
+    },
+    "(4, 'pfail \u03c4=0.85')": {
+      "task_id": 4,
+      "label": "pfail \u03c4=0.85",
+      "gate_mode": "p_fail",
+      "threshold": 0.85,
+      "success_rate_pct": 60.0,
+      "n_successes": 3,
+      "n_episodes": 5,
+      "mean_intervention_rate": 0.2886,
+      "mean_corr_mag": 0.0373,
+      "mean_p_fail": 0.3157
+    },
+    "(4, 'pfail \u03c4=0.95')": {
+      "task_id": 4,
+      "label": "pfail \u03c4=0.95",
+      "gate_mode": "p_fail",
+      "threshold": 0.95,
+      "success_rate_pct": 40.0,
+      "n_successes": 2,
+      "n_episodes": 5,
+      "mean_intervention_rate": 0.6087,
+      "mean_corr_mag": 0.077713,
+      "mean_p_fail": 0.6406
+    },
+    "(6, 'vanilla')": {
+      "task_id": 6,
+      "label": "vanilla",
+      "gate_mode": null,
+      "threshold": null,
+      "success_rate_pct": 100.0,
+      "n_successes": 5,
+      "n_episodes": 5,
+      "mean_intervention_rate": 0.0,
+      "mean_corr_mag": 0.0,
+      "mean_p_fail": 0.0
+    },
+    "(6, 'mag \u03b4=0.005m')": {
+      "task_id": 6,
+      "label": "mag \u03b4=0.005m",
+      "gate_mode": "magnitude",
+      "threshold": 0.005,
+      "success_rate_pct": 60.0,
+      "n_successes": 3,
+      "n_episodes": 5,
+      "mean_intervention_rate": 0.3585,
+      "mean_corr_mag": 0.018659,
+      "mean_p_fail": 0.2185
+    },
+    "(6, 'mag \u03b4=0.010m')": {
+      "task_id": 6,
+      "label": "mag \u03b4=0.010m",
+      "gate_mode": "magnitude",
+      "threshold": 0.01,
+      "success_rate_pct": 100.0,
+      "n_successes": 5,
+      "n_episodes": 5,
+      "mean_intervention_rate": 0.1418,
+      "mean_corr_mag": 0.005466,
+      "mean_p_fail": 0.0005
+    },
+    "(6, 'mag \u03b4=0.020m')": {
+      "task_id": 6,
+      "label": "mag \u03b4=0.020m",
+      "gate_mode": "magnitude",
+      "threshold": 0.02,
+      "success_rate_pct": 80.0,
+      "n_successes": 4,
+      "n_episodes": 5,
+      "mean_intervention_rate": 0.1139,
+      "mean_corr_mag": 0.013458,
+      "mean_p_fail": 0.1109
+    },
+    "(6, 'mag \u03b4=0.050m')": {
+      "task_id": 6,
+      "label": "mag \u03b4=0.050m",
+      "gate_mode": "magnitude",
+      "threshold": 0.05,
+      "success_rate_pct": 80.0,
+      "n_successes": 4,
+      "n_episodes": 5,
+      "mean_intervention_rate": 0.0555,
+      "mean_corr_mag": 0.011803,
+      "mean_p_fail": 0.1058
+    },
+    "(6, 'pfail \u03c4=0.50')": {
+      "task_id": 6,
+      "label": "pfail \u03c4=0.50",
+      "gate_mode": "p_fail",
+      "threshold": 0.5,
+      "success_rate_pct": 100.0,
+      "n_successes": 5,
+      "n_episodes": 5,
+      "mean_intervention_rate": 0.0341,
+      "mean_corr_mag": 0.00815,
+      "mean_p_fail": 0.0375
+    },
+    "(6, 'pfail \u03c4=0.85')": {
+      "task_id": 6,
+      "label": "pfail \u03c4=0.85",
+      "gate_mode": "p_fail",
+      "threshold": 0.85,
+      "success_rate_pct": 80.0,
+      "n_successes": 4,
+      "n_episodes": 5,
+      "mean_intervention_rate": 0.1402,
+      "mean_corr_mag": 0.017153,
+      "mean_p_fail": 0.161
+    },
+    "(6, 'pfail \u03c4=0.95')": {
+      "task_id": 6,
+      "label": "pfail \u03c4=0.95",
+      "gate_mode": "p_fail",
+      "threshold": 0.95,
+      "success_rate_pct": 100.0,
+      "n_successes": 5,
+      "n_episodes": 5,
+      "mean_intervention_rate": 0.0,
+      "mean_corr_mag": 0.005001,
+      "mean_p_fail": 0.0077
+    },
+    "(7, 'vanilla')": {
+      "task_id": 7,
+      "label": "vanilla",
+      "gate_mode": null,
+      "threshold": null,
+      "success_rate_pct": 20.0,
+      "n_successes": 1,
+      "n_episodes": 5,
+      "mean_intervention_rate": 0.0,
+      "mean_corr_mag": 0.0,
+      "mean_p_fail": 0.0
+    },
+    "(7, 'mag \u03b4=0.005m')": {
+      "task_id": 7,
+      "label": "mag \u03b4=0.005m",
+      "gate_mode": "magnitude",
+      "threshold": 0.005,
+      "success_rate_pct": 20.0,
+      "n_successes": 1,
+      "n_episodes": 5,
+      "mean_intervention_rate": 0.9766,
+      "mean_corr_mag": 0.111262,
+      "mean_p_fail": 0.8648
+    },
+    "(7, 'mag \u03b4=0.010m')": {
+      "task_id": 7,
+      "label": "mag \u03b4=0.010m",
+      "gate_mode": "magnitude",
+      "threshold": 0.01,
+      "success_rate_pct": 0.0,
+      "n_successes": 0,
+      "n_episodes": 5,
+      "mean_intervention_rate": 0.8845,
+      "mean_corr_mag": 0.125333,
+      "mean_p_fail": 0.8344
+    },
+    "(7, 'mag \u03b4=0.020m')": {
+      "task_id": 7,
+      "label": "mag \u03b4=0.020m",
+      "gate_mode": "magnitude",
+      "threshold": 0.02,
+      "success_rate_pct": 0.0,
+      "n_successes": 0,
+      "n_episodes": 5,
+      "mean_intervention_rate": 0.88,
+      "mean_corr_mag": 0.133721,
+      "mean_p_fail": 0.8967
+    },
+    "(7, 'mag \u03b4=0.050m')": {
+      "task_id": 7,
+      "label": "mag \u03b4=0.050m",
+      "gate_mode": "magnitude",
+      "threshold": 0.05,
+      "success_rate_pct": 0.0,
+      "n_successes": 0,
+      "n_episodes": 5,
+      "mean_intervention_rate": 0.6691,
+      "mean_corr_mag": 0.09927,
+      "mean_p_fail": 0.7747
+    },
+    "(7, 'pfail \u03c4=0.50')": {
+      "task_id": 7,
+      "label": "pfail \u03c4=0.50",
+      "gate_mode": "p_fail",
+      "threshold": 0.5,
+      "success_rate_pct": 0.0,
+      "n_successes": 0,
+      "n_episodes": 5,
+      "mean_intervention_rate": 0.8618,
+      "mean_corr_mag": 0.134607,
+      "mean_p_fail": 0.8633
+    },
+    "(7, 'pfail \u03c4=0.85')": {
+      "task_id": 7,
+      "label": "pfail \u03c4=0.85",
+      "gate_mode": "p_fail",
+      "threshold": 0.85,
+      "success_rate_pct": 0.0,
+      "n_successes": 0,
+      "n_episodes": 5,
+      "mean_intervention_rate": 0.8909,
+      "mean_corr_mag": 0.128908,
+      "mean_p_fail": 0.911
+    },
+    "(7, 'pfail \u03c4=0.95')": {
+      "task_id": 7,
+      "label": "pfail \u03c4=0.95",
+      "gate_mode": "p_fail",
+      "threshold": 0.95,
+      "success_rate_pct": 0.0,
+      "n_successes": 0,
+      "n_episodes": 5,
+      "mean_intervention_rate": 0.8618,
+      "mean_corr_mag": 0.11891,
+      "mean_p_fail": 0.8966
+    },
+    "(8, 'vanilla')": {
+      "task_id": 8,
+      "label": "vanilla",
+      "gate_mode": null,
+      "threshold": null,
+      "success_rate_pct": 80.0,
+      "n_successes": 4,
+      "n_episodes": 5,
+      "mean_intervention_rate": 0.0,
+      "mean_corr_mag": 0.0,
+      "mean_p_fail": 0.0
+    },
+    "(8, 'mag \u03b4=0.005m')": {
+      "task_id": 8,
+      "label": "mag \u03b4=0.005m",
+      "gate_mode": "magnitude",
+      "threshold": 0.005,
+      "success_rate_pct": 40.0,
+      "n_successes": 2,
+      "n_episodes": 5,
+      "mean_intervention_rate": 0.6588,
+      "mean_corr_mag": 0.029344,
+      "mean_p_fail": 0.4907
+    },
+    "(8, 'mag \u03b4=0.010m')": {
+      "task_id": 8,
+      "label": "mag \u03b4=0.010m",
+      "gate_mode": "magnitude",
+      "threshold": 0.01,
+      "success_rate_pct": 40.0,
+      "n_successes": 2,
+      "n_episodes": 5,
+      "mean_intervention_rate": 0.6281,
+      "mean_corr_mag": 0.033802,
+      "mean_p_fail": 0.5926
+    },
+    "(8, 'mag \u03b4=0.020m')": {
+      "task_id": 8,
+      "label": "mag \u03b4=0.020m",
+      "gate_mode": "magnitude",
+      "threshold": 0.02,
+      "success_rate_pct": 40.0,
+      "n_successes": 2,
+      "n_episodes": 5,
+      "mean_intervention_rate": 0.55,
+      "mean_corr_mag": 0.036116,
+      "mean_p_fail": 0.5547
+    },
+    "(8, 'mag \u03b4=0.050m')": {
+      "task_id": 8,
+      "label": "mag \u03b4=0.050m",
+      "gate_mode": "magnitude",
+      "threshold": 0.05,
+      "success_rate_pct": 40.0,
+      "n_successes": 2,
+      "n_episodes": 5,
+      "mean_intervention_rate": 0.2809,
+      "mean_corr_mag": 0.032543,
+      "mean_p_fail": 0.5787
+    },
+    "(8, 'pfail \u03c4=0.50')": {
+      "task_id": 8,
+      "label": "pfail \u03c4=0.50",
+      "gate_mode": "p_fail",
+      "threshold": 0.5,
+      "success_rate_pct": 40.0,
+      "n_successes": 2,
+      "n_episodes": 5,
+      "mean_intervention_rate": 0.5782,
+      "mean_corr_mag": 0.033892,
+      "mean_p_fail": 0.5811
+    },
+    "(8, 'pfail \u03c4=0.85')": {
+      "task_id": 8,
+      "label": "pfail \u03c4=0.85",
+      "gate_mode": "p_fail",
+      "threshold": 0.85,
+      "success_rate_pct": 40.0,
+      "n_successes": 2,
+      "n_episodes": 5,
+      "mean_intervention_rate": 0.5709,
+      "mean_corr_mag": 0.029902,
+      "mean_p_fail": 0.5755
+    },
+    "(8, 'pfail \u03c4=0.95')": {
+      "task_id": 8,
+      "label": "pfail \u03c4=0.95",
+      "gate_mode": "p_fail",
+      "threshold": 0.95,
+      "success_rate_pct": 20.0,
+      "n_successes": 1,
+      "n_episodes": 5,
+      "mean_intervention_rate": 0.6182,
+      "mean_corr_mag": 0.034113,
+      "mean_p_fail": 0.6363
+    }
+  },
+  "recommendation": null
+}

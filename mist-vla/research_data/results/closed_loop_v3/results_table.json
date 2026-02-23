@@ -1,0 +1,44 @@
+{
+  "config": {
+    "env": "libero_spatial",
+    "n_episodes_per_mode": 50,
+    "actual_episodes_per_mode": 50,
+    "alpha": 0.1,
+    "ema_beta": 0.7,
+    "fail_threshold": 0.5,
+    "action_scale": 0.05,
+    "noise_sigma": 0.05,
+    "seed": 42,
+    "model": "moojink/openvla-7b-oft-finetuned-libero-spatial",
+    "mlp_checkpoint": "checkpoints/eef_correction_mlp/best_model.pt"
+  },
+  "results": {
+    "vanilla": {
+      "success_rate_pct": 54.0,
+      "n_episodes": 50,
+      "n_successes": 27,
+      "mean_constraint_violations": 0.0,
+      "mean_trajectory_deviation": 0.0169,
+      "mean_steps": 155.5,
+      "std_success_pct": 49.8
+    },
+    "noise": {
+      "success_rate_pct": 44.0,
+      "n_episodes": 50,
+      "n_successes": 22,
+      "mean_constraint_violations": 0.0,
+      "mean_trajectory_deviation": 0.02,
+      "mean_steps": 168.1,
+      "std_success_pct": 49.6
+    },
+    "steering": {
+      "success_rate_pct": 46.0,
+      "n_episodes": 50,
+      "n_successes": 23,
+      "mean_constraint_violations": 0.0,
+      "mean_trajectory_deviation": 0.0224,
+      "mean_steps": 163.8,
+      "std_success_pct": 49.8
+    }
+  }
+}

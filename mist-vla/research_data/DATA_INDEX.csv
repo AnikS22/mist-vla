@@ -1,0 +1,12 @@
+model,type,count,feature_dim,avg_steps,size,path,tasks
+ACT,failure,500,[256],300.0,458.9MB,rollouts/multi_model/act_spatial/failure_rollouts.pkl,"{""0"": 50, ""1"": 50, ""2"": 50, ""3"": 50, ""4"": 50, ""5"": 50, ""6"": 50, ""7"": 50, ""8"": 50, ""9"": 50}"
+ACT,success,499,[256],118.9,181.4MB,rollouts/multi_model/act_spatial/success_rollouts.pkl,"{""0"": 50, ""1"": 50, ""2"": 50, ""3"": 50, ""4"": 50, ""5"": 49, ""6"": 50, ""7"": 50, ""8"": 50, ""9"": 50}"
+Diffusion Policy,failure,150,[256],300.0,138.0MB,rollouts/multi_model/dp_spatial/failure_rollouts.pkl,"{""0"": 50, ""1"": 50, ""2"": 50}"
+Diffusion Policy,success,4,[256],122.8,1.5MB,rollouts/multi_model/dp_spatial/success_rollouts.pkl,"{""0"": 3, ""2"": 1}"
+Merged (all models),failure,34,[4096],303.5,192.4MB,rollouts/merged_all/failure_rollouts.pkl,"{""libero_spatial__0"": 4, ""libero_spatial__1"": 4, ""libero_spatial__2"": 4, ""libero_spatial__3"": 4, ""libero_spatial__4"": 4, ""libero_spatial__5"": 3, ""libero_spatial__6"": 3, ""libero_spatial__7"": 3, ""libero_spatial__8"": 3, ""libero_spatial__9"": 2}"
+Merged (all models),success,316,[4096],136.9,808.2MB,rollouts/merged_all/success_rollouts.pkl,"{""libero_spatial__0"": 45, ""libero_spatial__1"": 34, ""libero_spatial__2"": 50, ""libero_spatial__3"": 32, ""libero_spatial__4"": 27, ""libero_spatial__5"": 24, ""libero_spatial__6"": 26, ""libero_spatial__7"": 34, ""libero_spatial__8"": 26, ""libero_spatial__9"": 18}"
+Octo-Base,failure,500,[768],,386.1MB,rollouts/multi_model/octo_spatial/failure_rollouts.pkl,"{""0"": 50, ""1"": 50, ""2"": 50, ""3"": 50, ""4"": 50, ""5"": 50, ""6"": 50, ""7"": 50, ""8"": 50, ""9"": 50}"
+OpenVLA-OFT,failure,149,[4096],220.0,611.9MB,rollouts/multi_model/openvla_oft_allsuite__libero_spatial/failure_rollouts.pkl,"{""0"": 3, ""1"": 29, ""2"": 6, ""3"": 2, ""4"": 18, ""5"": 26, ""6"": 2, ""7"": 19, ""8"": 15, ""9"": 29}"
+OpenVLA-OFT,success,151,[4096],93.5,264.0MB,rollouts/multi_model/openvla_oft_allsuite__libero_spatial/success_rollouts.pkl,"{""0"": 27, ""1"": 1, ""2"": 24, ""3"": 28, ""4"": 12, ""5"": 4, ""6"": 28, ""7"": 11, ""8"": 15, ""9"": 1}"
+OpenVLA-OFT (spatial),failure,374,[4096],220.0,1.5GB,rollouts/openvla_spatial_seed0/failure_rollouts.pkl,"{""0"": 45, ""1"": 86, ""2"": 4, ""3"": 1, ""4"": 61, ""5"": 88, ""6"": 8, ""7"": 35, ""8"": 9, ""9"": 37}"
+OpenVLA-OFT (spatial),success,200,[4096],97.2,363.6MB,rollouts/openvla_spatial_seed0/success_rollouts.pkl,"{""0"": 31, ""1"": 8, ""2"": 48, ""3"": 50, ""4"": 18, ""5"": 8, ""6"": 37}"

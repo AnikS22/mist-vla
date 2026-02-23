@@ -1,0 +1,11 @@
+{
+  "model": "hf://rail-berkeley/octo-base-1.5",
+  "model_type": "octo",
+  "suite": "libero_spatial",
+  "embedding_dim": 768,
+  "n_success": 0,
+  "n_failure": 500,
+  "num_tasks": 10,
+  "seed": 42,
+  "elapsed_seconds": 21400.80640554428
+}

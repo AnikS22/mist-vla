@@ -1,0 +1,8 @@
+# Large binary files — DO NOT commit
+*.pkl
+*.pt
+*.mp4
+
+# Keep the index files
+!DATA_INDEX.json
+!DATA_INDEX.csv
