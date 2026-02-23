@@ -1,0 +1,35 @@
+{
+  "total_success": 316,
+  "total_failure": 34,
+  "total": 350,
+  "n_unique_tasks": 10,
+  "task_ids": [
+    "libero_spatial__0",
+    "libero_spatial__1",
+    "libero_spatial__2",
+    "libero_spatial__3",
+    "libero_spatial__4",
+    "libero_spatial__5",
+    "libero_spatial__6",
+    "libero_spatial__7",
+    "libero_spatial__8",
+    "libero_spatial__9"
+  ],
+  "models": [
+    "openvla-oft",
+    "openvla-oft-allsuite"
+  ],
+  "suites": [
+    "libero_spatial"
+  ],
+  "sources": [
+    "data/combined",
+    "data/multi_suite/libero_spatial",
+    "data/multi_suite/libero_object",
+    "data/multi_suite/libero_goal",
+    "data/multi_suite/libero_10",
+    "data/multi_model/openvla_oft__libero_object",
+    "data/multi_model/openvla_oft_allsuite__libero_spatial",
+    "data/multi_model/octo_spatial"
+  ]
+}

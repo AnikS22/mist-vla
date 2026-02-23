@@ -41,22 +41,21 @@ MIST-VLA is a research framework for improving the safety and reliability of Vis
 ## 🗂️ Project Structure
 
 ```
-MIST-VLA/
-├── mist-vla/              # Main package
-│   ├── scripts/           # Runnable entry points
-│   ├── src/               # Core implementation
-│   │   ├── data/         # Data collection and processing
-│   │   ├── models/       # Model wrappers and interfaces
-│   │   ├── steering/     # Activation steering implementation
-│   │   └── evaluation/   # Evaluation metrics and utilities
-│   ├── configs/          # Configuration files
-│   ├── requirements.txt  # Python dependencies
-│   └── setup.py         # Package installation
-├── FailSafe_code/        # FailSafe baseline implementation
-├── LIBERO/              # LIBERO benchmark environment
-├── openvla-oft/         # OpenVLA-OFT evaluation pipeline
-└── README.md            # This file
+SalusV5/
+├── mist-vla/                  # Main project
+│   ├── src/                   # Python library
+│   ├── scripts/               # Runnable scripts & HPC SLURM jobs
+│   ├── configs/               # Experiment configs
+│   ├── research_data/         # Data, checkpoints, results
+│   └── archive/               # Old iterations
+├── docs/                      # All documentation + project index
+├── LIBERO/                    # [external] Benchmark env
+├── openvla/ & openvla-oft/    # [external] OpenVLA models
+└── ...                        # Other external deps (gitignored)
 ```
+
+> **Full inventory:** See [`docs/README.md`](docs/README.md) for the complete
+> project index with every script, dataset, and checkpoint catalogued.
 
 ## 🚀 Installation
 
@@ -138,23 +137,27 @@ python scripts/run_evaluation.py \
 
 Comprehensive documentation is available in the [`docs/`](docs/) directory:
 
-- [Getting Started Guide](docs/GETTING_STARTED.md) - Detailed installation and setup
-- [Architecture Overview](docs/ARCHITECTURE.md) - System design and components
-- [API Reference](docs/API.md) - Complete API documentation
-- [FAQ](docs/FAQ.md) - Frequently asked questions
-- [Dependencies](DEPENDENCIES.md) - External dependencies guide
-- [Changelog](CHANGELOG.md) - Version history
+- [**Project Index**](docs/README.md) - Master inventory of all scripts, data, models
+- [**Comprehensive Report**](docs/COMPREHENSIVE_PROJECT_REPORT.md) - Full research report
+- [Getting Started Guide](docs/GETTING_STARTED.md) - Installation and setup
+- [Architecture Overview](docs/ARCHITECTURE.md) - System design
+- [API Reference](docs/API.md) - API documentation
+- [FAQ](docs/FAQ.md) - Common questions
+- [Dependencies](docs/DEPENDENCIES.md) - External dependencies
+- [Changelog](docs/CHANGELOG.md) - Version history
 
 ## 📚 Key Scripts
 
 | Script | Description |
 |--------|-------------|
-| `collect_failure_data_oft_eval.py` | Uses OpenVLA-OFT eval pipeline and logs MIST-VLA signals (actions, hidden states, collisions, robot states) |
-| `collect_failure_data.py` | Custom data collector with optional perturbation support |
-| `collect_phase1_data.py` | Phase 1 data collection with collision labels |
-| `train_risk_predictor.py` | Train per-dimension failure predictor |
-| `extract_steering_vectors.py` | Build steering vectors for targeted mitigation |
-| `run_evaluation.py` | Evaluate success rate, collisions, and recovery metrics |
+| `train_eef_correction_mlp.py` | Train 3-head safety MLP (fail / time-to-fail / correction) |
+| `eval_tuning.py` | OpenVLA 4-mode ablation eval (vanilla / noise / EMA / steering) |
+| `eval_act_steering.py` | ACT steering eval (vanilla vs. latent steering) |
+| `collect_baseline_data.py` | Collect DP/ACT rollout data in SafeVLA format |
+| `collect_octo_data.py` | Collect Octo-Base rollout data |
+| `collect_failure_data_oft_eval.py` | Collect OpenVLA-OFT rollout data |
+
+> See [`docs/README.md`](docs/README.md) for the full script reference table.
 
 ## ⚙️ Configuration
 
