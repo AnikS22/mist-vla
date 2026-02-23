@@ -124,8 +124,19 @@ def compute_eef_corrections(fail_rollout, succ_rollout):
 
 # ─── Sample Preparation ──────────────────────────────────────────────────
 
-def prepare_samples(rollouts, success_by_task):
-    """Build per-step samples with Cartesian EEF correction labels."""
+def prepare_samples(rollouts, success_by_task, subsample_chunks=False):
+    """Build per-step samples with Cartesian EEF correction labels.
+
+    Args:
+        rollouts: list of rollout dicts
+        success_by_task: dict mapping task_id → list of success rollouts
+        subsample_chunks: If True, only keep the FIRST timestep of each
+            action chunk (i.e., where the feature vector changes).
+            This removes duplicated features from chunked policies
+            (e.g., ACT with 8-step chunks) and prevents inflated metrics.
+            The label at the chunk boundary is the label for the moment
+            the new latent state was generated — the only honest sample.
+    """
     samples = {
         "hidden_states": [],
         "labels": [],           # 1=failure, 0=success
@@ -137,6 +148,8 @@ def prepare_samples(rollouts, success_by_task):
 
     n_matched = 0
     n_unmatched = 0
+    n_total_steps = 0
+    n_kept_steps = 0
 
     for ri, r in enumerate(rollouts):
         feats = np.array(r["features"])
@@ -163,10 +176,21 @@ def prepare_samples(rollouts, success_by_task):
         else:
             corrections = np.zeros((T, 3), dtype=np.float32)
 
+        prev_feat = None
         for t in range(T):
+            n_total_steps += 1
+            cur_feat = feats[t]
+
+            # Chunk subsampling: skip if feature is identical to previous
+            if subsample_chunks and prev_feat is not None:
+                if np.array_equal(cur_feat, prev_feat):
+                    continue
+            prev_feat = cur_feat
+
+            n_kept_steps += 1
             ttf = (T - 1 - t) / max(T - 1, 1) if is_fail else 1.0
 
-            samples["hidden_states"].append(feats[t])
+            samples["hidden_states"].append(cur_feat)
             samples["labels"].append(1.0 if is_fail else 0.0)
             samples["corrections"].append(corrections[t])
             samples["ttf"].append(ttf)
@@ -174,6 +198,10 @@ def prepare_samples(rollouts, success_by_task):
             samples["rollout_ids"].append(ri)
 
     print(f"    Matched: {n_matched} failure rollouts | Skipped: {n_unmatched}")
+    if subsample_chunks:
+        print(f"    Chunk subsampling: {n_total_steps} → {n_kept_steps} steps "
+              f"({n_kept_steps/max(n_total_steps,1)*100:.1f}% kept, "
+              f"{n_total_steps - n_kept_steps} duplicates removed)")
     return {k: np.array(v) for k, v in samples.items()}
 
 
@@ -448,9 +476,11 @@ def run_loo_fold(held_out, all_rollouts, args, device):
         all_succ[tid].extend(rols)
 
     print(f"    Preparing train samples...")
-    train_samples = prepare_samples(train_rols, train_succ)
+    train_samples = prepare_samples(train_rols, train_succ,
+                                     subsample_chunks=args.subsample_chunks)
     print(f"    Preparing test samples...")
-    test_samples = prepare_samples(test_rols, all_succ)
+    test_samples = prepare_samples(test_rols, all_succ,
+                                    subsample_chunks=args.subsample_chunks)
 
     if len(np.unique(test_samples["labels"])) < 2:
         return None, "SKIP (single class)"
@@ -541,6 +571,11 @@ def main():
                         help="L2 penalty weight on correction magnitude for "
                              "success samples (pushes safe-trajectory "
                              "predictions toward zero).")
+    parser.add_argument("--subsample-chunks", action="store_true",
+                        help="Only keep the first timestep of each action "
+                             "chunk (where features change). Essential for "
+                             "chunked policies like ACT to prevent inflated "
+                             "metrics from duplicated features.")
     args = parser.parse_args()
 
     np.random.seed(args.seed)
@@ -567,6 +602,10 @@ def main():
     print(f"    AdamW  lr={args.lr}  weight_decay=1e-3")
     print(f"    input_noise σ = {args.input_noise}")
     print(f"    early stopping patience = 20")
+    if args.subsample_chunks:
+        print(f"  Chunk Subsampling: ENABLED")
+        print(f"    Only chunk-boundary timesteps (unique features) will be used.")
+        print(f"    This prevents inflated metrics from action-chunked policies.")
 
     print("\nLoading data...")
     with open(args.success_data, "rb") as f:
@@ -581,8 +620,12 @@ def main():
         succ_by_task[r["task_id"]].append(r)
 
     # Prepare samples
-    print("\nPreparing samples (EEF trajectory matching + Cartesian alignment)...")
-    all_samples = prepare_samples(all_rollouts, succ_by_task)
+    if args.subsample_chunks:
+        print("\nPreparing samples (chunk-subsampled — unique features only)...")
+    else:
+        print("\nPreparing samples (EEF trajectory matching + Cartesian alignment)...")
+    all_samples = prepare_samples(all_rollouts, succ_by_task,
+                                  subsample_chunks=args.subsample_chunks)
     n = len(all_samples["labels"])
     nf = all_samples["labels"].sum()
     print(f"  Total: {n} samples ({nf:.0f} failure, {n-nf:.0f} success)")
