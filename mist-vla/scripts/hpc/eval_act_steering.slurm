@@ -60,10 +60,18 @@ mkdir -p logs results/eval_act_steering
 
 # Checkpoints
 ACT_CKPT="checkpoints/act/best_model.pt"
-MLP_CKPT="checkpoints/eef_correction_mlp_act/best_model.pt"
+# Use the honest/subsampled ACT MLP for fair comparison.
+MLP_CKPT="checkpoints/eef_correction_mlp_act_honest/best_model.pt"
+
+# Shared conservative steering profile (used for cross-model comparability)
+ALPHA=0.3
+EMA_BETA=0.9
+MAX_CORR=0.004
+CORR_THRESH=0.008
 
 echo "  ACT Checkpoint: ${ACT_CKPT}"
 echo "  MLP Checkpoint: ${MLP_CKPT}"
+echo "  Shared Steering: alpha=${ALPHA} ema_beta=${EMA_BETA} max_corr=${MAX_CORR}m threshold=${CORR_THRESH}m"
 echo ""
 
 # Verify checkpoints exist
@@ -82,17 +90,18 @@ python -u scripts/eval_act_steering.py \
     --env libero_spatial \
     --modes vanilla latent_jiggle mppi steering \
     --episodes-per-task 20 \
-    --alpha 1.0 \
-    --max-correction 0.01 \
-    --correction-threshold 0.005 \
+    --alpha "${ALPHA}" \
+    --ema-beta "${EMA_BETA}" \
+    --max-correction "${MAX_CORR}" \
+    --correction-threshold "${CORR_THRESH}" \
     --mppi-samples 16 \
     --mppi-temperature 5.0 \
-    --save-dir results/eval_act_steering
+    --save-dir results/eval_act_steering_shared_profile
 
 echo ""
 echo "================================================================"
 echo "  ACT STEERING EVALUATION COMPLETE"
 echo "================================================================"
 echo "  Date: $(date)"
-echo "  Results: results/eval_act_steering/eval_results.json"
+echo "  Results: results/eval_act_steering_shared_profile/eval_results.json"
 echo "================================================================"
