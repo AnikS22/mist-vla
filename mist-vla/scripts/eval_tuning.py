@@ -126,6 +126,7 @@ class SteeredAgent:
     def __init__(self, mlp, scaler, *,
                  alpha=1.0, ema_beta=0.7, action_scale=0.05,
                  correction_threshold=0.005, max_correction=0.01,
+                 use_fail_gate=False, fail_threshold=0.5,
                  device="cpu"):
         self.mlp = mlp
         self.scaler = scaler
@@ -134,6 +135,8 @@ class SteeredAgent:
         self.action_scale = action_scale
         self.correction_threshold = correction_threshold
         self.max_correction = max_correction
+        self.use_fail_gate = use_fail_gate
+        self.fail_threshold = fail_threshold
         self.device = device
         self.prev_correction = None
         self._steps = 0
@@ -166,6 +169,7 @@ class SteeredAgent:
 
         with torch.no_grad():
             out = self.mlp(x)
+        fail_prob = torch.sigmoid(out["will_fail"]).item()
         raw = out["correction"].cpu().numpy()[0]  # (3,) meters
 
         # EMA smoothing
@@ -185,7 +189,11 @@ class SteeredAgent:
         self._corr_mags.append(mag)
 
         # Gate: only intervene if correction is meaningful
-        if mag > self.correction_threshold:
+        should_intervene = mag > self.correction_threshold
+        if self.use_fail_gate:
+            should_intervene = should_intervene and (fail_prob >= self.fail_threshold)
+
+        if should_intervene:
             self._interventions += 1
             action[:3] += (self.alpha * smoothed / self.action_scale)
             return action, True
@@ -538,6 +546,10 @@ def main():
                         help="Min ‖correction‖ (meters) to trigger")
     parser.add_argument("--max-correction", type=float, default=0.01,
                         help="Clamp ‖correction‖ (meters)")
+    parser.add_argument("--use-fail-gate", action="store_true",
+                        help="Only intervene when fail prob >= --fail-threshold")
+    parser.add_argument("--fail-threshold", type=float, default=0.5,
+                        help="Fail-prob threshold when fail-gate is enabled")
     parser.add_argument("--camera-res", type=int, default=256)
     parser.add_argument("--num-images", type=int, default=2)
     parser.add_argument("--seed", type=int, default=42)
@@ -573,7 +585,9 @@ def main():
     for m in args.modes:
         print(f"    → {MODE_LABELS.get(m, m)}", flush=True)
     print(f"  Steering:    α={args.alpha}  clamp={args.max_correction}m  "
-          f"gate=‖c‖>{args.correction_threshold}m", flush=True)
+          f"gate=‖c‖>{args.correction_threshold}m  "
+          f"fail_gate={'on' if args.use_fail_gate else 'off'}"
+          f"(p≥{args.fail_threshold})", flush=True)
     print(f"  Max Δaction: {max_pert:.4f} units "
           f"({max_pert * 100:.1f}% of range)", flush=True)
     print(f"  Device:      {device}", flush=True)
@@ -623,6 +637,8 @@ def main():
         action_scale=args.action_scale,
         correction_threshold=args.correction_threshold,
         max_correction=args.max_correction,
+        use_fail_gate=args.use_fail_gate,
+        fail_threshold=args.fail_threshold,
         device=device,
     )
     jiggle_agent = LatentJiggleAgent(
@@ -827,6 +843,8 @@ def main():
             "max_correction_m": args.max_correction,
             "correction_threshold_m": args.correction_threshold,
             "ema_beta": args.ema_beta,
+            "use_fail_gate": args.use_fail_gate,
+            "fail_threshold": args.fail_threshold,
             "action_scale": args.action_scale,
             "seed": args.seed,
             "arch_version": "v4",
