@@ -56,7 +56,9 @@ export PYTHONPATH="/mnt/onefs/home/asahai2024/mist-vla:${PYTHONPATH:-}"
 export PYTHONUNBUFFERED=1
 export WANDB_DISABLED=true
 
-mkdir -p logs results/eval_act_steering_shared_profile_v3
+RUN_TAG="${RUN_TAG:-shared_profile_v3}"
+N_EPISODES="${N_EPISODES:-20}"
+mkdir -p logs "results/eval_act_steering_${RUN_TAG}"
 
 # Checkpoints
 ACT_CKPT="checkpoints/act/best_model.pt"
@@ -64,14 +66,15 @@ ACT_CKPT="checkpoints/act/best_model.pt"
 MLP_CKPT="checkpoints/eef_correction_mlp_act_honest/best_model.pt"
 
 # Shared conservative steering profile (used for cross-model comparability)
-ALPHA=0.15
-EMA_BETA=0.9
-MAX_CORR=0.004
-CORR_THRESH=0.003
-FAIL_THRESH=0.6
+ALPHA="${ALPHA:-0.15}"
+EMA_BETA="${EMA_BETA:-0.9}"
+MAX_CORR="${MAX_CORR:-0.004}"
+CORR_THRESH="${CORR_THRESH:-0.003}"
+FAIL_THRESH="${FAIL_THRESH:-0.6}"
 
 echo "  ACT Checkpoint: ${ACT_CKPT}"
 echo "  MLP Checkpoint: ${MLP_CKPT}"
+echo "  Run tag: ${RUN_TAG}  episodes=${N_EPISODES}"
 echo "  Shared Steering: alpha=${ALPHA} ema_beta=${EMA_BETA} max_corr=${MAX_CORR}m threshold=${CORR_THRESH}m fail_gate=p>=${FAIL_THRESH}"
 echo ""
 
@@ -90,7 +93,7 @@ python -u scripts/eval_act_steering.py \
     --mlp-checkpoint "${MLP_CKPT}" \
     --env libero_spatial \
     --modes vanilla latent_jiggle mppi steering \
-    --episodes-per-task 20 \
+    --episodes-per-task "${N_EPISODES}" \
     --alpha "${ALPHA}" \
     --ema-beta "${EMA_BETA}" \
     --max-correction "${MAX_CORR}" \
@@ -99,12 +102,12 @@ python -u scripts/eval_act_steering.py \
     --fail-threshold "${FAIL_THRESH}" \
     --mppi-samples 16 \
     --mppi-temperature 5.0 \
-    --save-dir results/eval_act_steering_shared_profile_v3
+    --save-dir "results/eval_act_steering_${RUN_TAG}"
 
 echo ""
 echo "================================================================"
 echo "  ACT STEERING EVALUATION COMPLETE"
 echo "================================================================"
 echo "  Date: $(date)"
-echo "  Results: results/eval_act_steering_shared_profile_v3/eval_results.json"
+echo "  Results: results/eval_act_steering_${RUN_TAG}/eval_results.json"
 echo "================================================================"

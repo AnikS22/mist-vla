@@ -90,7 +90,9 @@ export HF_HOME="${CACHE_ROOT}"
 export TRANSFORMERS_CACHE="${CACHE_ROOT}/transformers"
 export HUGGINGFACE_HUB_CACHE="${CACHE_ROOT}/hub"
 
-mkdir -p logs results/paper_table/category1_shared_profile_v3
+RUN_TAG="${RUN_TAG:-shared_profile_v3}"
+N_EPISODES="${N_EPISODES:-20}"
+mkdir -p logs "results/paper_table/category1_${RUN_TAG}"
 
 # Verify EGL works
 echo "Verifying EGL rendering..."
@@ -105,12 +107,13 @@ echo ""
 # Use the GOOD spatial-only v4 MLP
 MLP_CKPT="checkpoints/eef_correction_mlp/best_model.pt"
 # Shared conservative steering profile (used for cross-model comparability)
-ALPHA=0.15
-EMA_BETA=0.9
-MAX_CORR=0.004
-CORR_THRESH=0.003
-FAIL_THRESH=0.6
+ALPHA="${ALPHA:-0.15}"
+EMA_BETA="${EMA_BETA:-0.9}"
+MAX_CORR="${MAX_CORR:-0.004}"
+CORR_THRESH="${CORR_THRESH:-0.003}"
+FAIL_THRESH="${FAIL_THRESH:-0.6}"
 echo "  MLP Checkpoint: ${MLP_CKPT}"
+echo "  Run tag: ${RUN_TAG}  episodes=${N_EPISODES}"
 echo "  Shared Steering: alpha=${ALPHA} ema_beta=${EMA_BETA} max_corr=${MAX_CORR}m threshold=${CORR_THRESH}m fail_gate=p>=${FAIL_THRESH}"
 echo ""
 
@@ -119,7 +122,7 @@ python -u scripts/eval_tuning.py \
     --mlp-checkpoint "${MLP_CKPT}" \
     --env libero_spatial \
     --modes vanilla noise ema_only latent_jiggle mppi steering \
-    --episodes-per-task 20 \
+    --episodes-per-task "${N_EPISODES}" \
     --noise-sigma 0.05 \
     --ema-only-beta 0.9 \
     --alpha "${ALPHA}" \
@@ -130,12 +133,12 @@ python -u scripts/eval_tuning.py \
     --fail-threshold "${FAIL_THRESH}" \
     --mppi-samples 16 \
     --mppi-temperature 5.0 \
-    --save-dir results/paper_table/category1_shared_profile_v3
+    --save-dir "results/paper_table/category1_${RUN_TAG}"
 
 echo ""
 echo "================================================================"
 echo "  PAPER TABLE — Category 1 COMPLETE"
 echo "================================================================"
 echo "  Date: $(date)"
-echo "  Results: results/paper_table/category1_shared_profile_v3/eval_results.json"
+echo "  Results: results/paper_table/category1_${RUN_TAG}/eval_results.json"
 echo "================================================================"
