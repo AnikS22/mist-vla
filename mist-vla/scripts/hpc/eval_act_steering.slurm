@@ -56,7 +56,7 @@ export PYTHONPATH="/mnt/onefs/home/asahai2024/mist-vla:${PYTHONPATH:-}"
 export PYTHONUNBUFFERED=1
 export WANDB_DISABLED=true
 
-mkdir -p logs results/eval_act_steering_shared_profile_v2
+mkdir -p logs results/eval_act_steering_shared_profile_v3
 
 # Checkpoints
 ACT_CKPT="checkpoints/act/best_model.pt"
@@ -64,7 +64,7 @@ ACT_CKPT="checkpoints/act/best_model.pt"
 MLP_CKPT="checkpoints/eef_correction_mlp_act_honest/best_model.pt"
 
 # Shared conservative steering profile (used for cross-model comparability)
-ALPHA=0.2
+ALPHA=0.15
 EMA_BETA=0.9
 MAX_CORR=0.004
 CORR_THRESH=0.003
@@ -99,12 +99,12 @@ python -u scripts/eval_act_steering.py \
     --fail-threshold "${FAIL_THRESH}" \
     --mppi-samples 16 \
     --mppi-temperature 5.0 \
-    --save-dir results/eval_act_steering_shared_profile_v2
+    --save-dir results/eval_act_steering_shared_profile_v3
 
 echo ""
 echo "================================================================"
 echo "  ACT STEERING EVALUATION COMPLETE"
 echo "================================================================"
 echo "  Date: $(date)"
-echo "  Results: results/eval_act_steering_shared_profile_v2/eval_results.json"
+echo "  Results: results/eval_act_steering_shared_profile_v3/eval_results.json"
 echo "================================================================"

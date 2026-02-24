@@ -90,7 +90,7 @@ export HF_HOME="${CACHE_ROOT}"
 export TRANSFORMERS_CACHE="${CACHE_ROOT}/transformers"
 export HUGGINGFACE_HUB_CACHE="${CACHE_ROOT}/hub"
 
-mkdir -p logs results/paper_table/category1_shared_profile_v2
+mkdir -p logs results/paper_table/category1_shared_profile_v3
 
 # Verify EGL works
 echo "Verifying EGL rendering..."
@@ -105,7 +105,7 @@ echo ""
 # Use the GOOD spatial-only v4 MLP
 MLP_CKPT="checkpoints/eef_correction_mlp/best_model.pt"
 # Shared conservative steering profile (used for cross-model comparability)
-ALPHA=0.2
+ALPHA=0.15
 EMA_BETA=0.9
 MAX_CORR=0.004
 CORR_THRESH=0.003
@@ -130,12 +130,12 @@ python -u scripts/eval_tuning.py \
     --fail-threshold "${FAIL_THRESH}" \
     --mppi-samples 16 \
     --mppi-temperature 5.0 \
-    --save-dir results/paper_table/category1_shared_profile_v2
+    --save-dir results/paper_table/category1_shared_profile_v3
 
 echo ""
 echo "================================================================"
 echo "  PAPER TABLE — Category 1 COMPLETE"
 echo "================================================================"
 echo "  Date: $(date)"
-echo "  Results: results/paper_table/category1_shared_profile_v2/eval_results.json"
+echo "  Results: results/paper_table/category1_shared_profile_v3/eval_results.json"
 echo "================================================================"
