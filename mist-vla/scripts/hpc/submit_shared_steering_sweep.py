@@ -19,9 +19,23 @@ def _run(cmd: List[str]) -> str:
     return out
 
 
-def _submit(job_script: str, export_vars: Dict[str, str], dependency: Optional[str]) -> str:
+def _submit(
+    job_script: str,
+    export_vars: Dict[str, str],
+    dependency: Optional[str],
+    partition: str,
+    time_limit: str,
+) -> str:
     export_blob = ",".join([f"{k}={v}" for k, v in export_vars.items()])
-    cmd = ["sbatch", "--parsable", f"--export=ALL,{export_blob}"]
+    cmd = [
+        "sbatch",
+        "--parsable",
+        "--partition",
+        partition,
+        "--time",
+        time_limit,
+        f"--export=ALL,{export_blob}",
+    ]
     if dependency:
         cmd.append(f"--dependency=afterany:{dependency}")
     cmd.append(job_script)
@@ -37,6 +51,10 @@ def main() -> None:
     ap.add_argument("--start-after-job", default="",
                     help="Optional job id; each sweep trial starts after this job completes.")
     ap.add_argument("--ledger", default="results/hpc/shared_steering_sweep_jobs.jsonl")
+    ap.add_argument("--partition", default="longq7-eng",
+                    help="SLURM partition for submitted sweep jobs.")
+    ap.add_argument("--time-limit", default="2-12:00:00",
+                    help="SLURM walltime per job (e.g. 2-12:00:00).")
     args = ap.parse_args()
 
     random.seed(args.seed)
@@ -79,8 +97,20 @@ def main() -> None:
         }
 
         dep = args.start_after_job or None
-        paper_job = _submit("scripts/hpc/eval_paper_table.slurm", exports, dep)
-        act_job = _submit("scripts/hpc/eval_act_steering.slurm", exports, dep)
+        paper_job = _submit(
+            "scripts/hpc/eval_paper_table.slurm",
+            exports,
+            dep,
+            args.partition,
+            args.time_limit,
+        )
+        act_job = _submit(
+            "scripts/hpc/eval_act_steering.slurm",
+            exports,
+            dep,
+            args.partition,
+            args.time_limit,
+        )
 
         rec = {
             "submitted_utc": datetime.now(timezone.utc).isoformat(),
@@ -89,6 +119,8 @@ def main() -> None:
             "paper_job_id": paper_job,
             "act_job_id": act_job,
             "dependency": dep or "",
+            "partition": args.partition,
+            "time_limit": args.time_limit,
             "paper_results": f"results/paper_table/category1_{run_tag}/eval_results.json",
             "act_results": f"results/eval_act_steering_{run_tag}/eval_results.json",
         }
