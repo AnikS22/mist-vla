@@ -25,6 +25,7 @@ def _submit(
     dependency: Optional[str],
     partition: str,
     time_limit: str,
+    exclude_nodes: str,
 ) -> str:
     export_blob = ",".join([f"{k}={v}" for k, v in export_vars.items()])
     cmd = [
@@ -38,6 +39,8 @@ def _submit(
     ]
     if dependency:
         cmd.append(f"--dependency=afterany:{dependency}")
+    if exclude_nodes:
+        cmd.extend(["--exclude", exclude_nodes])
     cmd.append(job_script)
     return _run(cmd)
 
@@ -55,6 +58,8 @@ def main() -> None:
                     help="SLURM partition for submitted sweep jobs.")
     ap.add_argument("--time-limit", default="2-12:00:00",
                     help="SLURM walltime per job (e.g. 2-12:00:00).")
+    ap.add_argument("--exclude-nodes", default="nodegpu041",
+                    help="Comma-separated nodes to exclude (known bad/unstable nodes).")
     args = ap.parse_args()
 
     random.seed(args.seed)
@@ -103,6 +108,7 @@ def main() -> None:
             dep,
             args.partition,
             args.time_limit,
+            args.exclude_nodes,
         )
         act_job = _submit(
             "scripts/hpc/eval_act_steering.slurm",
@@ -110,6 +116,7 @@ def main() -> None:
             dep,
             args.partition,
             args.time_limit,
+            args.exclude_nodes,
         )
 
         rec = {
@@ -121,6 +128,7 @@ def main() -> None:
             "dependency": dep or "",
             "partition": args.partition,
             "time_limit": args.time_limit,
+            "exclude_nodes": args.exclude_nodes,
             "paper_results": f"results/paper_table/category1_{run_tag}/eval_results.json",
             "act_results": f"results/eval_act_steering_{run_tag}/eval_results.json",
         }

@@ -52,6 +52,7 @@ echo "SLURM_STEP_GPUS=${SLURM_STEP_GPUS:-unset}"
 echo "GPU_DEVICE_ORDINAL=${GPU_DEVICE_ORDINAL:-unset}"
 echo "CUDA_VISIBLE_DEVICES (before)=${CUDA_VISIBLE_DEVICES:-unset}"
 nvidia-smi -L 2>/dev/null
+nvidia-smi -L 2>/dev/null || true
 echo "=== end GPU DEBUG ==="
 
 # Don't override CUDA_VISIBLE_DEVICES if SLURM already set it correctly
@@ -76,8 +77,14 @@ export __EGL_VENDOR_LIBRARY_DIRS="/usr/share/glvnd/egl_vendor.d"
 echo "CUDA_VISIBLE_DEVICES (after)=${CUDA_VISIBLE_DEVICES}"
 echo "MUJOCO_EGL_DEVICE_ID=${MUJOCO_EGL_DEVICE_ID}"
 
-# Quick CUDA check
-python3 -c "import torch; print(f'CUDA available: {torch.cuda.is_available()}, devices: {torch.cuda.device_count()}')" 2>&1 || true
+# Quick CUDA check + hard fail if no GPU visible
+python3 - <<'PY'
+import sys
+import torch
+ok = torch.cuda.is_available() and torch.cuda.device_count() > 0
+print(f'CUDA available: {torch.cuda.is_available()}, devices: {torch.cuda.device_count()}')
+sys.exit(0 if ok else 2)
+PY
 
 export PYTHONPATH="/mnt/onefs/home/asahai2024/mist-vla:/mnt/onefs/home/asahai2024/mist-vla/openvla-oft:${PYTHONPATH:-}"
 export PYTHONUNBUFFERED=1
@@ -101,7 +108,7 @@ import mujoco
 print(f'MuJoCo version: {mujoco.__version__}')
 " || true
 
-nvidia-smi -L
+nvidia-smi -L || true
 echo ""
 
 # Use the GOOD spatial-only v4 MLP

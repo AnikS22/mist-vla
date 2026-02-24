@@ -49,8 +49,14 @@ export __EGL_VENDOR_LIBRARY_DIRS="/usr/share/glvnd/egl_vendor.d"
 echo "CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES}"
 nvidia-smi -L 2>/dev/null || true
 
-# Quick CUDA check
-python3 -c "import torch; print(f'CUDA: {torch.cuda.is_available()}, devices: {torch.cuda.device_count()}')" 2>&1 || true
+# Quick CUDA check + hard fail if no GPU visible
+python3 - <<'PY'
+import sys
+import torch
+ok = torch.cuda.is_available() and torch.cuda.device_count() > 0
+print(f'CUDA: {torch.cuda.is_available()}, devices: {torch.cuda.device_count()}')
+sys.exit(0 if ok else 2)
+PY
 
 export PYTHONPATH="/mnt/onefs/home/asahai2024/mist-vla:${PYTHONPATH:-}"
 export PYTHONUNBUFFERED=1
