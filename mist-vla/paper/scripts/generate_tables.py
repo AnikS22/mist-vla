@@ -96,7 +96,7 @@ paired_table = [
     r"\midrule",
 ]
 for t, da, do, dm in paired_rows:
-    short_t = t.replace('sweep_20260224_204844_', '')
+    short_t = t.replace('sweep_20260224_204844_', '').replace('_', r'\_')
     paired_table.append(f"{short_t} & {da:+.1f} & {do:+.1f} & {dm:+.2f} {EOL}")
 if paired_rows:
     paired_table.append(r"\midrule")
