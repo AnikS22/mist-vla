@@ -1,0 +1,63 @@
+\section{Method}
+
+\subsection{Problem Setup}
+At time $t$, a base policy emits action $\mathbf{a}_t \in \mathbb{R}^d$ and latent state $\mathbf{h}_t \in \mathbb{R}^{m}$.
+We learn a safety predictor
+\begin{equation}
+f_\theta(\mathbf{h}_t)=\{\hat{y}^{\text{fail}}_t,\;\hat{\tau}_t,\;\widehat{\Delta \mathbf{p}}_t\},
+\end{equation}
+where $\hat{y}^{\text{fail}}_t$ is failure logit, $\hat{\tau}_t$ is time-to-failure, and
+$\widehat{\Delta \mathbf{p}}_t=(\widehat{\Delta x},\widehat{\Delta y},\widehat{\Delta z})$ is Cartesian correction.
+
+\subsection{Controller Architecture}
+The safety network is an MLP with LayerNorm input and three heads:
+\begin{align}
+\mathbf{z}_t &= \phi(\text{LN}(\mathbf{h}_t)),\\
+\hat{y}^{\text{fail}}_t &= W_f\mathbf{z}_t+b_f,\\
+\hat{\tau}_t &= W_\tau\mathbf{z}_t+b_\tau,\\
+\widehat{\Delta\mathbf{p}}_t &= W_c\mathbf{z}_t+b_c.
+\end{align}
+Hidden width is fixed to 256 with GELU and dropout.
+
+\subsection{Training Objectives}
+Let $y_t\in\{0,1\}$ denote failure label, $\tau_t$ time-to-failure target, and $\Delta\mathbf{p}_t$ correction target.
+We use dynamic per-batch positive reweighting for class imbalance:
+\begin{equation}
+\mathcal{L}_{\text{fail}} = \text{BCEWithLogits}(\hat{y}^{\text{fail}}_t, y_t;\,w_t^+).
+\end{equation}
+Regression heads use Huber losses:
+\begin{align}
+\mathcal{L}_{\tau} &= \text{Huber}_\delta(\hat{\tau}_t,\tau_t),\\
+\mathcal{L}_{\Delta p} &= \text{Huber}_\delta(\widehat{\Delta\mathbf{p}}_t,\Delta\mathbf{p}_t),\quad \delta=0.1.
+\end{align}
+Total objective:
+\begin{equation}
+\mathcal{L}=\lambda_f\mathcal{L}_{\text{fail}} + \lambda_\tau\mathcal{L}_{\tau} + \lambda_c\mathcal{L}_{\Delta p}.
+\end{equation}
+Optimization uses AdamW with weight decay $10^{-3}$.
+
+\subsection{Gated Latent Steering Policy}
+Given correction prediction, we smooth and clamp:
+\begin{align}
+\tilde{\Delta\mathbf{p}}_t &= \beta\tilde{\Delta\mathbf{p}}_{t-1} + (1-\beta)\widehat{\Delta\mathbf{p}}_t,\\
+\bar{\Delta\mathbf{p}}_t &= \text{ClampNorm}(\tilde{\Delta\mathbf{p}}_t, c_{\max}).
+\end{align}
+Intervention gate is:
+\begin{equation}
+\mathbb{I}_t = \mathbb{1}\{\|\bar{\Delta\mathbf{p}}_t\| > \tau_c\} \cdot
+\mathbb{1}\{\sigma(\hat{y}^{\text{fail}}_t)\ge \tau_f\},
+\end{equation}
+with optional fail-gate threshold $\tau_f$.
+Final action update (translation channels only):
+\begin{equation}
+\mathbf{a}^{(xyz)}_t \leftarrow \mathbf{a}^{(xyz)}_t + \alpha\,\mathbb{I}_t\,\frac{\bar{\Delta\mathbf{p}}_t}{s_a}.
+\end{equation}
+
+\subsection{Baselines}
+\begin{itemize}[leftmargin=1.2em]
+    \item \textbf{Vanilla}: no intervention.
+    \item \textbf{Noise}: random action perturbation.
+    \item \textbf{EMA-only}: direct action smoothing without latent model.
+    \item \textbf{Latent jiggle}: matched-magnitude random latent correction direction.
+    \item \textbf{MPPI}: sampling-based correction selection using failure score objective.
+\end{itemize}

@@ -1,0 +1,13 @@
+\section{Discussion}
+
+\paragraph{What is demonstrated now.}
+Completed runs support three current claims: (1) latent steering can match or exceed MPPI in selected settings, (2) performance is parameter-sensitive across architectures, and (3) steering apply latency is significantly lower than MPPI.
+
+\paragraph{Why gains are configuration-sensitive.}
+Controller quality is dominated by gating and intervention timing. Over-intervention degrades success; under-intervention yields no effect. This explains early oscillation between negative and positive $\Delta$(Ours$-$MPPI).
+
+\paragraph{Generalizability interpretation.}
+Near-parity cross-model behavior on completed paired runs supports the feasibility of a unified latent safety interface. The strongest evidence will come from the completed long campaign and additional model wrappers beyond ACT/OpenVLA.
+
+\paragraph{Failure modes.}
+Common failures include over-correction on difficult tasks, renderer/node instability in HPC, and configuration mismatch between clamp and intervention threshold.

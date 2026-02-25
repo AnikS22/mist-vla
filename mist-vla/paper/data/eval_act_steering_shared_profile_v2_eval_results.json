@@ -1,0 +1,380 @@
+{
+  "config": {
+    "env": "libero_spatial",
+    "tasks": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "modes": [
+      "vanilla",
+      "latent_jiggle",
+      "mppi",
+      "steering"
+    ],
+    "episodes_per_task": 20,
+    "alpha": 0.2,
+    "max_correction_m": 0.004,
+    "correction_threshold_m": 0.003,
+    "ema_beta": 0.9,
+    "use_fail_gate": true,
+    "fail_threshold": 0.6,
+    "action_scale": 0.05,
+    "seed": 42,
+    "arch_version": "v4",
+    "model_type": "act",
+    "act_checkpoint": "checkpoints/act/best_model.pt",
+    "mlp_checkpoint": "checkpoints/eef_correction_mlp_act_honest/best_model.pt",
+    "act_params": 5917415,
+    "mlp_params": 108677,
+    "mlp_input_dim": 256
+  },
+  "per_task": {
+    "0": {
+      "vanilla": {
+        "success_rate_pct": 60.0,
+        "n_successes": 12,
+        "n_episodes": 20,
+        "mean_ir": 0.0,
+        "mean_corr_mag_m": 0.0
+      },
+      "latent_jiggle": {
+        "success_rate_pct": 40.0,
+        "n_successes": 8,
+        "n_episodes": 20,
+        "mean_ir": 0.985,
+        "mean_corr_mag_m": 0.003951
+      },
+      "mppi": {
+        "success_rate_pct": 60.0,
+        "n_successes": 12,
+        "n_episodes": 20,
+        "mean_ir": 0.354,
+        "mean_corr_mag_m": 0.000281
+      },
+      "steering": {
+        "success_rate_pct": 55.0,
+        "n_successes": 11,
+        "n_episodes": 20,
+        "mean_ir": 0.3757,
+        "mean_corr_mag_m": 0.003975
+      },
+      "delta_latent_jiggle_pp": -20.0,
+      "delta_mppi_pp": 0.0,
+      "delta_steering_pp": -5.0
+    },
+    "1": {
+      "vanilla": {
+        "success_rate_pct": 30.0,
+        "n_successes": 6,
+        "n_episodes": 20,
+        "mean_ir": 0.0,
+        "mean_corr_mag_m": 0.0
+      },
+      "latent_jiggle": {
+        "success_rate_pct": 45.0,
+        "n_successes": 9,
+        "n_episodes": 20,
+        "mean_ir": 0.9791,
+        "mean_corr_mag_m": 0.003949
+      },
+      "mppi": {
+        "success_rate_pct": 35.0,
+        "n_successes": 7,
+        "n_episodes": 20,
+        "mean_ir": 0.4499,
+        "mean_corr_mag_m": 0.000367
+      },
+      "steering": {
+        "success_rate_pct": 35.0,
+        "n_successes": 7,
+        "n_episodes": 20,
+        "mean_ir": 0.4514,
+        "mean_corr_mag_m": 0.003937
+      },
+      "delta_latent_jiggle_pp": 15.0,
+      "delta_mppi_pp": 5.0,
+      "delta_steering_pp": 5.0
+    },
+    "2": {
+      "vanilla": {
+        "success_rate_pct": 80.0,
+        "n_successes": 16,
+        "n_episodes": 20,
+        "mean_ir": 0.0,
+        "mean_corr_mag_m": 0.0
+      },
+      "latent_jiggle": {
+        "success_rate_pct": 85.0,
+        "n_successes": 17,
+        "n_episodes": 20,
+        "mean_ir": 0.9385,
+        "mean_corr_mag_m": 0.00386
+      },
+      "mppi": {
+        "success_rate_pct": 80.0,
+        "n_successes": 16,
+        "n_episodes": 20,
+        "mean_ir": 0.1614,
+        "mean_corr_mag_m": 0.000129
+      },
+      "steering": {
+        "success_rate_pct": 85.0,
+        "n_successes": 17,
+        "n_episodes": 20,
+        "mean_ir": 0.1389,
+        "mean_corr_mag_m": 0.003869
+      },
+      "delta_latent_jiggle_pp": 5.0,
+      "delta_mppi_pp": 0.0,
+      "delta_steering_pp": 5.0
+    },
+    "3": {
+      "vanilla": {
+        "success_rate_pct": 80.0,
+        "n_successes": 16,
+        "n_episodes": 20,
+        "mean_ir": 0.0,
+        "mean_corr_mag_m": 0.0
+      },
+      "latent_jiggle": {
+        "success_rate_pct": 80.0,
+        "n_successes": 16,
+        "n_episodes": 20,
+        "mean_ir": 0.8991,
+        "mean_corr_mag_m": 0.003765
+      },
+      "mppi": {
+        "success_rate_pct": 90.0,
+        "n_successes": 18,
+        "n_episodes": 20,
+        "mean_ir": 0.1327,
+        "mean_corr_mag_m": 0.000109
+      },
+      "steering": {
+        "success_rate_pct": 85.0,
+        "n_successes": 17,
+        "n_episodes": 20,
+        "mean_ir": 0.1557,
+        "mean_corr_mag_m": 0.003769
+      },
+      "delta_latent_jiggle_pp": 0.0,
+      "delta_mppi_pp": 10.0,
+      "delta_steering_pp": 5.0
+    },
+    "4": {
+      "vanilla": {
+        "success_rate_pct": 60.0,
+        "n_successes": 12,
+        "n_episodes": 20,
+        "mean_ir": 0.0,
+        "mean_corr_mag_m": 0.0
+      },
+      "latent_jiggle": {
+        "success_rate_pct": 75.0,
+        "n_successes": 15,
+        "n_episodes": 20,
+        "mean_ir": 0.9234,
+        "mean_corr_mag_m": 0.00383
+      },
+      "mppi": {
+        "success_rate_pct": 60.0,
+        "n_successes": 12,
+        "n_episodes": 20,
+        "mean_ir": 0.3574,
+        "mean_corr_mag_m": 0.000286
+      },
+      "steering": {
+        "success_rate_pct": 55.0,
+        "n_successes": 11,
+        "n_episodes": 20,
+        "mean_ir": 0.3157,
+        "mean_corr_mag_m": 0.003832
+      },
+      "delta_latent_jiggle_pp": 15.0,
+      "delta_mppi_pp": 0.0,
+      "delta_steering_pp": -5.0
+    },
+    "5": {
+      "vanilla": {
+        "success_rate_pct": 15.0,
+        "n_successes": 3,
+        "n_episodes": 20,
+        "mean_ir": 0.0,
+        "mean_corr_mag_m": 0.0
+      },
+      "latent_jiggle": {
+        "success_rate_pct": 10.0,
+        "n_successes": 2,
+        "n_episodes": 20,
+        "mean_ir": 0.9924,
+        "mean_corr_mag_m": 0.003985
+      },
+      "mppi": {
+        "success_rate_pct": 10.0,
+        "n_successes": 2,
+        "n_episodes": 20,
+        "mean_ir": 0.696,
+        "mean_corr_mag_m": 0.000555
+      },
+      "steering": {
+        "success_rate_pct": 5.0,
+        "n_successes": 1,
+        "n_episodes": 20,
+        "mean_ir": 0.7925,
+        "mean_corr_mag_m": 0.003974
+      },
+      "delta_latent_jiggle_pp": -5.0,
+      "delta_mppi_pp": -5.0,
+      "delta_steering_pp": -10.0
+    },
+    "6": {
+      "vanilla": {
+        "success_rate_pct": 85.0,
+        "n_successes": 17,
+        "n_episodes": 20,
+        "mean_ir": 0.0,
+        "mean_corr_mag_m": 0.0
+      },
+      "latent_jiggle": {
+        "success_rate_pct": 85.0,
+        "n_successes": 17,
+        "n_episodes": 20,
+        "mean_ir": 0.8546,
+        "mean_corr_mag_m": 0.003671
+      },
+      "mppi": {
+        "success_rate_pct": 80.0,
+        "n_successes": 16,
+        "n_episodes": 20,
+        "mean_ir": 0.2085,
+        "mean_corr_mag_m": 0.000167
+      },
+      "steering": {
+        "success_rate_pct": 75.0,
+        "n_successes": 15,
+        "n_episodes": 20,
+        "mean_ir": 0.2365,
+        "mean_corr_mag_m": 0.003616
+      },
+      "delta_latent_jiggle_pp": 0.0,
+      "delta_mppi_pp": -5.0,
+      "delta_steering_pp": -10.0
+    },
+    "7": {
+      "vanilla": {
+        "success_rate_pct": 20.0,
+        "n_successes": 4,
+        "n_episodes": 20,
+        "mean_ir": 0.0,
+        "mean_corr_mag_m": 0.0
+      },
+      "latent_jiggle": {
+        "success_rate_pct": 20.0,
+        "n_successes": 4,
+        "n_episodes": 20,
+        "mean_ir": 0.9925,
+        "mean_corr_mag_m": 0.003973
+      },
+      "mppi": {
+        "success_rate_pct": 15.0,
+        "n_successes": 3,
+        "n_episodes": 20,
+        "mean_ir": 0.7353,
+        "mean_corr_mag_m": 0.000586
+      },
+      "steering": {
+        "success_rate_pct": 15.0,
+        "n_successes": 3,
+        "n_episodes": 20,
+        "mean_ir": 0.6327,
+        "mean_corr_mag_m": 0.003959
+      },
+      "delta_latent_jiggle_pp": 0.0,
+      "delta_mppi_pp": -5.0,
+      "delta_steering_pp": -5.0
+    },
+    "8": {
+      "vanilla": {
+        "success_rate_pct": 70.0,
+        "n_successes": 14,
+        "n_episodes": 20,
+        "mean_ir": 0.0,
+        "mean_corr_mag_m": 0.0
+      },
+      "latent_jiggle": {
+        "success_rate_pct": 55.0,
+        "n_successes": 11,
+        "n_episodes": 20,
+        "mean_ir": 0.9512,
+        "mean_corr_mag_m": 0.003875
+      },
+      "mppi": {
+        "success_rate_pct": 65.0,
+        "n_successes": 13,
+        "n_episodes": 20,
+        "mean_ir": 0.3353,
+        "mean_corr_mag_m": 0.000269
+      },
+      "steering": {
+        "success_rate_pct": 55.0,
+        "n_successes": 11,
+        "n_episodes": 20,
+        "mean_ir": 0.3461,
+        "mean_corr_mag_m": 0.003878
+      },
+      "delta_latent_jiggle_pp": -15.0,
+      "delta_mppi_pp": -5.0,
+      "delta_steering_pp": -15.0
+    },
+    "9": {
+      "vanilla": {
+        "success_rate_pct": 5.0,
+        "n_successes": 1,
+        "n_episodes": 20,
+        "mean_ir": 0.0,
+        "mean_corr_mag_m": 0.0
+      },
+      "latent_jiggle": {
+        "success_rate_pct": 0.0,
+        "n_successes": 0,
+        "n_episodes": 20,
+        "mean_ir": 0.9933,
+        "mean_corr_mag_m": 0.003981
+      },
+      "mppi": {
+        "success_rate_pct": 15.0,
+        "n_successes": 3,
+        "n_episodes": 20,
+        "mean_ir": 0.6484,
+        "mean_corr_mag_m": 0.000513
+      },
+      "steering": {
+        "success_rate_pct": 10.0,
+        "n_successes": 2,
+        "n_episodes": 20,
+        "mean_ir": 0.628,
+        "mean_corr_mag_m": 0.003952
+      },
+      "delta_latent_jiggle_pp": -5.0,
+      "delta_mppi_pp": 10.0,
+      "delta_steering_pp": 5.0
+    }
+  },
+  "summary": {
+    "avg_vanilla_pct": 50.5,
+    "avg_latent_jiggle_pct": 49.5,
+    "delta_latent_jiggle_vs_vanilla_pp": -1.0,
+    "avg_mppi_pct": 51.0,
+    "delta_mppi_vs_vanilla_pp": 0.5,
+    "avg_steering_pct": 47.5,
+    "delta_steering_vs_vanilla_pp": -3.0
+  }
+}

@@ -1,0 +1,85 @@
+{
+  "config": {
+    "env": "libero_spatial",
+    "tasks": [
+      0,
+      1
+    ],
+    "modes": [
+      "mppi",
+      "steering"
+    ],
+    "episodes_per_task": 4,
+    "alpha": 0.12,
+    "max_correction_m": 0.003,
+    "correction_threshold_m": 0.002,
+    "ema_beta": 0.9,
+    "use_fail_gate": true,
+    "fail_threshold": 0.65,
+    "action_scale": 0.05,
+    "seed": 42,
+    "arch_version": "v4",
+    "model_type": "act",
+    "act_checkpoint": "checkpoints/act/best_model.pt",
+    "mlp_checkpoint": "checkpoints/eef_correction_mlp_act_honest/best_model.pt",
+    "act_params": 5917415,
+    "mlp_params": 108677,
+    "mlp_input_dim": 256
+  },
+  "per_task": {
+    "0": {
+      "mppi": {
+        "success_rate_pct": 50.0,
+        "n_successes": 2,
+        "n_episodes": 4,
+        "mean_ir": 0.4964,
+        "mean_corr_mag_m": 0.000289,
+        "mean_apply_ms": 3.9453,
+        "p95_apply_ms": 7.2967
+      },
+      "steering": {
+        "success_rate_pct": 25.0,
+        "n_successes": 1,
+        "n_episodes": 4,
+        "mean_ir": 0.6367,
+        "mean_corr_mag_m": 0.003,
+        "mean_apply_ms": 0.6294,
+        "p95_apply_ms": 0.6383
+      },
+      "delta_mppi_pp": 50.0,
+      "delta_steering_pp": 25.0
+    },
+    "1": {
+      "mppi": {
+        "success_rate_pct": 25.0,
+        "n_successes": 1,
+        "n_episodes": 4,
+        "mean_ir": 0.5433,
+        "mean_corr_mag_m": 0.000316,
+        "mean_apply_ms": 4.1829,
+        "p95_apply_ms": 5.6145
+      },
+      "steering": {
+        "success_rate_pct": 25.0,
+        "n_successes": 1,
+        "n_episodes": 4,
+        "mean_ir": 0.5633,
+        "mean_corr_mag_m": 0.002988,
+        "mean_apply_ms": 0.6274,
+        "p95_apply_ms": 0.6363
+      },
+      "delta_mppi_pp": 25.0,
+      "delta_steering_pp": 25.0
+    }
+  },
+  "summary": {
+    "avg_mppi_pct": 37.5,
+    "delta_mppi_vs_vanilla_pp": 37.5,
+    "avg_mppi_apply_ms": 4.064,
+    "avg_mppi_apply_p95_ms": 6.456,
+    "avg_steering_pct": 25.0,
+    "delta_steering_vs_vanilla_pp": 25.0,
+    "avg_steering_apply_ms": 0.628,
+    "avg_steering_apply_p95_ms": 0.637
+  }
+}

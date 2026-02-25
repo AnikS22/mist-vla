@@ -1,0 +1,27 @@
+\section{Introduction}
+Large robot policies have rapidly improved zero-shot and language-conditioned control, but safety and reliability in closed-loop execution remain major bottlenecks. In particular, high-capacity VLA models can exhibit spatial drift and brittle recovery behavior under long-horizon manipulation, while classic baselines such as smoothing often fail to preserve task success.
+
+This paper asks a targeted question: \emph{Can a lightweight latent-space controller, trained on hidden states only, predict and steer away from failure in a model-agnostic way?}
+
+Our approach is a snap-on controller:
+\begin{enumerate}[leftmargin=1.2em]
+    \item Extract policy hidden state $\mathbf{h}_t$.
+    \item Predict failure risk and correction with a small MLP.
+    \item Apply a gated correction to translational action components.
+\end{enumerate}
+
+The motivation is twofold. First, hidden states encode internal task geometry and uncertainty before explicit failure occurs. Second, a small add-on module can be deployed with minimal compute overhead and without expensive policy retraining.
+
+\paragraph{Thesis.}
+A single latent safety interface can be reused across VLA and non-VLA models: hidden state in, safety correction out. If successful, this provides a practical path toward universal safety adaptation rather than model-specific control redesign.
+
+\paragraph{Contributions.}
+\begin{itemize}[leftmargin=1.2em]
+    \item We formulate \textbf{Universal Latent Safety Steering}: a model-agnostic control contract over hidden states with fail-gated correction.
+    \item We instantiate a compact three-head MLP with robust multitask training (dynamic class balancing + Huber regression) and deploy it in closed loop.
+    \item We evaluate against strong baselines (noise, EMA-only, latent jiggle, MPPI) and report paired cross-model comparisons.
+    \item We provide controller-latency measurements showing significant runtime advantage over MPPI.
+\end{itemize}
+
+\paragraph{Current status.}
+The long-horizon sweep campaign is still running; we report all completed results and mark pending cells explicitly (no extrapolated values).

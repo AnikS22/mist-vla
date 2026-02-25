@@ -1,0 +1,33 @@
+\appendix
+\section{Implementation Notes}
+\begin{itemize}[leftmargin=1.2em]
+    \item Safety MLP architecture is synchronized across training and eval scripts.
+    \item ACT subsampling logic is used to avoid repeated-latent label leakage.
+    \item HPC scripts include GPU preflight checks and bad-node exclusion.
+\end{itemize}
+
+\section{Equations Summary}
+\begin{align}
+\mathcal{L}&=\lambda_f\mathcal{L}_{\text{fail}}+\lambda_\tau\mathcal{L}_{\tau}+\lambda_c\mathcal{L}_{\Delta p},\\
+\mathcal{L}_{\text{fail}}&=\text{BCEWithLogits}(\hat{y}^{\text{fail}}, y; w^+_{\text{batch}}),\\
+\mathcal{L}_{\tau}&=\text{Huber}_{\delta}(\hat{\tau},\tau),\\
+\mathcal{L}_{\Delta p}&=\text{Huber}_{\delta}(\widehat{\Delta\mathbf{p}},\Delta\mathbf{p}).
+\end{align}
+
+\section{Result Provenance (Current Draft)}
+Primary generated tables:
+\begin{itemize}[leftmargin=1.2em]
+    \item \texttt{tables/tab\_act\_key\_results.tex}
+    \item \texttt{tables/tab\_paired\_clean\_runs.tex}
+    \item \texttt{tables/tab\_latency.tex}
+\end{itemize}
+
+Source JSONs are stored under \texttt{paper/data/} and generated via
+\texttt{paper/scripts/generate\_tables.py}.
+
+\section{Pending Placeholders for Final Camera-Ready}
+\begin{itemize}[leftmargin=1.2em]
+    \item TODO-A: Final 24-run paired sweep aggregate and confidence intervals.
+    \item TODO-B: OpenVLA full per-task final table under selected best shared configuration.
+    \item TODO-C: Additional non-VLA baselines in paired protocol (if completed in time).
+\end{itemize}

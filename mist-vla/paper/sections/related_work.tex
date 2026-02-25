@@ -1,0 +1,12 @@
+\section{Related Work}
+\paragraph{Vision-Language-Action models.}
+Foundation policy models such as OpenVLA and Octo bring language grounding and broad transfer but can degrade under embodiment-specific control noise and long-horizon drift. We target this deployment gap with a lightweight post-hoc controller.
+
+\paragraph{Imitation-learning robot policies.}
+ACT and Diffusion Policy are strong task-specialized baselines and often outperform foundation models on narrow manipulation domains. We use these policies as stress tests for cross-architecture generalization of latent safety steering.
+
+\paragraph{Safety filters and model-predictive control.}
+MPPI and related sampling-based controllers are strong optimization baselines but can be computationally heavier in high-frequency loops. We compare directly to MPPI and measure step-time latency.
+
+\paragraph{Mechanistic and latent interventions.}
+Prior work in representation probing suggests hidden states encode predictive task signals. We operationalize this hypothesis with a deployable safety controller that predicts failure and corrective translation from hidden states.
