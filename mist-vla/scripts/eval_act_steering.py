@@ -211,12 +211,14 @@ class SteeredAgent:
         self._steps = 0
         self._interventions = 0
         self._corr_mags = []
+        self._apply_times_ms = []
 
     def reset(self):
         self.prev_correction = None
         self._steps = 0
         self._interventions = 0
         self._corr_mags = []
+        self._apply_times_ms = []
 
     @property
     def intervention_rate(self):
@@ -226,47 +228,61 @@ class SteeredAgent:
     def mean_corr_mag(self):
         return float(np.mean(self._corr_mags)) if self._corr_mags else 0.0
 
+    @property
+    def mean_apply_ms(self):
+        return float(np.mean(self._apply_times_ms)) if self._apply_times_ms else 0.0
+
+    @property
+    def p95_apply_ms(self):
+        if not self._apply_times_ms:
+            return 0.0
+        return float(np.percentile(self._apply_times_ms, 95))
+
     def apply(self, action, features):
         """Apply gated, clamped MLP correction to action[:3]."""
-        self._steps += 1
+        t0 = time.perf_counter()
+        try:
+            self._steps += 1
 
-        if features is None or np.prod(features.shape) < 2:
+            if features is None or np.prod(features.shape) < 2:
+                return action, False
+
+            scaled = self.scaler.transform(features.reshape(1, -1))
+            x = torch.FloatTensor(scaled).to(self.device)
+
+            with torch.no_grad():
+                out = self.mlp(x)
+            fail_prob = torch.sigmoid(out["will_fail"]).item()
+            raw = out["correction"].cpu().numpy()[0]  # (3,) meters
+
+            # EMA smoothing
+            if self.prev_correction is not None:
+                smoothed = (self.ema_beta * self.prev_correction
+                            + (1.0 - self.ema_beta) * raw)
+            else:
+                smoothed = raw.copy()
+            self.prev_correction = smoothed.copy()
+
+            # Clamp magnitude
+            mag = float(np.linalg.norm(smoothed))
+            if mag > self.max_correction and mag > 1e-8:
+                smoothed = smoothed * (self.max_correction / mag)
+                mag = self.max_correction
+
+            self._corr_mags.append(mag)
+
+            # Gate: only intervene if correction is meaningful
+            should_intervene = mag > self.correction_threshold
+            if self.use_fail_gate:
+                should_intervene = should_intervene and (fail_prob >= self.fail_threshold)
+
+            if should_intervene:
+                self._interventions += 1
+                action[:3] += (self.alpha * smoothed / self.action_scale)
+                return action, True
             return action, False
-
-        scaled = self.scaler.transform(features.reshape(1, -1))
-        x = torch.FloatTensor(scaled).to(self.device)
-
-        with torch.no_grad():
-            out = self.mlp(x)
-        fail_prob = torch.sigmoid(out["will_fail"]).item()
-        raw = out["correction"].cpu().numpy()[0]  # (3,) meters
-
-        # EMA smoothing
-        if self.prev_correction is not None:
-            smoothed = (self.ema_beta * self.prev_correction
-                        + (1.0 - self.ema_beta) * raw)
-        else:
-            smoothed = raw.copy()
-        self.prev_correction = smoothed.copy()
-
-        # Clamp magnitude
-        mag = float(np.linalg.norm(smoothed))
-        if mag > self.max_correction and mag > 1e-8:
-            smoothed = smoothed * (self.max_correction / mag)
-            mag = self.max_correction
-
-        self._corr_mags.append(mag)
-
-        # Gate: only intervene if correction is meaningful
-        should_intervene = mag > self.correction_threshold
-        if self.use_fail_gate:
-            should_intervene = should_intervene and (fail_prob >= self.fail_threshold)
-
-        if should_intervene:
-            self._interventions += 1
-            action[:3] += (self.alpha * smoothed / self.action_scale)
-            return action, True
-        return action, False
+        finally:
+            self._apply_times_ms.append((time.perf_counter() - t0) * 1000.0)
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -292,11 +308,13 @@ class MPPIController:
         self._steps = 0
         self._interventions = 0
         self._corr_mags = []
+        self._apply_times_ms = []
 
     def reset(self):
         self._steps = 0
         self._interventions = 0
         self._corr_mags = []
+        self._apply_times_ms = []
 
     @property
     def intervention_rate(self):
@@ -306,50 +324,64 @@ class MPPIController:
     def mean_corr_mag(self):
         return float(np.mean(self._corr_mags)) if self._corr_mags else 0.0
 
+    @property
+    def mean_apply_ms(self):
+        return float(np.mean(self._apply_times_ms)) if self._apply_times_ms else 0.0
+
+    @property
+    def p95_apply_ms(self):
+        if not self._apply_times_ms:
+            return 0.0
+        return float(np.percentile(self._apply_times_ms, 95))
+
     def apply(self, action, features):
-        self._steps += 1
-        if features is None or np.prod(features.shape) < 2:
-            return action, False
+        t0 = time.perf_counter()
+        try:
+            self._steps += 1
+            if features is None or np.prod(features.shape) < 2:
+                return action, False
 
-        scaled = self.scaler.transform(features.reshape(1, -1))
-        x = torch.FloatTensor(scaled).to(self.device)
+            scaled = self.scaler.transform(features.reshape(1, -1))
+            x = torch.FloatTensor(scaled).to(self.device)
 
-        with torch.no_grad():
-            out = self.mlp(x)
-
-        fail_prob = torch.sigmoid(out["will_fail"]).item()
-        if fail_prob < 0.5:
-            self._corr_mags.append(0.0)
-            return action, False
-
-        self._interventions += 1
-
-        candidates = np.random.normal(
-            0, self.correction_std, size=(self.n_samples, 3)
-        ).astype(np.float32)
-
-        scores = np.zeros(self.n_samples)
-        for i in range(self.n_samples):
-            feat_perturbed = scaled.copy()
-            feat_perturbed += np.random.normal(0, 0.01, feat_perturbed.shape)
-            x_p = torch.FloatTensor(feat_perturbed).to(self.device)
             with torch.no_grad():
-                out_p = self.mlp(x_p)
-            scores[i] = -torch.sigmoid(out_p["will_fail"]).item()
+                out = self.mlp(x)
 
-        weights = np.exp(self.temperature * (scores - scores.max()))
-        weights /= weights.sum()
+            fail_prob = torch.sigmoid(out["will_fail"]).item()
+            if fail_prob < 0.5:
+                self._corr_mags.append(0.0)
+                return action, False
 
-        correction = (candidates * weights[:, None]).sum(axis=0)
+            self._interventions += 1
 
-        mag = float(np.linalg.norm(correction))
-        if mag > self.max_correction and mag > 1e-8:
-            correction = correction * (self.max_correction / mag)
-            mag = self.max_correction
+            candidates = np.random.normal(
+                0, self.correction_std, size=(self.n_samples, 3)
+            ).astype(np.float32)
 
-        self._corr_mags.append(mag)
-        action[:3] += correction / self.action_scale
-        return action, True
+            scores = np.zeros(self.n_samples)
+            for i in range(self.n_samples):
+                feat_perturbed = scaled.copy()
+                feat_perturbed += np.random.normal(0, 0.01, feat_perturbed.shape)
+                x_p = torch.FloatTensor(feat_perturbed).to(self.device)
+                with torch.no_grad():
+                    out_p = self.mlp(x_p)
+                scores[i] = -torch.sigmoid(out_p["will_fail"]).item()
+
+            weights = np.exp(self.temperature * (scores - scores.max()))
+            weights /= weights.sum()
+
+            correction = (candidates * weights[:, None]).sum(axis=0)
+
+            mag = float(np.linalg.norm(correction))
+            if mag > self.max_correction and mag > 1e-8:
+                correction = correction * (self.max_correction / mag)
+                mag = self.max_correction
+
+            self._corr_mags.append(mag)
+            action[:3] += correction / self.action_scale
+            return action, True
+        finally:
+            self._apply_times_ms.append((time.perf_counter() - t0) * 1000.0)
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -547,19 +579,26 @@ def run_episode(env, act_model, device, init_state, max_steps=300,
                 break
 
     ir, cm = 0.0, 0.0
+    mean_apply_ms, p95_apply_ms = 0.0, 0.0
     if mode == "steering" and steered_agent:
         ir = steered_agent.intervention_rate
         cm = steered_agent.mean_corr_mag
+        mean_apply_ms = steered_agent.mean_apply_ms
+        p95_apply_ms = steered_agent.p95_apply_ms
     elif mode == "latent_jiggle" and jiggle_agent:
         ir = jiggle_agent.intervention_rate
         cm = jiggle_agent.mean_corr_mag
     elif mode == "mppi" and mppi_controller:
         ir = mppi_controller.intervention_rate
         cm = mppi_controller.mean_corr_mag
+        mean_apply_ms = mppi_controller.mean_apply_ms
+        p95_apply_ms = mppi_controller.p95_apply_ms
 
     return {"success": success, "total_steps": total_steps,
             "intervention_rate": round(ir, 4),
-            "mean_corr_mag": round(cm, 6)}
+            "mean_corr_mag": round(cm, 6),
+            "mean_apply_ms": round(mean_apply_ms, 4),
+            "p95_apply_ms": round(p95_apply_ms, 4)}
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -733,6 +772,7 @@ def main():
         for mode in args.modes:
             successes = 0
             ir_vals, cm_vals = [], []
+            mean_apply_ms_vals, p95_apply_ms_vals = [], []
             print(f"  {mode:>10}  ", end="", flush=True)
 
             for ep in range(args.episodes_per_task):
@@ -755,14 +795,20 @@ def main():
                     successes += 1
                 ir_vals.append(r["intervention_rate"])
                 cm_vals.append(r["mean_corr_mag"])
+                mean_apply_ms_vals.append(r.get("mean_apply_ms", 0.0))
+                p95_apply_ms_vals.append(r.get("p95_apply_ms", 0.0))
 
             rate = successes / args.episodes_per_task * 100
             avg_ir = np.mean(ir_vals) if ir_vals else 0.0
             avg_cm = np.mean(cm_vals) if cm_vals else 0.0
+            avg_apply_ms = np.mean(mean_apply_ms_vals) if mean_apply_ms_vals else 0.0
+            avg_p95_ms = np.mean(p95_apply_ms_vals) if p95_apply_ms_vals else 0.0
             suffix = ""
             if mode in ("steering", "latent_jiggle", "mppi"):
                 suffix = (f"  IR={avg_ir:.0%}  "
                           f"‖c‖={avg_cm:.4f}m")
+            if mode in ("steering", "mppi"):
+                suffix += f"  t={avg_apply_ms:.2f}ms (p95={avg_p95_ms:.2f}ms)"
                 if avg_ir > 0.50:
                     suffix += "  ⚠ OVER-CORR"
             print(f"  {successes}/{args.episodes_per_task} "
@@ -774,6 +820,8 @@ def main():
                 "n_episodes": args.episodes_per_task,
                 "mean_ir": round(avg_ir, 4),
                 "mean_corr_mag_m": round(avg_cm, 6),
+                "mean_apply_ms": round(avg_apply_ms, 4),
+                "p95_apply_ms": round(avg_p95_ms, 4),
             }
 
         # Compute Δ for all modes vs vanilla
@@ -833,6 +881,23 @@ def main():
         avg_row += f"  {avg:>9.1f}%"
     print(avg_row, flush=True)
 
+    # Timing summary for controller apply() cost
+    for m in ("mppi", "steering"):
+        if m not in args.modes:
+            continue
+        apply_means = []
+        apply_p95s = []
+        for tid in args.tasks:
+            if tid not in results:
+                continue
+            mr = results[tid].get(m, {})
+            if "mean_apply_ms" in mr:
+                apply_means.append(mr.get("mean_apply_ms", 0.0))
+                apply_p95s.append(mr.get("p95_apply_ms", 0.0))
+        if apply_means:
+            print(f"  {m:>10} apply: mean={np.mean(apply_means):.2f}ms  "
+                  f"p95={np.mean(apply_p95s):.2f}ms", flush=True)
+
     # ── Verdict vs vanilla ──
     v_avg = np.mean(mode_avgs.get("vanilla", [0]))
     print(flush=True)
@@ -874,6 +939,19 @@ def main():
         summary[f"avg_{m}_pct"] = round(avg, 1)
         if m != "vanilla":
             summary[f"delta_{m}_vs_vanilla_pp"] = round(avg - v_avg, 1)
+        if m in ("mppi", "steering"):
+            apply_means = []
+            apply_p95s = []
+            for tid in args.tasks:
+                if tid not in results:
+                    continue
+                mr = results[tid].get(m, {})
+                if "mean_apply_ms" in mr:
+                    apply_means.append(mr.get("mean_apply_ms", 0.0))
+                    apply_p95s.append(mr.get("p95_apply_ms", 0.0))
+            if apply_means:
+                summary[f"avg_{m}_apply_ms"] = round(float(np.mean(apply_means)), 3)
+                summary[f"avg_{m}_apply_p95_ms"] = round(float(np.mean(apply_p95s)), 3)
 
     report = {
         "config": {
