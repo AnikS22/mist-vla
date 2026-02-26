@@ -1,0 +1,26 @@
+\begin{table}[t]
+\centering
+\caption{Yahboom embodied evaluation plan and placeholder result slots.}
+\label{tab:yahboom_plan}
+\begin{tabular}{ll}
+\toprule
+Field & Planned / Placeholder \\
+\midrule
+Platform & TODO-YB-PLAT (exact Yahboom arm model + controller board) \\
+Sensors & TODO-YB-SENS (camera(s), proprio, optional depth) \\
+Control rate & TODO-YB-CTRL-HZ \\
+Safety limits & TODO-YB-LIMITS (workspace, velocity, emergency stop) \\
+Tasks & TODO-YB-TASKS (list of embodied tasks) \\
+Modes & Vanilla / Latent Stop / MPPI / Steering \\
+Trials per condition & TODO-YB-N \\
+Obstacle protocol & TODO-YB-DYNOBS (insertion timing + geometry) \\
+Primary metric & Success rate (\%) \\
+Secondary metrics & Near-collision count, intervention rate, correction norm \\
+Latency metrics & Policy ms, safety-head ms, end-to-end control ms \\
+Result slot 1 & TODO-YB-R1 (Vanilla) \\
+Result slot 2 & TODO-YB-R2 (Latent Stop) \\
+Result slot 3 & TODO-YB-R3 (MPPI) \\
+Result slot 4 & TODO-YB-R4 (Steering) \\
+\bottomrule
+\end{tabular}
+\end{table}

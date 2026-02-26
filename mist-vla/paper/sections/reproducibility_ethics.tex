@@ -13,7 +13,16 @@ All metrics in the final paper must map to stored JSON outputs and deterministic
 \paragraph{Ethical deployment scope.}
 Inference-time safety steering is a risk-reduction layer, not a formal safety guarantee. Physical deployment requires conservative constraints, hardware interlocks, and human override.
 
+\paragraph{Embodied safety requirements (Yahboom track).}
+Real-robot trials must include:
+\begin{itemize}[leftmargin=1.2em]
+    \item emergency-stop reachability and operator presence,
+    \item bounded workspace and velocity and acceleration constraints,
+    \item no-contact startup checks and controller sanity checks,
+    \item logged intervention traces for post-run audit.
+\end{itemize}
+
 \paragraph{Placeholders.}
-TODO-E1] Model card summary. \\
-TODO-E2] Failure case atlas appendix references. \\
-TODO-E3] Physical hardware safety protocol details.
+TODO-E1: Model card summary. \\
+TODO-E2: Failure case atlas appendix references. \\
+TODO-E3: Physical hardware safety protocol details. \\nTODO-E4: Yahboom operator checklist and incident-report template.

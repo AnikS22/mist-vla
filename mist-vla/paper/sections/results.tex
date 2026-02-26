@@ -8,6 +8,20 @@
 \subsection{Strict Zero-Shot OOD Results (Current Campaign)}
 \input{tables/tab_act_zero_shot_ood}
 
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.9\linewidth]{figures/07_zero_shot_seed_deltas.png}
+    \caption{Strict zero-shot OOD seed-level deltas for latent\_stop, MPPI, and steering relative to vanilla.}
+    \label{fig:zs_seed_deltas}
+\end{figure}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.8\linewidth]{figures/08_task_mode_heatmap.png}
+    \caption{Per-task mode heatmap from a completed strict zero-shot OOD run.}
+    \label{fig:zs_heatmap}
+\end{figure}
+
 \paragraph{Interpretation placeholder.}
 TODO-RZS-1: summarize final zero-shot aggregate once all seeds and splits finish. \\
 TODO-RZS-2: state whether steering is significantly above vanilla and MPPI. \\
@@ -15,6 +29,13 @@ TODO-RZS-3: include confidence intervals and significance markers.
 
 \subsection{ACT OOD Baseline Campaign}
 \input{tables/tab_act_ood_baselines}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.75\linewidth]{figures/09_latency_speedup_ood.png}
+    \caption{Controller-step latency comparison on completed OOD runs (real data).}
+    \label{fig:ood_latency}
+\end{figure}
 
 \paragraph{Interpretation placeholder.}
 TODO-RACT-1: separate strict zero-shot from non-zero-shot OOD runs in final text.
@@ -24,6 +45,15 @@ TODO-RACT-1: separate strict zero-shot from non-zero-shot OOD runs in final text
 
 \paragraph{Status placeholder.}
 TODO-ROVLA-1: fill final OpenVLA OOD seed-complete statistics after queued jobs finish.
+
+\subsection{Embodied Results Track: Yahboom Arm}
+\input{tables/tab_yahboom_plan_placeholder}
+
+\paragraph{Embodied result placeholders.}
+TODO-YB-R5: final per-task success table on Yahboom hardware. \\
+TODO-YB-R6: detect-only versus continuous-recovery comparison on hardware. \\
+TODO-YB-R7: dynamic obstacle stress-test outcomes (near-collision and recovery). \\
+TODO-YB-R8: hardware latency breakdown and control-frequency limits.
 
 \subsection{Figures to Include in Camera-Ready}
 \begin{figure}[t]
@@ -38,10 +68,18 @@ TODO-ROVLA-1: fill final OpenVLA OOD seed-complete statistics after queued jobs 
     \caption{Run-tracker snapshot from completed jobs only.}
 \end{figure}
 
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.86\linewidth]{figures/10_latent_manifold_placeholder.png}
+    \caption{Illustrative latent-manifold figure (synthetic placeholder). Replace with true PCA/t-SNE from exported hidden-state trajectories for camera-ready.}
+    \label{fig:latent_placeholder}
+\end{figure}
+
 \subsection{Pending Result Blocks (Explicit)}
 \begin{itemize}[leftmargin=1.2em]
-    \item TODO-R1] Final OpenVLA OOD multi-seed table.
-    \item TODO-R2] Cross-model paired OOD table (OpenVLA + ACT) with matched seeds.
-    \item TODO-R3] Final latency table normalized to one hardware profile.
-    \item TODO-R4] Final stop-vs-steer causal statement with seed-level evidence.
+    \item TODO-R1: Final OpenVLA OOD multi-seed table.
+    \item TODO-R2: Cross-model paired OOD table (OpenVLA + ACT) with matched seeds.
+    \item TODO-R3: Final latency table normalized to one hardware profile.
+    \item TODO-R4: Final stop-vs-steer causal statement with seed-level evidence.
+    \item TODO-R5: Final Yahboom hardware section with complete trial statistics.
 \end{itemize}

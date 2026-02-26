@@ -23,6 +23,15 @@ This folder contains the full CoRL-oriented paper structure with:
 python3 scripts/generate_tables.py
 ```
 
+## Generate Visuals
+```bash
+python3 scripts/generate_visuals.py
+```
+
+Notes:
+- Some visuals are generated from completed run JSONs.
+- Some are intentionally synthetic placeholders and are labeled as such in captions.
+
 ## Build PDF (tectonic)
 ```bash
 cd /home/mpcr/Desktop/SalusV5/mist-vla/paper

@@ -28,8 +28,32 @@ Train safety head on task subset A, evaluate on disjoint unseen subset B.
 \paragraph{OOD stress testing.}
 Use disturbance OOD and/or custom OOD BDDL environments.
 
+\subsection{Embodied Platform Track: Yahboom Arm}
+This project now includes an embodied robotics track centered on a Yahboom arm setup.
+
+\paragraph{Hardware scope (to finalize).}
+TODO-HW-1: final robot model and DOF configuration. \\
+TODO-HW-2: end-effector and gripper configuration. \\
+TODO-HW-3: onboard compute and acceleration stack. \\
+TODO-HW-4: camera and sensor suite and calibration pipeline.
+
+\paragraph{Software/control scope (to finalize).}
+TODO-SW-1: command interface and control frequency. \\
+TODO-SW-2: IK/controller stack and safety limits. \\
+TODO-SW-3: latency instrumentation path (policy, safety head, controller, actuation). \\
+TODO-SW-4: synchronization and logging schema for sim-to-real comparability.
+
+\paragraph{Real-robot evaluation protocol (planned).}
+TODO-RR-1: baseline and steering mode definitions on hardware. \\
+TODO-RR-2: dynamic obstacle protocol and human-in-loop safety constraints. \\
+TODO-RR-3: trial count, seed/randomization policy, and reset protocol. \\
+TODO-RR-4: failure taxonomy for real-robot events (safety stop, near-collision, contact deviation, task failure).
+
 \subsection{Metrics}
 Success rate, $\Delta$ vs vanilla, $\Delta$(Ours$-$MPPI), intervention rate, correction magnitude, and controller apply latency (mean/p95).
 
 \subsection{Statistical Reporting Plan for Camera-Ready}
-TODO: number of seeds], TODO: confidence interval method], TODO: hypothesis tests], TODO: model-comparison correction].
+TODO-STATS-1: number of seeds. \\
+TODO-STATS-2: confidence interval method. \\
+TODO-STATS-3: hypothesis tests. \\
+TODO-STATS-4: model-comparison correction.

@@ -1,9 +1,9 @@
 \appendix
 \section{Complete Experimental Inventory (Template)}
 \begin{itemize}[leftmargin=1.2em]
-    \item TODO-A1] Master list of all completed runs (run tag, seed, tasks, model, modes).
-    \item TODO-A2] Full hyperparameter grids attempted and rejected.
-    \item TODO-A3] Cluster configuration and runtime budget.
+    \item TODO-A1: Master list of all completed runs (run tag, seed, tasks, model, modes).
+    \item TODO-A2: Full hyperparameter grids attempted and rejected.
+    \item TODO-A3: Cluster configuration and runtime budget.
 \end{itemize}
 
 \section{Equation Summary}
@@ -16,23 +16,38 @@
 
 \section{Claim-to-Evidence Mapping (Required for Final)}
 \begin{itemize}[leftmargin=1.2em]
-    \item Claim C1 (transfer detection): TODO: result file list]
-    \item Claim C2 (stop vs steer): TODO: result file list]
-    \item Claim C3 (vs MPPI): TODO: result file list]
-    \item Claim C4 (latency): TODO: result file list]
+    \item Claim C1 (transfer detection): TODO-CE-1 result file list.
+    \item Claim C2 (stop vs steer): TODO-CE-2 result file list.
+    \item Claim C3 (vs MPPI): TODO-CE-3 result file list.
+    \item Claim C4 (latency): TODO-CE-4 result file list.
+\end{itemize}
+
+\section{Yahboom Embodied Checklist (Required for Final)}
+\begin{itemize}[leftmargin=1.2em]
+    \item TODO-YBA-1: Exact arm hardware, firmware, and controller stack.
+    \item TODO-YBA-2: Camera and calibration details (extrinsics, frame transforms).
+    \item TODO-YBA-3: Action interface mapping from policy output to arm commands.
+    \item TODO-YBA-4: Safety envelope (joint/EEF bounds, velocity caps, emergency stop).
+    \item TODO-YBA-5: Real-robot task list and environment setup photos.
+    \item TODO-YBA-6: Dynamic obstacle protocol details (timing, object classes, operator procedure).
+    \item TODO-YBA-7: Trial accounting table (per-task N, seeds, resets, failure causes).
+    \item TODO-YBA-8: Latency decomposition (policy, safety MLP, controller, bus/actuation).
+    \item TODO-YBA-9: Hardware result table (vanilla, latent stop, MPPI, steering).
 \end{itemize}
 
 \section{Figures and Tables Checklist}
 \begin{itemize}[leftmargin=1.2em]
-    \item Figure 1 system architecture (camera-ready art): [TODO]
-    \item Latent trajectory visualization (PCA/t-SNE): [TODO]
-    \item Zero-shot OOD final table: [TODO]
-    \item OpenVLA OOD final table: [TODO]
+    \item Figure 1 system architecture (camera-ready art): TODO-FIG-1.
+    \item Latent trajectory visualization (PCA/t-SNE): TODO-FIG-2.
+    \item Zero-shot OOD final table: TODO-TBL-1.
+    \item OpenVLA OOD final table: TODO-TBL-2.
+    \item Yahboom hardware final table: TODO-TBL-3.
 \end{itemize}
 
 \section{Known Gaps Before Submission}
 \begin{itemize}[leftmargin=1.2em]
-    \item TODO-G1] Finalize OpenVLA OOD seed-complete results.
-    \item TODO-G2] Integrate true OOD BDDL runs (if available) into main table.
-    \item TODO-G3] Finalize confidence intervals and statistical tests.
+    \item TODO-G1: Finalize OpenVLA OOD seed-complete results.
+    \item TODO-G2: Integrate true OOD BDDL runs (if available) into main table.
+    \item TODO-G3: Finalize confidence intervals and statistical tests.
+    \item TODO-G4: Finalize Yahboom hardware trial set and include complete embodied analysis.
 \end{itemize}
