@@ -1,27 +1,23 @@
 \section{Introduction}
-Large robot policies have rapidly improved zero-shot and language-conditioned control, but safety and reliability in closed-loop execution remain major bottlenecks. In particular, high-capacity VLA models can exhibit spatial drift and brittle recovery behavior under long-horizon manipulation, while classic baselines such as smoothing often fail to preserve task success.
+Reliable robot behavior in deployment requires both task competence and rapid safety adaptation under distribution shift. Foundation-scale policies can be powerful but brittle in closed-loop manipulation, while heavier planning baselines can introduce latency and model dependence. This paper studies a focused question:
 
-This paper asks a targeted question: \emph{Can a lightweight latent-space controller, trained on hidden states only, predict and steer away from failure in a model-agnostic way?}
+\begin{quote}
+\emph{Can a lightweight hidden-state controller predict impending failure and apply continuous corrective steering at inference-time across heterogeneous policy classes?}
+\end{quote}
 
-Our approach is a snap-on controller:
-\begin{enumerate}[leftmargin=1.2em]
-    \item Extract policy hidden state $\mathbf{h}_t$.
-    \item Predict failure risk and correction with a small MLP.
-    \item Apply a gated correction to translational action components.
-\end{enumerate}
+\paragraph{Core idea.}
+Attach a compact safety head to frozen policies. Hidden state in; risk, timing, and correction out. No base-policy retraining required.
 
-The motivation is twofold. First, hidden states encode internal task geometry and uncertainty before explicit failure occurs. Second, a small add-on module can be deployed with minimal compute overhead and without expensive policy retraining.
+\paragraph{Why this matters.}
+If successful, the method provides a model-agnostic safety layer that can be reused across policy families and embodiments, reducing per-model safety engineering cost.
 
-\paragraph{Thesis.}
-A single latent safety interface can be reused across VLA and non-VLA models: hidden state in, safety correction out. If successful, this provides a practical path toward universal safety adaptation rather than model-specific control redesign.
-
-\paragraph{Contributions.}
+\paragraph{Target claims for final CoRL submission.}
 \begin{itemize}[leftmargin=1.2em]
-    \item We formulate \textbf{Universal Latent Safety Steering}: a model-agnostic control contract over hidden states with fail-gated correction.
-    \item We instantiate a compact three-head MLP with robust multitask training (dynamic class balancing + Huber regression) and deploy it in closed loop.
-    \item We evaluate against strong baselines (noise, EMA-only, latent jiggle, MPPI) and report paired cross-model comparisons.
-    \item We provide controller-latency measurements showing significant runtime advantage over MPPI.
+    \item \textbf{C1:} Failure detection from hidden states transfers beyond training tasks.
+    \item \textbf{C2:} Detection-only intervention (freeze/stop) is insufficient for task recovery.
+    \item \textbf{C3:} Continuous latent steering improves recovery relative to vanilla and is competitive with planning baselines.
+    \item \textbf{C4:} Inference-time steering has favorable control-step latency.
 \end{itemize}
 
-\paragraph{Current status.}
-The long-horizon sweep campaign is still running; we report all completed results and mark pending cells explicitly (no extrapolated values).
+\paragraph{What this draft contains now.}
+This draft is structured as a complete CoRL paper with all methods and experiment design finalized, and explicit placeholders for final numerical outcomes from ongoing runs.

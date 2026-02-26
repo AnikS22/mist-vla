@@ -1,34 +1,38 @@
-# CoRL Paper Draft (LaTeX)
+# CoRL Paper Draft (Complete Outline + Placeholders)
 
-This directory contains the full manuscript draft for the latent safety steering paper.
+This folder contains the full CoRL-oriented paper structure with:
+- finalized methods and experimental design,
+- generated tables from completed JSON outputs,
+- explicit placeholders for pending results and camera-ready fill-ins.
+
+## What This Version Is
+- A **comprehensive outline manuscript** that reads like a full paper.
+- Numeric claims are intentionally conservative.
+- Pending experiments are marked as `[TODO-*]` placeholders.
 
 ## Structure
-- `main.tex` - entrypoint
-- `sections/` - modular paper sections
-- `tables/` - generated LaTeX tables from JSON outputs
-- `figures/` - manuscript figures
-- `data/` - copied result JSONs used in this draft
-- `scripts/generate_tables.py` - regenerates result tables
+- `main.tex` — top-level manuscript
+- `sections/*.tex` — all paper sections
+- `tables/*.tex` — auto-generated tables
+- `scripts/generate_tables.py` — regenerates tables from `paper/data/*.json`
+- `figures/` — current visual assets
+- `data/` — synced run JSONs used for table generation
 
 ## Regenerate Tables
 ```bash
 python3 scripts/generate_tables.py
 ```
 
-## Build (example)
+## Build PDF (tectonic)
 ```bash
-pdflatex main.tex
-bibtex main
-pdflatex main.tex
-pdflatex main.tex
+cd /home/mpcr/Desktop/SalusV5/mist-vla/paper
+tectonic --keep-logs --keep-intermediates main.tex
 ```
 
-## Author Block (as requested)
+## Author Block
 - Anik Sahai — Praxis Labs, MPCR Labs, FAU
 - Merhdad Nojoumian — FAU
 - William Hahn — MPCR Labs, FAU
 
-Emails are currently marked TODO and should be replaced before submission.
-
-## Placeholders
-Pending long-queue experiments are explicitly marked as TODO placeholders in `sections/results.tex` and `sections/appendix.tex`.
+## Camera-Ready Checklist
+Search for `TODO-` in `sections/` and resolve each item only with completed evidence.

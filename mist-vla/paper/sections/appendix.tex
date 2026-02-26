@@ -1,12 +1,12 @@
 \appendix
-\section{Implementation Notes}
+\section{Complete Experimental Inventory (Template)}
 \begin{itemize}[leftmargin=1.2em]
-    \item Safety MLP architecture is synchronized across training and eval scripts.
-    \item ACT subsampling logic is used to avoid repeated-latent label leakage.
-    \item HPC scripts include GPU preflight checks and bad-node exclusion.
+    \item TODO-A1] Master list of all completed runs (run tag, seed, tasks, model, modes).
+    \item TODO-A2] Full hyperparameter grids attempted and rejected.
+    \item TODO-A3] Cluster configuration and runtime budget.
 \end{itemize}
 
-\section{Equations Summary}
+\section{Equation Summary}
 \begin{align}
 \mathcal{L}&=\lambda_f\mathcal{L}_{\text{fail}}+\lambda_\tau\mathcal{L}_{\tau}+\lambda_c\mathcal{L}_{\Delta p},\\
 \mathcal{L}_{\text{fail}}&=\text{BCEWithLogits}(\hat{y}^{\text{fail}}, y; w^+_{\text{batch}}),\\
@@ -14,20 +14,25 @@
 \mathcal{L}_{\Delta p}&=\text{Huber}_{\delta}(\widehat{\Delta\mathbf{p}},\Delta\mathbf{p}).
 \end{align}
 
-\section{Result Provenance (Current Draft)}
-Primary generated tables:
+\section{Claim-to-Evidence Mapping (Required for Final)}
 \begin{itemize}[leftmargin=1.2em]
-    \item \texttt{tables/tab\_act\_key\_results.tex}
-    \item \texttt{tables/tab\_paired\_clean\_runs.tex}
-    \item \texttt{tables/tab\_latency.tex}
+    \item Claim C1 (transfer detection): TODO: result file list]
+    \item Claim C2 (stop vs steer): TODO: result file list]
+    \item Claim C3 (vs MPPI): TODO: result file list]
+    \item Claim C4 (latency): TODO: result file list]
 \end{itemize}
 
-Source JSONs are stored under \texttt{paper/data/} and generated via
-\texttt{paper/scripts/generate\_tables.py}.
-
-\section{Pending Placeholders for Final Camera-Ready}
+\section{Figures and Tables Checklist}
 \begin{itemize}[leftmargin=1.2em]
-    \item TODO-A: Final 24-run paired sweep aggregate and confidence intervals.
-    \item TODO-B: OpenVLA full per-task final table under selected best shared configuration.
-    \item TODO-C: Additional non-VLA baselines in paired protocol (if completed in time).
+    \item Figure 1 system architecture (camera-ready art): [TODO]
+    \item Latent trajectory visualization (PCA/t-SNE): [TODO]
+    \item Zero-shot OOD final table: [TODO]
+    \item OpenVLA OOD final table: [TODO]
+\end{itemize}
+
+\section{Known Gaps Before Submission}
+\begin{itemize}[leftmargin=1.2em]
+    \item TODO-G1] Finalize OpenVLA OOD seed-complete results.
+    \item TODO-G2] Integrate true OOD BDDL runs (if available) into main table.
+    \item TODO-G3] Finalize confidence intervals and statistical tests.
 \end{itemize}

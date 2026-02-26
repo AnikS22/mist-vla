@@ -1,10 +1,19 @@
 \section{Reproducibility and Ethics}
 
-\paragraph{Reproducibility.}
-All quantitative claims in this draft are tied to concrete JSON outputs and generated tables. We avoid extrapolated numbers; incomplete experiments are marked as placeholders. Sweep submissions are tracked with ledgers and job IDs.
+\paragraph{Reproducibility commitments.}
+All metrics in the final paper must map to stored JSON outputs and deterministic run tags. Pending jobs must remain labeled as pending; no extrapolated values should be reported.
 
-\paragraph{Ethical deployment.}
-A faster safety controller does not guarantee absolute safety. Physical deployment requires conservative constraints, fail-safe stopping, and hardware-level safety interlocks. We treat this method as a risk-reduction layer, not a standalone safety certification.
+\paragraph{Artifact checklist.}
+\begin{itemize}[leftmargin=1.2em]
+    \item Code paths: training, eval, OOD, and HPC launchers
+    \item Run metadata: seed, task split, mode set, controller profile
+    \item Output artifacts: per-run JSON + aggregated LaTeX tables
+\end{itemize}
 
-\paragraph{Limitations.}
-Current fully paired evidence is still limited relative to final campaign scale. Results may shift as additional long-run sweeps complete. We intentionally keep placeholder sections to prevent over-claiming.
+\paragraph{Ethical deployment scope.}
+Inference-time safety steering is a risk-reduction layer, not a formal safety guarantee. Physical deployment requires conservative constraints, hardware interlocks, and human override.
+
+\paragraph{Placeholders.}
+TODO-E1] Model card summary. \\
+TODO-E2] Failure case atlas appendix references. \\
+TODO-E3] Physical hardware safety protocol details.

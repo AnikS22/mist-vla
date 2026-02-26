@@ -1,4 +1,9 @@
 \section{Conclusion}
-We present Universal Latent Safety Steering, a lightweight hidden-state safety controller designed to attach to heterogeneous robot policies. The method predicts failure signals and applies gated Cartesian correction without retraining base models. Current evidence shows near-parity to strong MPPI baselines across completed paired runs and meaningful runtime advantages in controller latency.
+We present an inference-time latent safety steering framework for VLA and imitation policies that predicts risk, timing, and corrective motion from hidden states. The method is designed as a plug-in controller and does not require retraining the base policy.
 
-The ongoing long-horizon paired sweep will finalize the statistical picture. If final runs maintain or improve cross-model $\Delta$(Ours$-$MPPI), this supports a practical general-purpose safety adapter that can transfer across VLA and non-VLA policy classes.
+This draft provides a complete CoRL paper structure with finalized methods and experiment design, while explicitly separating completed evidence from pending runs. Camera-ready conclusions should be updated only after all queued OOD and multi-seed baselines are complete.
+
+\paragraph{Camera-ready placeholders.}
+TODO-C1: Final one-paragraph claim summary with exact numbers. \\
+TODO-C2: Final statement on detect-only versus continuous-recovery causal evidence. \\
+TODO-C3: Final cross-model generalization statement with uncertainty bounds.

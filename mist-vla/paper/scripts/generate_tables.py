@@ -7,6 +7,8 @@ DATA = PAPER / 'data'
 TABLES = PAPER / 'tables'
 TABLES.mkdir(parents=True, exist_ok=True)
 
+EOL = r"\\"
+
 
 def load(name):
     p = DATA / name
@@ -20,13 +22,16 @@ def fmt(v):
     return f"{v:.1f}"
 
 
-EOL = r"\\"
+def write(name, lines):
+    (TABLES / name).write_text("\n".join(lines) + "\n")
 
-# Main ACT summary table (best-known + key baselines)
+
+# -----------------------------------------------------------------------------
+# Legacy ACT key table
+# -----------------------------------------------------------------------------
 act_baseline = load('eval_act_steering_eval_results.json')
 act_v3 = load('eval_act_steering_shared_profile_v3_eval_results.json')
 act_t02 = load('eval_act_steering_sweep_20260224_204844_t02_a0p12_mc0p003_ct0p002_ft0p65_eval_results.json')
-
 rows = []
 for label, obj in [
     ('ACT Baseline Sweep (pre-gate fix)', act_baseline),
@@ -56,22 +61,20 @@ act_table = [
 ]
 for r in rows:
     act_table.append(f"{r[0]} & {fmt(r[1])} & {fmt(r[2])} & {fmt(r[3])} & {r[4]:+.1f} {EOL}")
-act_table += [
-    r"\bottomrule",
-    r"\end{tabular}",
-    r"\end{table}",
-]
-(TABLES / 'tab_act_key_results.tex').write_text('\n'.join(act_table) + '\n')
+act_table += [r"\bottomrule", r"\end{tabular}", r"\end{table}"]
+write('tab_act_key_results.tex', act_table)
 
-# Paired clean runs aggregate t01-t04
+
+# -----------------------------------------------------------------------------
+# Legacy paired clean runs
+# -----------------------------------------------------------------------------
 paired_tags = [
     'sweep_20260224_204844_t01_a0p1_mc0p003_ct0p003_ft0p6',
     'sweep_20260224_204844_t02_a0p12_mc0p003_ct0p002_ft0p65',
     'sweep_20260224_204844_t03_a0p1_mc0p004_ct0p003_ft0p65',
     'sweep_20260224_204844_t04_a0p1_mc0p004_ct0p0025_ft0p55',
 ]
-paired_rows = []
-act_d, ov_d = [], []
+paired_rows, act_d, ov_d = [], [], []
 for t in paired_tags:
     a = load(f'eval_act_steering_{t}_eval_results.json')
     o = load(f'category1_{t}_eval_results.json')
@@ -103,14 +106,13 @@ if paired_rows:
     paired_table.append(
         f"Aggregate (completed) & {sum(act_d)/len(act_d):+.2f} & {sum(ov_d)/len(ov_d):+.2f} & {(sum(act_d)/len(act_d)+sum(ov_d)/len(ov_d))/2:+.2f} {EOL}"
     )
-paired_table += [
-    r"\bottomrule",
-    r"\end{tabular}",
-    r"\end{table}",
-]
-(TABLES / 'tab_paired_clean_runs.tex').write_text('\n'.join(paired_table) + '\n')
+paired_table += [r"\bottomrule", r"\end{tabular}", r"\end{table}"]
+write('tab_paired_clean_runs.tex', paired_table)
 
-# Latency table from benchmark job
+
+# -----------------------------------------------------------------------------
+# Controller latency table
+# -----------------------------------------------------------------------------
 lat = load('job_4539787_eval_results.json')
 lat_table = [
     r"\begin{table}[t]",
@@ -138,11 +140,164 @@ if lat is not None:
 else:
     lat_table.append(f"MPPI & \\texttt{{TODO}} & \\texttt{{TODO}} {EOL}")
     lat_table.append(f"Steering (Ours) & \\texttt{{TODO}} & \\texttt{{TODO}} {EOL}")
-lat_table += [
-    r"\bottomrule",
-    r"\end{tabular}",
-    r"\end{table}",
-]
-(TABLES / 'tab_latency.tex').write_text('\n'.join(lat_table) + '\n')
+lat_table += [r"\bottomrule", r"\end{tabular}", r"\end{table}"]
+write('tab_latency.tex', lat_table)
 
-print('Wrote tables:', [p.name for p in TABLES.glob('tab_*.tex')])
+
+# -----------------------------------------------------------------------------
+# NEW: ACT strict zero-shot OOD table
+# -----------------------------------------------------------------------------
+zero_shot_names = [
+    'eval_act_zero_shot_zs_act_ood_s42_tA01234567_tB89_eval_results.json',
+    'eval_act_zero_shot_zs_act_ood_s43_tA01234567_tB89_eval_results.json',
+    'eval_act_zero_shot_zs_act_ood_s44_tA01234567_tB89_eval_results.json',
+    'eval_act_zero_shot_zs_act_ood_s42_tA23456789_tB01_eval_results.json',
+    'eval_act_zero_shot_zs_act_ood_s42_tA012345_tB6789_eval_results.json',
+    'eval_act_zero_shot_zs_act_ood_stop_tA01234567_tB89_eval_results.json',
+]
+zs_rows = []
+for n in zero_shot_names:
+    d = load(n)
+    if d is None:
+        continue
+    s = d.get('summary', {})
+    tag = n.replace('eval_act_zero_shot_', '').replace('_eval_results.json', '')
+    zs_rows.append((
+        tag.replace('_', r'\_'),
+        s.get('avg_vanilla_pct', 0.0),
+        s.get('avg_latent_stop_pct', 0.0),
+        s.get('avg_mppi_pct', 0.0),
+        s.get('avg_steering_pct', 0.0),
+        s.get('delta_steering_vs_vanilla_pp', 0.0),
+    ))
+
+zs_table = [
+    r"\begin{table}[t]",
+    r"\centering",
+    r"\caption{ACT strict zero-shot OOD runs (train-task/test-task splits with disturbance stress).}",
+    r"\label{tab:act_zero_shot_ood}",
+    r"\begin{tabular}{lccccc}",
+    r"\toprule",
+    r"Run & Vanilla & Latent Stop & MPPI & Steering & $\Delta$(Steering$-$Vanilla) \\",
+    r"\midrule",
+]
+for r in zs_rows:
+    zs_table.append(f"{r[0]} & {r[1]:.1f} & {r[2]:.1f} & {r[3]:.1f} & {r[4]:.1f} & {r[5]:+.1f} {EOL}")
+if zs_rows:
+    zs_table.append(r"\midrule")
+    zs_table.append(
+        f"Aggregate (completed) & {sum(r[1] for r in zs_rows)/len(zs_rows):.1f} & "
+        f"{sum(r[2] for r in zs_rows)/len(zs_rows):.1f} & "
+        f"{sum(r[3] for r in zs_rows)/len(zs_rows):.1f} & "
+        f"{sum(r[4] for r in zs_rows)/len(zs_rows):.1f} & "
+        f"{sum(r[5] for r in zs_rows)/len(zs_rows):+.2f} {EOL}"
+    )
+else:
+    zs_table.append(r"\texttt{TODO} & -- & -- & -- & -- & -- \\")
+zs_table += [r"\bottomrule", r"\end{tabular}", r"\end{table}"]
+write('tab_act_zero_shot_ood.tex', zs_table)
+
+
+# -----------------------------------------------------------------------------
+# NEW: ACT OOD baseline runs (non-zero-shot) table
+# -----------------------------------------------------------------------------
+act_ood_names = [
+    'eval_act_steering_act_ood_baselines_s42_t89_eval_results.json',
+    'eval_act_steering_act_ood_t89_s42_eval_results.json',
+    'eval_act_steering_act_ood_t89_s43_eval_results.json',
+    'eval_act_steering_act_ood_t89_s44_eval_results.json',
+]
+act_ood_rows = []
+for n in act_ood_names:
+    d = load(n)
+    if d is None:
+        continue
+    s = d.get('summary', {})
+    tag = n.replace('eval_act_steering_', '').replace('_eval_results.json', '').replace('_', r'\_')
+    act_ood_rows.append((
+        tag,
+        s.get('avg_vanilla_pct', 0.0),
+        s.get('avg_latent_stop_pct', 0.0),
+        s.get('avg_mppi_pct', 0.0),
+        s.get('avg_steering_pct', 0.0),
+        s.get('avg_mppi_apply_ms', 0.0),
+        s.get('avg_steering_apply_ms', 0.0),
+    ))
+
+act_ood_table = [
+    r"\begin{table}[t]",
+    r"\centering",
+    r"\caption{ACT OOD baseline campaign on hard tasks (completed seeds).}",
+    r"\label{tab:act_ood_baselines}",
+    r"\begin{tabular}{lcccccc}",
+    r"\toprule",
+    r"Run & Vanilla & Latent Stop & MPPI & Steering & MPPI ms & Steering ms \\",
+    r"\midrule",
+]
+for r in act_ood_rows:
+    act_ood_table.append(f"{r[0]} & {r[1]:.1f} & {r[2]:.1f} & {r[3]:.1f} & {r[4]:.1f} & {r[5]:.3f} & {r[6]:.3f} {EOL}")
+if act_ood_rows:
+    act_ood_table.append(r"\midrule")
+    act_ood_table.append(
+        f"Aggregate (completed) & {sum(r[1] for r in act_ood_rows)/len(act_ood_rows):.1f} & "
+        f"{sum(r[2] for r in act_ood_rows)/len(act_ood_rows):.1f} & "
+        f"{sum(r[3] for r in act_ood_rows)/len(act_ood_rows):.1f} & "
+        f"{sum(r[4] for r in act_ood_rows)/len(act_ood_rows):.1f} & "
+        f"{sum(r[5] for r in act_ood_rows)/len(act_ood_rows):.3f} & "
+        f"{sum(r[6] for r in act_ood_rows)/len(act_ood_rows):.3f} {EOL}"
+    )
+else:
+    act_ood_table.append(r"\texttt{TODO} & -- & -- & -- & -- & -- & -- \\")
+act_ood_table += [r"\bottomrule", r"\end{tabular}", r"\end{table}"]
+write('tab_act_ood_baselines.tex', act_ood_table)
+
+
+# -----------------------------------------------------------------------------
+# NEW: OpenVLA OOD progress/status table
+# -----------------------------------------------------------------------------
+ov_ood_names = [
+    'category1_ovla_ood_t89_s42_eval_results.json',
+    'category1_ovla_ood_t89_s43_eval_results.json',
+    'category1_ovla_ood_t89_s44_eval_results.json',
+]
+ov_rows = []
+for n in ov_ood_names:
+    d = load(n)
+    if d is None:
+        continue
+    s = d.get('summary', {})
+    tag = n.replace('category1_', '').replace('_eval_results.json', '').replace('_', r'\_')
+    ov_rows.append((
+        tag,
+        s.get('avg_vanilla_pct', 0.0),
+        s.get('avg_latent_stop_pct', 0.0),
+        s.get('avg_mppi_pct', 0.0),
+        s.get('avg_steering_pct', 0.0),
+    ))
+
+ov_table = [
+    r"\begin{table}[t]",
+    r"\centering",
+    r"\caption{OpenVLA OOD baseline campaign status (completed seeds only).}",
+    r"\label{tab:openvla_ood_status}",
+    r"\begin{tabular}{lcccc}",
+    r"\toprule",
+    r"Run & Vanilla & Latent Stop & MPPI & Steering \\",
+    r"\midrule",
+]
+for r in ov_rows:
+    ov_table.append(f"{r[0]} & {r[1]:.1f} & {r[2]:.1f} & {r[3]:.1f} & {r[4]:.1f} {EOL}")
+if ov_rows:
+    ov_table.append(r"\midrule")
+    ov_table.append(
+        f"Aggregate (completed) & {sum(r[1] for r in ov_rows)/len(ov_rows):.1f} & "
+        f"{sum(r[2] for r in ov_rows)/len(ov_rows):.1f} & "
+        f"{sum(r[3] for r in ov_rows)/len(ov_rows):.1f} & "
+        f"{sum(r[4] for r in ov_rows)/len(ov_rows):.1f} {EOL}"
+    )
+else:
+    ov_table.append(r"\texttt{PENDING: seeds s42/s43/s44 still running} & -- & -- & -- & -- \\")
+ov_table += [r"\bottomrule", r"\end{tabular}", r"\end{table}"]
+write('tab_openvla_ood_status.tex', ov_table)
+
+print('Wrote tables:', sorted([p.name for p in TABLES.glob('tab_*.tex')]))

@@ -1,18 +1,18 @@
 \section{Related Work}
-\paragraph{Vision-Language-Action models.}
-Foundation policy models such as OpenVLA and Octo bring language grounding and broad transfer but can degrade under embodiment-specific control noise and long-horizon drift. We target this deployment gap with a lightweight post-hoc controller.
+\paragraph{Foundation robot policies and VLAs.}
+Large VLA systems enable broad language-conditioned behavior but frequently require additional deployment-time stabilization. We position our method as an inference-time safety adapter for this regime.
 
-\paragraph{Imitation-learning robot policies.}
-ACT and Diffusion Policy are strong task-specialized baselines and often outperform foundation models on narrow manipulation domains. We use these policies as stress tests for cross-architecture generalization of latent safety steering.
+\paragraph{Imitation policy baselines.}
+ACT and Diffusion Policy represent strong task-specialized baselines. Evaluating a shared safety interface on both VLA and imitation policies is central to this work's cross-architecture scope.
 
-\paragraph{Safety filters and model-predictive control.}
-MPPI and related sampling-based controllers are strong optimization baselines but can be computationally heavier in high-frequency loops. We compare directly to MPPI and measure step-time latency.
+\paragraph{Failure detection versus continuous recovery.}
+A key distinction in this paper is between (i) predicting failure and stopping, and (ii) predicting a directional correction for recovery. Our latent-stop baseline isolates detection-only behavior, while steering evaluates continuous intervention.
 
-\paragraph{Failure detection versus recovery.}
-Recent safety work has shown that failure prediction itself is feasible in policy latent spaces. However, pure detection-oriented methods are limited to reject/stop decisions and do not provide continuous geometric recovery. Our latent-stop baseline explicitly isolates this behavior: when risk is high, the controller freezes actions. This lets us test whether detection alone can preserve task success, versus requiring directional correction vectors.
+\paragraph{Planning-based controllers.}
+Sampling-based planners such as MPPI provide robust optimization baselines but can be computationally expensive at high control frequency. We compare directly against MPPI and report per-step controller latency.
 
-\paragraph{Training-time constrained safety versus inference-time adaptation.}
-Constraint-in-the-loop approaches (e.g., SafeRL-style objective shaping inside policy training) can improve safety but require expensive retraining and are tightly coupled to specific model architectures. Our method is orthogonal: a frozen-policy, plug-and-play inference-time adapter that uses hidden states to compute continuous Cartesian corrections.
+\paragraph{Training-time safety constraints versus inference-time adaptation.}
+Constraint-in-training approaches can improve safety but are model-specific and expensive to retrain. Our approach is complementary: frozen-policy adaptation at inference-time via hidden-state probing.
 
-\paragraph{Mechanistic and latent interventions.}
-Prior work in representation probing suggests hidden states encode predictive task signals. We operationalize this hypothesis with a deployable safety controller that predicts failure and corrective translation from hidden states.
+\paragraph{Placeholder citations to finalize.}
+TODO: SAFE citation], TODO: SafeVLA citation], TODO: OpenVLA citation], TODO: Octo citation], TODO: ACT citation], TODO: Diffusion Policy citation], TODO: MPPI citation], TODO: LIBERO citation].

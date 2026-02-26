@@ -1,29 +1,35 @@
 \section{Experimental Setup}
 
-\subsection{Benchmarks and Tasks}
-We evaluate on LIBERO spatial tasks with off-screen rendering and fixed task/seed protocols. Primary reporting uses 10 tasks with repeated episodes per task.
+\subsection{Benchmarks and Task Suites}
+Primary evaluation uses LIBERO spatial tasks with off-screen rendering and fixed initialization protocols.
 
 \subsection{Models}
 \begin{itemize}[leftmargin=1.2em]
-    \item \textbf{OpenVLA-7B (OFT)}: foundation VLA baseline.
-    \item \textbf{ACT}: transformer policy with 256-d latent features.
-    \item \textbf{(Collected auxiliary data)}: Diffusion Policy and Octo for broader data inventory and failure characterization.
+    \item OpenVLA-7B OFT (foundation policy)
+    \item ACT (imitation policy)
+    \item Auxiliary collected evidence: Diffusion Policy, Octo (where available)
 \end{itemize}
 
-\subsection{Data Contract}
-All collectors write a unified rollout schema (observations, actions, robot state, hidden states, and success/failure metadata), enabling model-agnostic MLP training/evaluation.
-
-\subsection{Training Details}
-The v4 controller MLP uses LayerNorm input, GELU, dropout 0.3, dynamic positive reweighting, Huber regression, and AdamW ($\text{wd}=10^{-3}$). For ACT chunked rollouts, we additionally train with latent-change subsampling to avoid duplicated-state label leakage.
-
-\subsection{Evaluation Metrics}
+\subsection{Evaluation Modes}
 \begin{itemize}[leftmargin=1.2em]
-    \item Success rate (\%).
-    \item $\Delta$ vs vanilla (percentage points).
-    \item $\Delta$(Ours$-$MPPI) for direct controller comparison.
-    \item Intervention rate and correction magnitude.
-    \item Controller apply latency (mean/p95, ms).
+    \item vanilla
+    \item latent\_stop
+    \item noise
+    \item ema\_only
+    \item latent\_jiggle
+    \item mppi
+    \item steering (ours)
 \end{itemize}
 
-\subsection{Compute}
-Large sweeps are run on FAU HPC with A100 GPUs across short and long partitions. We enforce GPU preflight checks and node exclusion for known unstable hardware in campaign scripts.
+\subsection{Generalization Protocols}
+\paragraph{Strict zero-shot task split.}
+Train safety head on task subset A, evaluate on disjoint unseen subset B.
+
+\paragraph{OOD stress testing.}
+Use disturbance OOD and/or custom OOD BDDL environments.
+
+\subsection{Metrics}
+Success rate, $\Delta$ vs vanilla, $\Delta$(Ours$-$MPPI), intervention rate, correction magnitude, and controller apply latency (mean/p95).
+
+\subsection{Statistical Reporting Plan for Camera-Ready}
+TODO: number of seeds], TODO: confidence interval method], TODO: hypothesis tests], TODO: model-comparison correction].

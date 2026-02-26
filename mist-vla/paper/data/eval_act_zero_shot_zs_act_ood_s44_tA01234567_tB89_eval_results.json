@@ -1,0 +1,138 @@
+{
+  "config": {
+    "env": "libero_spatial",
+    "tasks": [
+      8,
+      9
+    ],
+    "modes": [
+      "vanilla",
+      "latent_stop",
+      "mppi",
+      "steering"
+    ],
+    "episodes_per_task": 20,
+    "alpha": 0.12,
+    "max_correction_m": 0.003,
+    "correction_threshold_m": 0.002,
+    "ema_beta": 0.9,
+    "use_fail_gate": true,
+    "fail_threshold": 0.65,
+    "stop_threshold": 0.85,
+    "action_scale": 0.05,
+    "seed": 44,
+    "ood_obstacle": true,
+    "ood_step_min": 40,
+    "ood_step_max": 160,
+    "ood_duration": 20,
+    "ood_push_magnitude": 0.08,
+    "ood_bddl_map": "",
+    "strict_ood_bddl": false,
+    "arch_version": "v4",
+    "model_type": "act",
+    "act_checkpoint": "checkpoints/act/best_model.pt",
+    "mlp_checkpoint": "checkpoints/eef_correction_mlp_act_zero_shot_zs_act_ood_s44_tA01234567_tB89/best_model.pt",
+    "act_params": 5917415,
+    "mlp_params": 108677,
+    "mlp_input_dim": 256
+  },
+  "per_task": {
+    "8": {
+      "vanilla": {
+        "success_rate_pct": 60.0,
+        "n_successes": 12,
+        "n_episodes": 20,
+        "mean_ir": 0.0,
+        "mean_corr_mag_m": 0.0,
+        "mean_apply_ms": 0.0,
+        "p95_apply_ms": 0.0
+      },
+      "latent_stop": {
+        "success_rate_pct": 0.0,
+        "n_successes": 0,
+        "n_episodes": 20,
+        "mean_ir": 0.9013,
+        "mean_corr_mag_m": 0.0,
+        "mean_apply_ms": 0.562,
+        "p95_apply_ms": 0.5699
+      },
+      "mppi": {
+        "success_rate_pct": 70.0,
+        "n_successes": 14,
+        "n_episodes": 20,
+        "mean_ir": 0.702,
+        "mean_corr_mag_m": 0.000422,
+        "mean_apply_ms": 5.0994,
+        "p95_apply_ms": 7.1021
+      },
+      "steering": {
+        "success_rate_pct": 60.0,
+        "n_successes": 12,
+        "n_episodes": 20,
+        "mean_ir": 0.7314,
+        "mean_corr_mag_m": 0.003,
+        "mean_apply_ms": 0.6129,
+        "p95_apply_ms": 0.6198
+      },
+      "delta_latent_stop_pp": -60.0,
+      "delta_mppi_pp": 10.0,
+      "delta_steering_pp": 0.0
+    },
+    "9": {
+      "vanilla": {
+        "success_rate_pct": 15.0,
+        "n_successes": 3,
+        "n_episodes": 20,
+        "mean_ir": 0.0,
+        "mean_corr_mag_m": 0.0,
+        "mean_apply_ms": 0.0,
+        "p95_apply_ms": 0.0
+      },
+      "latent_stop": {
+        "success_rate_pct": 0.0,
+        "n_successes": 0,
+        "n_episodes": 20,
+        "mean_ir": 0.692,
+        "mean_corr_mag_m": 0.0,
+        "mean_apply_ms": 0.5547,
+        "p95_apply_ms": 0.5633
+      },
+      "mppi": {
+        "success_rate_pct": 15.0,
+        "n_successes": 3,
+        "n_episodes": 20,
+        "mean_ir": 0.7136,
+        "mean_corr_mag_m": 0.000431,
+        "mean_apply_ms": 5.14,
+        "p95_apply_ms": 7.0562
+      },
+      "steering": {
+        "success_rate_pct": 10.0,
+        "n_successes": 2,
+        "n_episodes": 20,
+        "mean_ir": 0.7065,
+        "mean_corr_mag_m": 0.002988,
+        "mean_apply_ms": 0.6069,
+        "p95_apply_ms": 0.6156
+      },
+      "delta_latent_stop_pp": -15.0,
+      "delta_mppi_pp": 0.0,
+      "delta_steering_pp": -5.0
+    }
+  },
+  "summary": {
+    "avg_vanilla_pct": 37.5,
+    "avg_latent_stop_pct": 0.0,
+    "delta_latent_stop_vs_vanilla_pp": -37.5,
+    "avg_latent_stop_apply_ms": 0.558,
+    "avg_latent_stop_apply_p95_ms": 0.567,
+    "avg_mppi_pct": 42.5,
+    "delta_mppi_vs_vanilla_pp": 5.0,
+    "avg_mppi_apply_ms": 5.12,
+    "avg_mppi_apply_p95_ms": 7.079,
+    "avg_steering_pct": 35.0,
+    "delta_steering_vs_vanilla_pp": -2.5,
+    "avg_steering_apply_ms": 0.61,
+    "avg_steering_apply_p95_ms": 0.618
+  }
+}

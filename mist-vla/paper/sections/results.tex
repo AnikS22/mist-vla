@@ -1,57 +1,47 @@
 \section{Results}
 
-\subsection{Key ACT Results}
+\subsection{Legacy Baseline Tables (Completed Earlier)}
 \input{tables/tab_act_key_results}
-
-ACT shows strong sensitivity to controller calibration. Earlier settings underperformed MPPI, while improved fail-gated settings reached MPPI parity and, in selected sweep configurations, surpassed MPPI.
-
-\begin{figure}[t]
-    \centering
-    \includegraphics[width=0.92\linewidth]{figures/01_act_steering_vs_mppi_progress.png}
-    \caption{ACT steering progression versus MPPI across controller revisions.}
-    \label{fig:act_progress}
-\end{figure}
-
-\subsection{Completed Paired Cross-Model Runs}
 \input{tables/tab_paired_clean_runs}
-
-Across currently completed paired runs, cross-model mean performance is near MPPI parity, with at least one completed setting improving the cross-model mean (run \texttt{t02}).
-
-\begin{figure}[t]
-    \centering
-    \includegraphics[width=0.92\linewidth]{figures/02_cross_model_paired_t01.png}
-    \caption{First completed paired cross-model run under identical controller parameters.}
-    \label{fig:paired_t01}
-\end{figure}
-
-\subsection{Latency and Systems Efficiency}
 \input{tables/tab_latency}
 
-Measured on GPU benchmark episodes, latent steering apply-time is substantially faster than MPPI, supporting deployment in tighter control loops.
+\subsection{Strict Zero-Shot OOD Results (Current Campaign)}
+\input{tables/tab_act_zero_shot_ood}
+
+\paragraph{Interpretation placeholder.}
+TODO-RZS-1: summarize final zero-shot aggregate once all seeds and splits finish. \\
+TODO-RZS-2: state whether steering is significantly above vanilla and MPPI. \\
+TODO-RZS-3: include confidence intervals and significance markers.
+
+\subsection{ACT OOD Baseline Campaign}
+\input{tables/tab_act_ood_baselines}
+
+\paragraph{Interpretation placeholder.}
+TODO-RACT-1: separate strict zero-shot from non-zero-shot OOD runs in final text.
+
+\subsection{OpenVLA OOD Campaign Status}
+\input{tables/tab_openvla_ood_status}
+
+\paragraph{Status placeholder.}
+TODO-ROVLA-1: fill final OpenVLA OOD seed-complete statistics after queued jobs finish.
+
+\subsection{Figures to Include in Camera-Ready}
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.9\linewidth]{figures/04_universal_safety_architecture.png}
+    \caption{System architecture overview (to be replaced by final camera-ready Figure 1).}
+\end{figure}
 
 \begin{figure}[t]
     \centering
-    \includegraphics[width=0.92\linewidth]{figures/03_model_size_efficiency.png}
-    \caption{Safety-head parameter efficiency relative to base policy scale.}
-    \label{fig:param_efficiency}
+    \includegraphics[width=0.9\linewidth]{figures/05_live_sweep_tracker.png}
+    \caption{Run-tracker snapshot from completed jobs only.}
 \end{figure}
 
-\subsection{Ablation Interpretation}
-Noise and latent-jiggle controls show that random perturbation can occasionally recover hard tasks but lacks consistency. EMA-only remains weak, indicating that simple smoothing does not explain gains.
-
-\subsection{Pending Results Placeholders}
-The long-queue campaign remains in progress. We include placeholders for final paper tables that will be filled from completed ledgers:
+\subsection{Pending Result Blocks (Explicit)}
 \begin{itemize}[leftmargin=1.2em]
-    \item \textbf{Table P0}: Latent-Stop (freeze) vs Steering comparison under identical fail-thresholds to isolate detection-vs-recovery.
-    \item \textbf{Table P1}: Full 24-run paired sweep leaderboard (cross-model mean $\Delta$(Ours$-$MPPI)).
-    \item \textbf{Table P2}: Per-task OpenVLA final comparison under best shared parameters.
-    \item \textbf{Table P3}: Per-task ACT final comparison under best shared parameters.
-    \item \textbf{Table P4}: Strict zero-shot OOD task-split evaluation (train Task-A, test unseen Task-B with obstacle disturbance).
+    \item TODO-R1] Final OpenVLA OOD multi-seed table.
+    \item TODO-R2] Cross-model paired OOD table (OpenVLA + ACT) with matched seeds.
+    \item TODO-R3] Final latency table normalized to one hardware profile.
+    \item TODO-R4] Final stop-vs-steer causal statement with seed-level evidence.
 \end{itemize}
-
-\begin{figure}[t]
-    \centering
-    \includegraphics[width=0.92\linewidth]{figures/05_live_sweep_tracker.png}
-    \caption{Live tracker from completed sweep outputs only (no extrapolation).}
-    \label{fig:live_tracker}
-\end{figure}
