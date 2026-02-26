@@ -5,9 +5,10 @@ ACT Steering Evaluation — Category 2: Cross-Architecture Proof
 
 Compares:
   Mode A: Vanilla ACT            — raw, unsteered baseline
-  Mode B: Random Latent Jiggle   — matched-magnitude random correction
-  Mode C: Action MPPI            — sampling-based optimization
-  Mode D: ACT + Steering         — MLP-guided correction from 256-dim hidden states
+  Mode B: Latent Stop            — SAFE-style freeze when failure risk is high
+  Mode C: Random Latent Jiggle   — matched-magnitude random correction
+  Mode D: Action MPPI            — sampling-based optimization
+  Mode E: ACT + Steering         — MLP-guided correction from 256-dim hidden states
 
 For each task, runs N episodes (default 20) per mode and reports:
   - Success Rate (%)
@@ -24,7 +25,7 @@ Usage
       --mlp-checkpoint checkpoints/eef_correction_mlp_act/best_model.pt \
       --env libero_spatial \
       --episodes-per-task 20 \
-      --modes vanilla latent_jiggle mppi steering \
+      --modes vanilla latent_stop latent_jiggle mppi steering \
       --save-dir results/eval_act_steering
 """
 
@@ -285,6 +286,58 @@ class SteeredAgent:
             self._apply_times_ms.append((time.perf_counter() - t0) * 1000.0)
 
 
+class LatentStopAgent:
+    """SAFE-style baseline: stop/freeze when fail probability exceeds threshold."""
+
+    def __init__(self, mlp, scaler, *, stop_threshold=0.85, device="cpu"):
+        self.mlp = mlp
+        self.scaler = scaler
+        self.stop_threshold = stop_threshold
+        self.device = device
+        self._steps = 0
+        self._interventions = 0
+        self._apply_times_ms = []
+
+    def reset(self):
+        self._steps = 0
+        self._interventions = 0
+        self._apply_times_ms = []
+
+    @property
+    def intervention_rate(self):
+        return self._interventions / max(self._steps, 1)
+
+    @property
+    def mean_apply_ms(self):
+        return float(np.mean(self._apply_times_ms)) if self._apply_times_ms else 0.0
+
+    @property
+    def p95_apply_ms(self):
+        if not self._apply_times_ms:
+            return 0.0
+        return float(np.percentile(self._apply_times_ms, 95))
+
+    def apply(self, action, features):
+        t0 = time.perf_counter()
+        try:
+            self._steps += 1
+            if features is None or np.prod(features.shape) < 2:
+                return action, False
+            scaled = self.scaler.transform(features.reshape(1, -1))
+            x = torch.FloatTensor(scaled).to(self.device)
+            with torch.no_grad():
+                out = self.mlp(x)
+            fail_prob = torch.sigmoid(out["will_fail"]).item()
+            if fail_prob >= self.stop_threshold:
+                self._interventions += 1
+                # Freeze all action dimensions as a strict stop baseline.
+                action[:] = 0.0
+                return action, True
+            return action, False
+        finally:
+            self._apply_times_ms.append((time.perf_counter() - t0) * 1000.0)
+
+
 # ══════════════════════════════════════════════════════════════════════════
 #  MPPI CONTROLLER (sampling-based baseline)
 # ══════════════════════════════════════════════════════════════════════════
@@ -475,11 +528,13 @@ def get_eef_pos(env):
 
 def run_episode(env, act_model, device, init_state, max_steps=300,
                 mode="vanilla", steered_agent=None,
-                jiggle_agent=None, mppi_controller=None,
-                noise_sigma=0.05, ema_only_beta=0.9):
+                stop_agent=None, jiggle_agent=None, mppi_controller=None,
+                noise_sigma=0.05, ema_only_beta=0.9,
+                ood_obstacle=False, ood_step_min=40, ood_step_max=160,
+                ood_duration=20, ood_push_magnitude=0.08):
     """Run one ACT episode.
 
-    mode ∈ {"vanilla", "noise", "ema_only", "latent_jiggle", "mppi", "steering"}
+    mode ∈ {"vanilla", "noise", "ema_only", "latent_stop", "latent_jiggle", "mppi", "steering"}
     """
     env.reset()
     if init_state is not None:
@@ -495,6 +550,8 @@ def run_episode(env, act_model, device, init_state, max_steps=300,
 
     if mode == "steering" and steered_agent is not None:
         steered_agent.reset()
+    if mode == "latent_stop" and stop_agent is not None:
+        stop_agent.reset()
     if mode == "latent_jiggle" and jiggle_agent is not None:
         jiggle_agent.reset()
     if mode == "mppi" and mppi_controller is not None:
@@ -505,6 +562,17 @@ def run_episode(env, act_model, device, init_state, max_steps=300,
     total_steps = 0
     success = False
     ema_action = None
+    obstacle_trigger_step = None
+    obstacle_vec = np.zeros(3, dtype=np.float32)
+    if ood_obstacle:
+        lo = max(1, min(ood_step_min, max_steps - 1))
+        hi = max(lo, min(ood_step_max, max_steps - 1))
+        obstacle_trigger_step = int(np.random.randint(lo, hi + 1))
+        raw = np.random.randn(3).astype(np.float32)
+        raw_norm = float(np.linalg.norm(raw))
+        if raw_norm > 1e-8:
+            raw = raw / raw_norm
+        obstacle_vec = raw * float(ood_push_magnitude)
 
     for step in range(max_steps):
         # Prepare observation
@@ -549,6 +617,9 @@ def run_episode(env, act_model, device, init_state, max_steps=300,
                 ema_action = ema_only_beta * ema_action + (1 - ema_only_beta) * action[:3]
             action[:3] = ema_action
 
+        elif mode == "latent_stop" and stop_agent is not None:
+            action, _ = stop_agent.apply(action, last_features)
+
         elif mode == "latent_jiggle" and jiggle_agent is not None:
             action, _ = jiggle_agent.apply(action, last_features)
 
@@ -557,6 +628,11 @@ def run_episode(env, act_model, device, init_state, max_steps=300,
 
         elif mode == "steering" and steered_agent is not None:
             action, _ = steered_agent.apply(action, last_features)
+
+        if (ood_obstacle and obstacle_trigger_step is not None
+                and obstacle_trigger_step <= step < obstacle_trigger_step + max(1, ood_duration)):
+            # Synthetic OOD obstacle proxy: sudden exogenous push on translation.
+            action[:3] += obstacle_vec
 
         action = np.clip(action, -1.0, 1.0)
 
@@ -585,6 +661,11 @@ def run_episode(env, act_model, device, init_state, max_steps=300,
         cm = steered_agent.mean_corr_mag
         mean_apply_ms = steered_agent.mean_apply_ms
         p95_apply_ms = steered_agent.p95_apply_ms
+    elif mode == "latent_stop" and stop_agent:
+        ir = stop_agent.intervention_rate
+        cm = 0.0
+        mean_apply_ms = stop_agent.mean_apply_ms
+        p95_apply_ms = stop_agent.p95_apply_ms
     elif mode == "latent_jiggle" and jiggle_agent:
         ir = jiggle_agent.intervention_rate
         cm = jiggle_agent.mean_corr_mag
@@ -616,9 +697,9 @@ def main():
     parser.add_argument("--tasks", type=int, nargs="+",
                         default=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
     parser.add_argument("--modes", nargs="+",
-                        default=["vanilla", "latent_jiggle", "mppi", "steering"],
+                        default=["vanilla", "latent_stop", "latent_jiggle", "mppi", "steering"],
                         choices=["vanilla", "noise", "ema_only",
-                                 "latent_jiggle", "mppi", "steering"])
+                                 "latent_stop", "latent_jiggle", "mppi", "steering"])
     parser.add_argument("--mppi-samples", type=int, default=16)
     parser.add_argument("--mppi-temperature", type=float, default=5.0)
     parser.add_argument("--episodes-per-task", type=int, default=20)
@@ -634,6 +715,14 @@ def main():
                         help="Only intervene when fail prob >= --fail-threshold")
     parser.add_argument("--fail-threshold", type=float, default=0.5,
                         help="Fail-prob threshold when fail-gate is enabled")
+    parser.add_argument("--stop-threshold", type=float, default=0.85,
+                        help="Fail-prob threshold for latent_stop freeze baseline")
+    parser.add_argument("--ood-obstacle", action="store_true",
+                        help="Enable synthetic OOD obstacle push during episodes")
+    parser.add_argument("--ood-step-min", type=int, default=40)
+    parser.add_argument("--ood-step-max", type=int, default=160)
+    parser.add_argument("--ood-duration", type=int, default=20)
+    parser.add_argument("--ood-push-magnitude", type=float, default=0.08)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--save-dir", default="results/eval_act_steering")
     args = parser.parse_args()
@@ -649,6 +738,7 @@ def main():
 
     MODE_LABELS = {
         "vanilla":       "Vanilla ACT (baseline)",
+        "latent_stop":   f"Latent Stop (freeze if p_fail≥{args.stop_threshold})",
         "noise":         f"Random Noise (σ={args.noise_sigma})",
         "ema_only":      f"EMA Smoothing Only (β={args.ema_only_beta})",
         "latent_jiggle": f"Random Latent Jiggle (matched-magnitude)",
@@ -673,6 +763,10 @@ def main():
     print(f"  Max Δaction: {max_pert:.4f} units "
           f"({max_pert * 100:.1f}% of range)", flush=True)
     print(f"  Device:      {device}", flush=True)
+    if args.ood_obstacle:
+        print(f"  OOD obstacle: enabled  step=[{args.ood_step_min},{args.ood_step_max}]  "
+              f"duration={args.ood_duration}  push={args.ood_push_magnitude}",
+              flush=True)
     print(flush=True)
 
     # ─── 1. Load ACT Model ───────────────────────────────────────
@@ -713,6 +807,11 @@ def main():
         max_correction=args.max_correction,
         use_fail_gate=args.use_fail_gate,
         fail_threshold=args.fail_threshold,
+        device=device,
+    )
+    stop_agent = LatentStopAgent(
+        mlp, scaler,
+        stop_threshold=args.stop_threshold,
         device=device,
     )
     jiggle_agent = LatentJiggleAgent(
@@ -785,10 +884,16 @@ def main():
                     max_steps=300,
                     mode=mode,
                     steered_agent=agent,
+                    stop_agent=stop_agent,
                     jiggle_agent=jiggle_agent,
                     mppi_controller=mppi_controller,
                     noise_sigma=args.noise_sigma,
                     ema_only_beta=args.ema_only_beta,
+                    ood_obstacle=args.ood_obstacle,
+                    ood_step_min=args.ood_step_min,
+                    ood_step_max=args.ood_step_max,
+                    ood_duration=args.ood_duration,
+                    ood_push_magnitude=args.ood_push_magnitude,
                 )
                 print("✓" if r["success"] else "✗", end="", flush=True)
                 if r["success"]:
@@ -804,10 +909,10 @@ def main():
             avg_apply_ms = np.mean(mean_apply_ms_vals) if mean_apply_ms_vals else 0.0
             avg_p95_ms = np.mean(p95_apply_ms_vals) if p95_apply_ms_vals else 0.0
             suffix = ""
-            if mode in ("steering", "latent_jiggle", "mppi"):
+            if mode in ("steering", "latent_stop", "latent_jiggle", "mppi"):
                 suffix = (f"  IR={avg_ir:.0%}  "
                           f"‖c‖={avg_cm:.4f}m")
-            if mode in ("steering", "mppi"):
+            if mode in ("steering", "latent_stop", "mppi"):
                 suffix += f"  t={avg_apply_ms:.2f}ms (p95={avg_p95_ms:.2f}ms)"
                 if avg_ir > 0.50:
                     suffix += "  ⚠ OVER-CORR"
@@ -882,7 +987,7 @@ def main():
     print(avg_row, flush=True)
 
     # Timing summary for controller apply() cost
-    for m in ("mppi", "steering"):
+    for m in ("mppi", "steering", "latent_stop"):
         if m not in args.modes:
             continue
         apply_means = []
@@ -939,7 +1044,7 @@ def main():
         summary[f"avg_{m}_pct"] = round(avg, 1)
         if m != "vanilla":
             summary[f"delta_{m}_vs_vanilla_pp"] = round(avg - v_avg, 1)
-        if m in ("mppi", "steering"):
+        if m in ("mppi", "steering", "latent_stop"):
             apply_means = []
             apply_p95s = []
             for tid in args.tasks:
@@ -965,8 +1070,14 @@ def main():
             "ema_beta": args.ema_beta,
             "use_fail_gate": args.use_fail_gate,
             "fail_threshold": args.fail_threshold,
+            "stop_threshold": args.stop_threshold,
             "action_scale": args.action_scale,
             "seed": args.seed,
+            "ood_obstacle": args.ood_obstacle,
+            "ood_step_min": args.ood_step_min,
+            "ood_step_max": args.ood_step_max,
+            "ood_duration": args.ood_duration,
+            "ood_push_magnitude": args.ood_push_magnitude,
             "arch_version": "v4",
             "model_type": "act",
             "act_checkpoint": args.act_checkpoint,

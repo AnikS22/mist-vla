@@ -8,5 +8,11 @@ ACT and Diffusion Policy are strong task-specialized baselines and often outperf
 \paragraph{Safety filters and model-predictive control.}
 MPPI and related sampling-based controllers are strong optimization baselines but can be computationally heavier in high-frequency loops. We compare directly to MPPI and measure step-time latency.
 
+\paragraph{Failure detection versus recovery.}
+Recent safety work has shown that failure prediction itself is feasible in policy latent spaces. However, pure detection-oriented methods are limited to reject/stop decisions and do not provide continuous geometric recovery. Our latent-stop baseline explicitly isolates this behavior: when risk is high, the controller freezes actions. This lets us test whether detection alone can preserve task success, versus requiring directional correction vectors.
+
+\paragraph{Training-time constrained safety versus inference-time adaptation.}
+Constraint-in-the-loop approaches (e.g., SafeRL-style objective shaping inside policy training) can improve safety but require expensive retraining and are tightly coupled to specific model architectures. Our method is orthogonal: a frozen-policy, plug-and-play inference-time adapter that uses hidden states to compute continuous Cartesian corrections.
+
 \paragraph{Mechanistic and latent interventions.}
 Prior work in representation probing suggests hidden states encode predictive task signals. We operationalize this hypothesis with a deployable safety controller that predicts failure and corrective translation from hidden states.

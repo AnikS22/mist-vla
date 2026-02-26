@@ -13,17 +13,17 @@
 ###############################################################################
 #  ACT STEERING EVALUATION — Category 2: Cross-Architecture Proof
 #
-#  Compares Vanilla ACT vs Jiggle vs MPPI vs Steering
+#  Compares Vanilla ACT vs LatentStop vs Jiggle vs MPPI vs Steering
 #  Uses the subsampled/honest ACT MLP (256-dim input)
 #
-#  4 modes × 10 tasks × 20 episodes = 800 total episodes
+#  5 modes × 10 tasks × 20 episodes = 1000 total episodes
 ###############################################################################
 
 set -eo pipefail
 
 echo "================================================================"
 echo "  ACT STEERING EVALUATION — Cross-Architecture Proof"
-echo "  4 modes × 10 tasks × 20 episodes = 800 episodes"
+echo "  5 modes × 10 tasks × 20 episodes = 1000 episodes"
 echo "================================================================"
 echo "  Job ID:  ${SLURM_JOB_ID}"
 echo "  Node:    ${SLURM_NODELIST:-unknown}"
@@ -77,11 +77,19 @@ EMA_BETA="${EMA_BETA:-0.9}"
 MAX_CORR="${MAX_CORR:-0.004}"
 CORR_THRESH="${CORR_THRESH:-0.003}"
 FAIL_THRESH="${FAIL_THRESH:-0.6}"
+STOP_THRESH="${STOP_THRESH:-0.85}"
+OOD_OBSTACLE="${OOD_OBSTACLE:-0}"
+OOD_STEP_MIN="${OOD_STEP_MIN:-40}"
+OOD_STEP_MAX="${OOD_STEP_MAX:-160}"
+OOD_DURATION="${OOD_DURATION:-20}"
+OOD_PUSH_MAG="${OOD_PUSH_MAG:-0.08}"
 
 echo "  ACT Checkpoint: ${ACT_CKPT}"
 echo "  MLP Checkpoint: ${MLP_CKPT}"
 echo "  Run tag: ${RUN_TAG}  episodes=${N_EPISODES}"
 echo "  Shared Steering: alpha=${ALPHA} ema_beta=${EMA_BETA} max_corr=${MAX_CORR}m threshold=${CORR_THRESH}m fail_gate=p>=${FAIL_THRESH}"
+echo "  Latent Stop: stop_threshold=${STOP_THRESH}"
+echo "  OOD obstacle: enable=${OOD_OBSTACLE} step=[${OOD_STEP_MIN},${OOD_STEP_MAX}] duration=${OOD_DURATION} push=${OOD_PUSH_MAG}"
 echo ""
 
 # Verify checkpoints exist
@@ -98,7 +106,7 @@ python -u scripts/eval_act_steering.py \
     --act-checkpoint "${ACT_CKPT}" \
     --mlp-checkpoint "${MLP_CKPT}" \
     --env libero_spatial \
-    --modes vanilla latent_jiggle mppi steering \
+    --modes vanilla latent_stop latent_jiggle mppi steering \
     --episodes-per-task "${N_EPISODES}" \
     --alpha "${ALPHA}" \
     --ema-beta "${EMA_BETA}" \
@@ -106,8 +114,10 @@ python -u scripts/eval_act_steering.py \
     --correction-threshold "${CORR_THRESH}" \
     --use-fail-gate \
     --fail-threshold "${FAIL_THRESH}" \
+    --stop-threshold "${STOP_THRESH}" \
     --mppi-samples 16 \
     --mppi-temperature 5.0 \
+    $( [ "${OOD_OBSTACLE}" = "1" ] && echo "--ood-obstacle --ood-step-min ${OOD_STEP_MIN} --ood-step-max ${OOD_STEP_MAX} --ood-duration ${OOD_DURATION} --ood-push-magnitude ${OOD_PUSH_MAG}" ) \
     --save-dir "results/eval_act_steering_${RUN_TAG}"
 
 echo ""

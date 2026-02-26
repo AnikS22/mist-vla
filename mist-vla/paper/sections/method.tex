@@ -53,6 +53,9 @@ Final action update (translation channels only):
 \mathbf{a}^{(xyz)}_t \leftarrow \mathbf{a}^{(xyz)}_t + \alpha\,\mathbb{I}_t\,\frac{\bar{\Delta\mathbf{p}}_t}{s_a}.
 \end{equation}
 
+\paragraph{Role of the time-to-failure head.}
+The $ \hat{\tau}_t $ head is not used only as an auxiliary metric: it regularizes the latent representation toward temporal hazard structure. In practice, lower predicted $ \hat{\tau}_t $ correlates with imminent contact-risk states and encourages earlier interventions. This enables preemptive corrections before terminal failure, reducing reliance on last-step, high-magnitude action jerks.
+
 \subsection{Baselines}
 \begin{itemize}[leftmargin=1.2em]
     \item \textbf{Vanilla}: no intervention.

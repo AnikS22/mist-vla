@@ -53,6 +53,12 @@ EMA_BETA="${EMA_BETA:-0.9}"
 MAX_CORR="${MAX_CORR:-0.003}"
 CORR_THRESH="${CORR_THRESH:-0.002}"
 FAIL_THRESH="${FAIL_THRESH:-0.65}"
+STOP_THRESH="${STOP_THRESH:-0.85}"
+OOD_OBSTACLE="${OOD_OBSTACLE:-1}"
+OOD_STEP_MIN="${OOD_STEP_MIN:-40}"
+OOD_STEP_MAX="${OOD_STEP_MAX:-160}"
+OOD_DURATION="${OOD_DURATION:-20}"
+OOD_PUSH_MAG="${OOD_PUSH_MAG:-0.08}"
 
 echo "================================================================"
 echo "  ACT STRICT ZERO-SHOT GENERALIZATION"
@@ -83,7 +89,7 @@ python -u scripts/eval_act_steering.py \
     --mlp-checkpoint "${ZS_MLP_CKPT}" \
     --env libero_spatial \
     --tasks ${TEST_TASKS} \
-    --modes vanilla mppi steering \
+    --modes vanilla latent_stop mppi steering \
     --episodes-per-task "${N_EPISODES}" \
     --alpha "${ALPHA}" \
     --ema-beta "${EMA_BETA}" \
@@ -91,8 +97,10 @@ python -u scripts/eval_act_steering.py \
     --correction-threshold "${CORR_THRESH}" \
     --use-fail-gate \
     --fail-threshold "${FAIL_THRESH}" \
+    --stop-threshold "${STOP_THRESH}" \
     --mppi-samples 16 \
     --mppi-temperature 5.0 \
+    $( [ "${OOD_OBSTACLE}" = "1" ] && echo "--ood-obstacle --ood-step-min ${OOD_STEP_MIN} --ood-step-max ${OOD_STEP_MAX} --ood-duration ${OOD_DURATION} --ood-push-magnitude ${OOD_PUSH_MAG}" ) \
     --save-dir "${RESULT_DIR}"
 
 echo ""
