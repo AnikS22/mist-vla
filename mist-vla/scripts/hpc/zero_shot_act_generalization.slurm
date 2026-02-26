@@ -42,6 +42,7 @@ RUN_TAG="${RUN_TAG:-zs_act_tA01234567_tB89}"
 TRAIN_TASKS="${TRAIN_TASKS:-0 1 2 3 4 5 6 7}"
 TEST_TASKS="${TEST_TASKS:-8 9}"
 N_EPISODES="${N_EPISODES:-20}"
+SEED="${SEED:-42}"
 
 ACT_CKPT="checkpoints/act/best_model.pt"
 ZS_MLP_DIR="checkpoints/eef_correction_mlp_act_zero_shot_${RUN_TAG}"
@@ -84,7 +85,7 @@ python -u scripts/train_eef_correction_mlp.py \
     --subsample-chunks \
     --zero-shot-train-tasks ${TRAIN_TASKS} \
     --zero-shot-test-tasks ${TEST_TASKS} \
-    --seed 42
+    --seed "${SEED}"
 
 python -u scripts/eval_act_steering.py \
     --act-checkpoint "${ACT_CKPT}" \
@@ -105,6 +106,7 @@ python -u scripts/eval_act_steering.py \
     $( [ "${OOD_OBSTACLE}" = "1" ] && echo "--ood-obstacle --ood-step-min ${OOD_STEP_MIN} --ood-step-max ${OOD_STEP_MAX} --ood-duration ${OOD_DURATION} --ood-push-magnitude ${OOD_PUSH_MAG}" ) \
     $( [ -n "${OOD_BDDL_MAP}" ] && echo "--ood-bddl-map ${OOD_BDDL_MAP}" ) \
     $( [ "${STRICT_OOD_BDDL}" = "1" ] && echo "--strict-ood-bddl" ) \
+    --seed "${SEED}" \
     --save-dir "${RESULT_DIR}"
 
 echo ""
