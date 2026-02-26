@@ -1,26 +1,67 @@
 \documentclass[11pt]{article}
 
-% NOTE: Switch to official CoRL template/class before submission if required.
-% This draft is structured to be CoRL-ready with modular sections/tables/figures.
-
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 \usepackage{lmodern}
-\usepackage{microtype}
 \usepackage{geometry}
 \geometry{margin=1in}
-\usepackage{amsmath,amssymb,amsthm}
-\usepackage{bm}
+\usepackage{microtype}
+\usepackage{amsmath,amssymb,amsthm,bm}
 \usepackage{booktabs}
-\usepackage{graphicx}
-\usepackage{subcaption}
+\usepackage{longtable}
+\usepackage{array}
 \usepackage{multirow}
-\usepackage{xcolor}
 \usepackage{enumitem}
 \usepackage{hyperref}
 \usepackage[numbers,sort&compress]{natbib}
+\usepackage{xcolor}
 
-\title{Inference-Time Latent Safety Steering for Vision-Language-Action and Imitation Policies}
+\begin{filecontents*}{references.bib}
+@inproceedings{zhao2023act,
+  title={Learning Fine-Grained Bimanual Manipulation with Low-Cost Hardware},
+  author={Zhao, Tony and Kumar, Vikash and Levine, Sergey and Finn, Chelsea},
+  booktitle={Robotics: Science and Systems},
+  year={2023}
+}
+
+@inproceedings{chi2023diffusion,
+  title={Diffusion Policy: Visuomotor Policy Learning via Action Diffusion},
+  author={Chi, Cheng and Feng, Siyuan and Du, Yilun and Xu, Zhenjia and Cousineau, Eric and Burchfiel, Ben and Song, Shuran},
+  booktitle={International Journal of Robotics Research},
+  year={2023}
+}
+
+@misc{openvla2024,
+  title={OpenVLA: An Open-Source Vision-Language-Action Model},
+  author={OpenVLA Team},
+  year={2024},
+  note={arXiv preprint}
+}
+
+@misc{octo2024,
+  title={Octo: An Open Foundation Model for Generalist Robot Policy Learning},
+  author={Octo Team},
+  year={2024},
+  note={arXiv preprint}
+}
+
+@inproceedings{williams2017mppi,
+  title={Information-Theoretic Model Predictive Control: Theory and Applications to Autonomous Driving},
+  author={Williams, Grady and Drews, Paul and Goldfain, Brian and Theodorou, Evangelos and Rehg, James},
+  booktitle={IEEE International Conference on Robotics and Automation},
+  year={2017}
+}
+
+@misc{libero2023,
+  title={LIBERO: Benchmarking Knowledge Transfer for Lifelong Robot Learning},
+  author={Lifelong Robot Learning Lab},
+  year={2023},
+  note={Benchmark and dataset}
+}
+\end{filecontents*}
+
+\title{Inference-Time Latent Safety Steering for Vision-Language-Action and Imitation Policies\\
+\large Comprehensive Technical Draft with Completed Results and Explicit Pending Placeholders}
 
 \author{
 Anik Sahai$^{1,2,3}$ \and
@@ -41,16 +82,342 @@ $^{3}$Florida Atlantic University (FAU)
 \begin{document}
 \maketitle
 
-\input{sections/abstract}
-\input{sections/introduction}
-\input{sections/related_work}
-\input{sections/method}
-\input{sections/experimental_setup}
-\input{sections/results}
-\input{sections/discussion}
-\input{sections/conclusion}
-\input{sections/reproducibility_ethics}
-\input{sections/appendix}
+\begin{abstract}
+This document is a full technical record of the current state of the project ``Inference-Time Latent Safety Steering.'' The central question is whether a lightweight MLP, fed only policy hidden states, can (i) predict imminent failure, (ii) estimate time-to-failure, and (iii) generate Cartesian correction vectors that improve closed-loop outcomes. We evaluate on LIBERO with OpenVLA and ACT, compare against vanilla execution and multiple baselines (noise, EMA-only, latent stop, latent jiggle, MPPI), and report only completed results. The strongest completed evidence so far is that a detection-only strategy (latent stop / freeze) fails to preserve task completion in strict zero-shot OOD splits, while continuous correction methods (MPPI and latent steering) retain non-zero success. Steering also maintains a consistent controller-latency advantage over MPPI. Claims about universal latent safety manifolds are currently framed as promising but not conclusively proven until remaining multi-seed OOD campaigns complete.
+\end{abstract}
+
+\section{Research Objective and Scope}
+
+\subsection{Primary Research Question}
+Can a compact inference-time module attached to frozen policy internals improve safety and task performance by predicting and correcting failures before terminal outcomes?
+
+\subsection{Target Claim}
+The intended final claim (if pending evidence holds) is:
+\begin{quote}
+There exists transferable latent safety structure in robot policy hidden states that can be exploited by a model-agnostic, low-latency controller for continuous recovery.
+\end{quote}
+
+\subsection{What This Draft Includes}
+\begin{itemize}[leftmargin=1.2em]
+    \item Full method and equations.
+    \item Full baseline definitions, including newly added latent-stop baseline.
+    \item Completed quantitative results only.
+    \item Explicit placeholders for pending experiments.
+    \item Honest novelty and limitation assessment.
+\end{itemize}
+
+\section{Method: Universal Latent Safety Steering}
+
+\subsection{Input/Output Contract}
+At time step $t$, a base policy emits hidden state $\mathbf{h}_t \in \mathbb{R}^m$ and action $\mathbf{a}_t \in \mathbb{R}^d$. The safety head predicts:
+\begin{equation}
+f_\theta(\mathbf{h}_t)=\left\{\hat{y}^{\text{fail}}_t,\;\hat{\tau}_t,\;\widehat{\Delta\mathbf{p}}_t\right\},
+\end{equation}
+where:
+\begin{itemize}[leftmargin=1.2em]
+    \item $\hat{y}^{\text{fail}}_t$: failure logit,
+    \item $\hat{\tau}_t$: time-to-failure estimate,
+    \item $\widehat{\Delta\mathbf{p}}_t=(\widehat{\Delta x},\widehat{\Delta y},\widehat{\Delta z})$: Cartesian EEF correction (meters).
+\end{itemize}
+
+\paragraph{Critical design constraint.}
+The MLP input is hidden state only. EEF positions are used only to compute correction labels during training.
+
+\subsection{MLP Architecture (v4)}
+\begin{itemize}[leftmargin=1.2em]
+    \item Input LayerNorm
+    \item Hidden width fixed at 256
+    \item Three-layer encoder: $256 \rightarrow 128 \rightarrow 64$ bottleneck
+    \item GELU nonlinearities
+    \item Dropout $0.3$ each block
+    \item Three heads: fail (1), TTF (1), correction (3)
+\end{itemize}
+
+\begin{align}
+\mathbf{z}_t &= \phi(\mathrm{LN}(\mathbf{h}_t)), \\
+\hat{y}^{\text{fail}}_t &= W_f\mathbf{z}_t+b_f, \\
+\hat{\tau}_t &= W_\tau\mathbf{z}_t+b_\tau, \\
+\widehat{\Delta\mathbf{p}}_t &= W_c\mathbf{z}_t+b_c.
+\end{align}
+
+\subsection{Training Labels and Objective}
+Let $y_t\in\{0,1\}$ be failure label, $\tau_t$ the normalized time-to-failure target, and $\Delta\mathbf{p}_t$ the trajectory-aligned Cartesian correction target.
+
+\paragraph{Failure loss (dynamic imbalance handling).}
+\begin{equation}
+\mathcal{L}_{\text{fail}} = \mathrm{BCEWithLogits}(\hat{y}^{\text{fail}}_t, y_t;\, w^+_{\text{batch}}),
+\end{equation}
+with per-batch positive weight $w^+_{\text{batch}} = n_\text{neg}/\max(n_\text{pos},1)$ (clamped in code).
+
+\paragraph{Regression losses.}
+\begin{align}
+\mathcal{L}_{\tau} &= \mathrm{Huber}_{\delta}(\hat{\tau}_t, \tau_t), \\
+\mathcal{L}_{\Delta p} &= \mathrm{Huber}_{\delta}(\widehat{\Delta\mathbf{p}}_t, \Delta\mathbf{p}_t), \quad \delta=0.1.
+\end{align}
+
+\paragraph{Success-sample correction penalty.}
+\begin{equation}
+\mathcal{L}_{\text{mag}} = \mathbb{E}_{t:y_t=0}\left[\|\widehat{\Delta\mathbf{p}}_t\|_2^2\right].
+\end{equation}
+
+\paragraph{Total loss.}
+\begin{equation}
+\mathcal{L} = \mathcal{L}_{\text{fail}} + 0.5\mathcal{L}_{\tau} + 2.0\mathcal{L}_{\Delta p} + \lambda_{\text{mag}}\mathcal{L}_{\text{mag}},
+\end{equation}
+with $\lambda_{\text{mag}}=0.1$ default.
+
+\paragraph{Optimizer.}
+AdamW with weight decay $10^{-3}$.
+
+\subsection{Inference-Time Control Rule}
+Smoothed correction:
+\begin{equation}
+\tilde{\Delta\mathbf{p}}_t = \beta\tilde{\Delta\mathbf{p}}_{t-1} + (1-\beta)\widehat{\Delta\mathbf{p}}_t.
+\end{equation}
+Norm clamp:
+\begin{equation}
+\bar{\Delta\mathbf{p}}_t = \mathrm{ClampNorm}(\tilde{\Delta\mathbf{p}}_t, c_{\max}).
+\end{equation}
+Gate:
+\begin{equation}
+\mathbb{I}_t = \mathbb{1}\{\|\bar{\Delta\mathbf{p}}_t\| > \tau_c\}\cdot \mathbb{1}\{\sigma(\hat{y}^{\text{fail}}_t)\ge\tau_f\}.
+\end{equation}
+Action update (translation channels):
+\begin{equation}
+\mathbf{a}^{xyz}_t \leftarrow \mathbf{a}^{xyz}_t + \alpha\,\mathbb{I}_t\,\frac{\bar{\Delta\mathbf{p}}_t}{s_a}.
+\end{equation}
+
+\paragraph{Time-to-failure head interpretation.}
+The TTF head is not merely diagnostic. It regularizes the shared latent representation toward temporal hazard dynamics, enabling earlier interventions in many runs and reducing purely last-step reaction behavior.
+
+\section{Baselines and Ablations}
+
+\subsection{Baselines Implemented}
+\begin{enumerate}[leftmargin=1.2em]
+    \item \textbf{Vanilla}: raw policy, no intervention.
+    \item \textbf{Latent Stop}: SAFE-style detection-only baseline. If $p_{\text{fail}} > \tau_{\text{stop}}$, freeze action.
+    \item \textbf{Noise}: Gaussian perturbation on translational channels.
+    \item \textbf{EMA-only}: low-pass smoothing on translational action only.
+    \item \textbf{Latent Jiggle}: random correction direction with matched correction magnitude.
+    \item \textbf{MPPI}: sampling-based correction selection using fail head as objective.
+    \item \textbf{Steering (Ours)}: direct correction head with gating + clamp + smoothing.
+\end{enumerate}
+
+\subsection{Why Latent Stop is a Critical Causal Baseline}
+Latent Stop isolates failure detection from recovery. If latent stop collapses success while steering sustains success, this demonstrates that detection-only safety is insufficient and directional correction contributes additional capability.
+
+\section{Data, Models, and Infrastructure}
+
+\subsection{Models Integrated / Tested}
+\begin{itemize}[leftmargin=1.2em]
+    \item OpenVLA (primary VLA evaluation)
+    \item ACT (primary non-VLA cross-architecture evaluation)
+    \item Diffusion Policy (collected/trained, low SR finding)
+    \item Octo (integration and collection pipeline; severe success bottleneck finding)
+\end{itemize}
+
+\subsection{Known dataset findings}
+\begin{itemize}[leftmargin=1.2em]
+    \item ACT data had chunked latent duplication; corrected with subsampling unique latent states.
+    \item Octo collection repeatedly exposed near-0\% success behavior in target setup, making correction-head learning difficult.
+    \item DP standalone success observed as very low in this specific LIBERO setup (important negative finding).
+\end{itemize}
+
+\subsection{Zero-shot and OOD Protocols}
+\paragraph{Strict zero-shot split.}
+Train MLP on Task-A IDs only; evaluate on disjoint Task-B IDs only.
+
+\paragraph{OOD modes currently implemented.}
+\begin{itemize}[leftmargin=1.2em]
+    \item \textbf{Disturbance OOD}: synthetic mid-episode push perturbation.
+    \item \textbf{True OOD environment}: per-task custom BDDL override map with strict enforcement option.
+\end{itemize}
+
+\section{Completed Results (No Fabrication)}
+
+\subsection{Latency (Dedicated Benchmark)}
+\begin{table}[h!]
+\centering
+\caption{Controller apply latency on completed ACT benchmark run.}
+\begin{tabular}{lcc}
+\toprule
+Method & Mean apply time (ms) & P95 apply time (ms) \\
+\midrule
+MPPI & 4.064 & 6.456 \\
+Steering (Ours) & 0.628 & 0.637 \\
+\midrule
+Speedup (MPPI/Ours) & 6.47$\times$ & 10.14$\times$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Completed Shared-Profile Cross-Model Sweeps (Subset)}
+\begin{table}[h!]
+\centering
+\caption{Completed paired ACT+OpenVLA shared-parameter runs (subset).}
+\begin{tabular}{lccc}
+\toprule
+Run tag & ACT $\Delta$(Ours$-$MPPI) & OpenVLA $\Delta$ & Mean $\Delta$ \\
+\midrule
+t01\_a0p1\_mc0p003\_ct0p003\_ft0p6 & +0.5 & -1.0 & -0.25 \\
+t02\_a0p12\_mc0p003\_ct0p002\_ft0p65 & +4.5 & -0.5 & +2.00 \\
+t03\_a0p1\_mc0p004\_ct0p003\_ft0p65 & -2.5 & -1.0 & -1.75 \\
+t04\_a0p1\_mc0p004\_ct0p0025\_ft0p55 & -1.0 & +0.5 & -0.25 \\
+\midrule
+Aggregate (completed subset) & +0.38 & -0.50 & -0.06 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Strict Zero-Shot OOD ACT Runs (Completed)}
+\begin{table}[h!]
+\centering
+\caption{Completed strict zero-shot OOD ACT runs (train tasks disjoint from test tasks).}
+\begin{tabular}{p{3.8cm}cccccc}
+\toprule
+Run & Vanilla & LatentStop & MPPI & Steering & $\Delta_{\text{MPPI-v}}$ & $\Delta_{\text{Steer-v}}$ \\
+\midrule
+s42: train 0--7, test 8--9 & 35.0 & 0.0 & 37.5 & 30.0 & +2.5 & -5.0 \\
+s43: train 0--7, test 8--9 & 25.0 & 0.0 & 35.0 & 35.0 & +10.0 & +10.0 \\
+s44: train 0--7, test 8--9 & 37.5 & 0.0 & 42.5 & 35.0 & +5.0 & -2.5 \\
+s42: train 2--9, test 0--1 & 52.5 & 0.0 & 52.5 & 55.0 & +0.0 & +2.5 \\
+s42: train 0--5, test 6--9 & 40.0 & 0.0 & 37.5 & 38.8 & -2.5 & -1.2 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Important evidence from this table.}
+Across strict zero-shot OOD runs above, latent stop is 0.0\% in completed entries. This strongly supports the claim that detect-only control is insufficient for maintaining task success under these conditions.
+
+\subsection{Completed OOD Baseline ACT Run (Non-Zero-Shot Context)}
+\begin{table}[h!]
+\centering
+\caption{Completed ACT OOD baseline run (not strict zero-shot split).}
+\begin{tabular}{lcccc}
+\toprule
+Vanilla & LatentStop & MPPI & Steering & Notes \\
+\midrule
+54.5 & 46.0 & 56.0 & 50.0 & OOD enabled; non-zero-shot context \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Additional Completed Zero-Shot OOD Reference Run}
+\begin{table}[h!]
+\centering
+\caption{Reference strict zero-shot OOD run used in internal milestone checks.}
+\begin{tabular}{lcccc}
+\toprule
+Vanilla & LatentStop & MPPI & Steering & Interpretation \\
+\midrule
+32.5 & 0.0 & 40.0 & 35.0 & Detect-only fails; continuous recovery retains success \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Pending Results Placeholders (Explicit)}
+
+\begin{longtable}{p{3.5cm}p{3.5cm}p{7cm}}
+\toprule
+Experiment bucket & Status & Placeholder text for final paper \\
+\midrule
+\endfirsthead
+\toprule
+Experiment bucket & Status & Placeholder text for final paper \\
+\midrule
+\endhead
+OpenVLA OOD seeds (t89, s42/s43/s44) & Running/pending in latest status check & \texttt{TODO-OPENVLA-OOD-SEEDS}: insert mean, std, and 95\% CI for vanilla/latentStop/MPPI/steering. \\
+ACT OOD seeds (t89, new seeded launcher) & Running/completing & \texttt{TODO-ACT-OOD-SEEDS}: insert per-seed and aggregate results with CI. \\
+Cross-model final universal claim table & Pending full campaign completion & \texttt{TODO-CROSSMODEL-FINAL}: include paired seeds and strict split harmonization. \\
+True OOD BDDL custom-object experiments & Pipeline complete; data pending & \texttt{TODO-TRUE-BDDL-OOD}: report results from custom BDDL obstacle environments. \\
+\bottomrule
+\end{longtable}
+
+\section{All Methods Tested in Project (Comprehensive Record)}
+
+\subsection{Control/Eval Methods}
+\begin{itemize}[leftmargin=1.2em]
+    \item Vanilla policy rollout.
+    \item Random action noise baseline.
+    \item EMA-only smoothing baseline.
+    \item Latent jiggle (matched correction magnitude, random direction).
+    \item MPPI baseline (MLP fail head as objective proxy).
+    \item Latent stop (freeze on fail threshold).
+    \item Latent steering (ours): correction-head-driven, gated, clamped, smoothed.
+\end{itemize}
+
+\subsection{Training/Evaluation Protocol Variants}
+\begin{itemize}[leftmargin=1.2em]
+    \item Standard train/val/test split by rollout ID.
+    \item True leave-one-task-out (LOO) protocol.
+    \item Strict zero-shot task split (train A, test disjoint B).
+    \item OOD disturbance protocol (synthetic push).
+    \item OOD custom-BDDL protocol (true novel environment support).
+\end{itemize}
+
+\subsection{Model coverage and findings}
+\begin{itemize}[leftmargin=1.2em]
+    \item OpenVLA: central VLA evaluation track; broad campaign ongoing.
+    \item ACT: strongest cross-architecture completed evidence; multiple zero-shot OOD completions.
+    \item Diffusion Policy: low success in this setup (negative but informative result).
+    \item Octo: severe success bottleneck in this setup; key universality/failure-mode observation but weak for correction-head learning.
+\end{itemize}
+
+\section{Novelty, Evidence Strength, and Claim Calibration}
+
+\subsection{What is defensibly novel now}
+\begin{enumerate}[leftmargin=1.2em]
+    \item A practical, inference-time latent safety adapter that is architecture-agnostic across at least one VLA family and one imitation-policy family.
+    \item A clean causal baseline (latent stop) demonstrating detection-only is insufficient under strict zero-shot OOD conditions.
+    \item Strong runtime advantage versus MPPI for controller apply step.
+\end{enumerate}
+
+\subsection{What is promising but not fully proven yet}
+\begin{enumerate}[leftmargin=1.2em]
+    \item Full universal manifold claim across all policy families and OOD environments.
+    \item Consistent superiority over MPPI across all seeds/splits/tasks.
+\end{enumerate}
+
+\subsection{Honest claim language recommended for submission}
+Use wording like: ``evidence for transferable latent safety structure'' rather than ``proven universal manifold'' until pending OpenVLA OOD and full multi-seed cross-model results are complete.
+
+\section{Threats to Validity and Limitations}
+
+\begin{itemize}[leftmargin=1.2em]
+    \item Some reported campaigns are partial subsets; completed subset averages may shift.
+    \item OOD disturbance pushes are stress proxies; true custom-BDDL OOD should be prioritized for strongest claims.
+    \item Cluster variance/node instability can alter runtime and occasionally success rates.
+    \item MPPI quality depends on sample count/temperature and environment sensitivity.
+    \item Latent geometry quality differs by backbone (e.g., ACT 256-d bottleneck vs larger VLA embeddings).
+\end{itemize}
+
+\section{Reproducibility Checklist}
+
+\begin{enumerate}[leftmargin=1.2em]
+    \item Pin architecture and losses (v4 definition synchronized in train/eval scripts).
+    \item Store all eval JSON outputs and preserve run tags.
+    \item Use strict train/test disjoint task sets for zero-shot claims.
+    \item Report latent-stop, MPPI, steering jointly for detect-vs-recover causality.
+    \item Report means + dispersion (std/CI) over seeds in final camera-ready.
+    \item Keep pending runs explicitly labeled as pending.
+\end{enumerate}
+
+\section{Concrete Final-Paper TODO Blocks}
+
+\paragraph{TODO-FINAL-1 (OpenVLA OOD).}
+Insert completed multi-seed table for tasks 8--9 with vanilla/latentStop/noise/EMA/jiggle/MPPI/steering.
+
+\paragraph{TODO-FINAL-2 (Cross-model strict zero-shot).}
+Insert paired ACT+OpenVLA strict zero-shot summary with confidence intervals.
+
+\paragraph{TODO-FINAL-3 (True OOD BDDL).}
+Insert custom BDDL unseen-obstacle experiments using \texttt{--ood-bddl-map} and \texttt{--strict-ood-bddl}.
+
+\paragraph{TODO-FINAL-4 (Claim finalization).}
+Promote claim from ``evidence for transferability'' to stronger wording only if pending runs show robust cross-seed consistency.
+
+\section{Conclusion}
+This project has moved beyond a simple engineering intervention and now has a defensible scientific core: hidden-state safety signals can be extracted and used for continuous inference-time correction, and detection-only stopping is insufficient in strict zero-shot OOD conditions. The strongest immediate evidence is the latent-stop collapse versus non-zero continuous-recovery performance and the persistent controller-latency advantage versus MPPI. The remaining work to finalize a top-tier claim is completion of pending multi-seed OOD runs (especially OpenVLA), plus true custom-BDDL OOD results to strengthen the task-agnostic generalization argument.
 
 \bibliographystyle{plainnat}
 \bibliography{references}
