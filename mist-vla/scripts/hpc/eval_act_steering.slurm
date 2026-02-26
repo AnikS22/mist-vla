@@ -64,6 +64,8 @@ export WANDB_DISABLED=true
 
 RUN_TAG="${RUN_TAG:-shared_profile_v3}"
 N_EPISODES="${N_EPISODES:-20}"
+TASKS="${TASKS:-0 1 2 3 4 5 6 7 8 9}"
+SEED="${SEED:-42}"
 mkdir -p logs "results/eval_act_steering_${RUN_TAG}"
 
 # Checkpoints
@@ -89,6 +91,7 @@ STRICT_OOD_BDDL="${STRICT_OOD_BDDL:-0}"
 echo "  ACT Checkpoint: ${ACT_CKPT}"
 echo "  MLP Checkpoint: ${MLP_CKPT}"
 echo "  Run tag: ${RUN_TAG}  episodes=${N_EPISODES}"
+echo "  Tasks: ${TASKS}  seed=${SEED}"
 echo "  Shared Steering: alpha=${ALPHA} ema_beta=${EMA_BETA} max_corr=${MAX_CORR}m threshold=${CORR_THRESH}m fail_gate=p>=${FAIL_THRESH}"
 echo "  Latent Stop: stop_threshold=${STOP_THRESH}"
 echo "  OOD obstacle: enable=${OOD_OBSTACLE} step=[${OOD_STEP_MIN},${OOD_STEP_MAX}] duration=${OOD_DURATION} push=${OOD_PUSH_MAG}"
@@ -109,6 +112,7 @@ python -u scripts/eval_act_steering.py \
     --act-checkpoint "${ACT_CKPT}" \
     --mlp-checkpoint "${MLP_CKPT}" \
     --env libero_spatial \
+    --tasks ${TASKS} \
     --modes vanilla latent_stop latent_jiggle mppi steering \
     --episodes-per-task "${N_EPISODES}" \
     --alpha "${ALPHA}" \
@@ -120,6 +124,7 @@ python -u scripts/eval_act_steering.py \
     --stop-threshold "${STOP_THRESH}" \
     --mppi-samples 16 \
     --mppi-temperature 5.0 \
+    --seed "${SEED}" \
     $( [ "${OOD_OBSTACLE}" = "1" ] && echo "--ood-obstacle --ood-step-min ${OOD_STEP_MIN} --ood-step-max ${OOD_STEP_MAX} --ood-duration ${OOD_DURATION} --ood-push-magnitude ${OOD_PUSH_MAG}" ) \
     $( [ -n "${OOD_BDDL_MAP}" ] && echo "--ood-bddl-map ${OOD_BDDL_MAP}" ) \
     $( [ "${STRICT_OOD_BDDL}" = "1" ] && echo "--strict-ood-bddl" ) \
