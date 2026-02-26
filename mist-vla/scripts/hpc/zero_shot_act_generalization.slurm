@@ -59,6 +59,8 @@ OOD_STEP_MIN="${OOD_STEP_MIN:-40}"
 OOD_STEP_MAX="${OOD_STEP_MAX:-160}"
 OOD_DURATION="${OOD_DURATION:-20}"
 OOD_PUSH_MAG="${OOD_PUSH_MAG:-0.08}"
+OOD_BDDL_MAP="${OOD_BDDL_MAP:-}"
+STRICT_OOD_BDDL="${STRICT_OOD_BDDL:-0}"
 
 echo "================================================================"
 echo "  ACT STRICT ZERO-SHOT GENERALIZATION"
@@ -101,6 +103,8 @@ python -u scripts/eval_act_steering.py \
     --mppi-samples 16 \
     --mppi-temperature 5.0 \
     $( [ "${OOD_OBSTACLE}" = "1" ] && echo "--ood-obstacle --ood-step-min ${OOD_STEP_MIN} --ood-step-max ${OOD_STEP_MAX} --ood-duration ${OOD_DURATION} --ood-push-magnitude ${OOD_PUSH_MAG}" ) \
+    $( [ -n "${OOD_BDDL_MAP}" ] && echo "--ood-bddl-map ${OOD_BDDL_MAP}" ) \
+    $( [ "${STRICT_OOD_BDDL}" = "1" ] && echo "--strict-ood-bddl" ) \
     --save-dir "${RESULT_DIR}"
 
 echo ""

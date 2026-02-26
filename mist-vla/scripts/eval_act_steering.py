@@ -723,6 +723,10 @@ def main():
     parser.add_argument("--ood-step-max", type=int, default=160)
     parser.add_argument("--ood-duration", type=int, default=20)
     parser.add_argument("--ood-push-magnitude", type=float, default=0.08)
+    parser.add_argument("--ood-bddl-map", type=str, default="",
+                        help="JSON path mapping task_id -> custom OOD BDDL file path")
+    parser.add_argument("--strict-ood-bddl", action="store_true",
+                        help="Require custom OOD BDDL for every task in --tasks")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--save-dir", default="results/eval_act_steering")
     args = parser.parse_args()
@@ -767,6 +771,18 @@ def main():
         print(f"  OOD obstacle: enabled  step=[{args.ood_step_min},{args.ood_step_max}]  "
               f"duration={args.ood_duration}  push={args.ood_push_magnitude}",
               flush=True)
+    ood_bddl_map = {}
+    if args.ood_bddl_map:
+        map_path = Path(args.ood_bddl_map).expanduser()
+        with open(map_path, "r") as f:
+            raw_map = json.load(f)
+        ood_bddl_map = {str(k): str(v) for k, v in raw_map.items()}
+        print(f"  OOD BDDL map: {map_path} ({len(ood_bddl_map)} task overrides)",
+              flush=True)
+        if args.strict_ood_bddl:
+            missing = [tid for tid in args.tasks if str(tid) not in ood_bddl_map]
+            if missing:
+                raise ValueError(f"--strict-ood-bddl enabled but missing task ids: {missing}")
     print(flush=True)
 
     # ─── 1. Load ACT Model ───────────────────────────────────────
@@ -855,9 +871,11 @@ def main():
         init_states = task_suite.get_task_init_states(task_id)
 
         # Create environment
-        task_bddl_file = str(
-            Path(get_libero_path("bddl_files")) / task.problem_folder / task.bddl_file
-        )
+        default_bddl = Path(get_libero_path("bddl_files")) / task.problem_folder / task.bddl_file
+        task_bddl_file = ood_bddl_map.get(str(task_id), str(default_bddl))
+        if args.strict_ood_bddl and str(task_id) not in ood_bddl_map:
+            raise RuntimeError(f"Task {task_id} missing OOD BDDL override")
+        bddl_tag = "OOD" if str(task_id) in ood_bddl_map else "default"
         env_args = {
             "bddl_file_name": task_bddl_file,
             "camera_heights": 128,
@@ -865,7 +883,7 @@ def main():
         }
         env = OffScreenRenderEnv(**env_args)
 
-        print(f"━━━ Task {task_id}: {task_name[:60]}... ━━━", flush=True)
+        print(f"━━━ Task {task_id} [{bddl_tag} BDDL]: {task_name[:60]}... ━━━", flush=True)
 
         task_results = {}
         for mode in args.modes:
@@ -1078,6 +1096,8 @@ def main():
             "ood_step_max": args.ood_step_max,
             "ood_duration": args.ood_duration,
             "ood_push_magnitude": args.ood_push_magnitude,
+            "ood_bddl_map": args.ood_bddl_map,
+            "strict_ood_bddl": args.strict_ood_bddl,
             "arch_version": "v4",
             "model_type": "act",
             "act_checkpoint": args.act_checkpoint,

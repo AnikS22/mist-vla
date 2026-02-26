@@ -51,6 +51,7 @@ if not torch.cuda.is_available():
     torch.load = _cpu_torch_load
 
 from libero.libero import benchmark
+from libero.libero.envs import OffScreenRenderEnv
 from experiments.robot.libero.libero_utils import (
     get_libero_env,
     get_libero_dummy_action,
@@ -624,6 +625,10 @@ def main():
     parser.add_argument("--ood-step-max", type=int, default=160)
     parser.add_argument("--ood-duration", type=int, default=20)
     parser.add_argument("--ood-push-magnitude", type=float, default=0.08)
+    parser.add_argument("--ood-bddl-map", type=str, default="",
+                        help="JSON path mapping task_id -> custom OOD BDDL file path")
+    parser.add_argument("--strict-ood-bddl", action="store_true",
+                        help="Require custom OOD BDDL for every task in --tasks")
     parser.add_argument("--camera-res", type=int, default=256)
     parser.add_argument("--num-images", type=int, default=2)
     parser.add_argument("--seed", type=int, default=42)
@@ -670,6 +675,18 @@ def main():
         print(f"  OOD obstacle: enabled  step=[{args.ood_step_min},{args.ood_step_max}]  "
               f"duration={args.ood_duration}  push={args.ood_push_magnitude}",
               flush=True)
+    ood_bddl_map = {}
+    if args.ood_bddl_map:
+        map_path = Path(args.ood_bddl_map).expanduser()
+        with open(map_path, "r") as f:
+            raw_map = json.load(f)
+        ood_bddl_map = {str(k): str(v) for k, v in raw_map.items()}
+        print(f"  OOD BDDL map: {map_path} ({len(ood_bddl_map)} task overrides)",
+              flush=True)
+        if args.strict_ood_bddl:
+            missing = [tid for tid in args.tasks if str(tid) not in ood_bddl_map]
+            if missing:
+                raise ValueError(f"--strict-ood-bddl enabled but missing task ids: {missing}")
     print(flush=True)
 
     # ─── 1. Load VLA ──────────────────────────────────────────────
@@ -761,11 +778,25 @@ def main():
 
     for task_id in args.tasks:
         task = task_suite.get_task(task_id)
-        env, task_desc = get_libero_env(
-            task, cfg.model_family, resolution=cfg.env_img_res)
+        task_desc = task.language
+        if str(task_id) in ood_bddl_map:
+            task_bddl_file = ood_bddl_map[str(task_id)]
+            env_args = {
+                "bddl_file_name": task_bddl_file,
+                "camera_heights": cfg.env_img_res,
+                "camera_widths": cfg.env_img_res,
+            }
+            env = OffScreenRenderEnv(**env_args)
+            bddl_tag = "OOD"
+        else:
+            if args.strict_ood_bddl:
+                raise RuntimeError(f"Task {task_id} missing OOD BDDL override")
+            env, task_desc = get_libero_env(
+                task, cfg.model_family, resolution=cfg.env_img_res)
+            bddl_tag = "default"
         init_states = task_suite.get_task_init_states(task_id)
 
-        print(f"━━━ Task {task_id}: {task_desc[:60]}... ━━━", flush=True)
+        print(f"━━━ Task {task_id} [{bddl_tag} BDDL]: {task_desc[:60]}... ━━━", flush=True)
 
         task_results = {}
         for mode in args.modes:
@@ -943,6 +974,8 @@ def main():
             "ood_step_max": args.ood_step_max,
             "ood_duration": args.ood_duration,
             "ood_push_magnitude": args.ood_push_magnitude,
+            "ood_bddl_map": args.ood_bddl_map,
+            "strict_ood_bddl": args.strict_ood_bddl,
             "arch_version": "v4",
         },
         "per_task": {str(k): v for k, v in results.items()},

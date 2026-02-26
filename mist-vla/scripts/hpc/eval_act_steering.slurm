@@ -83,6 +83,8 @@ OOD_STEP_MIN="${OOD_STEP_MIN:-40}"
 OOD_STEP_MAX="${OOD_STEP_MAX:-160}"
 OOD_DURATION="${OOD_DURATION:-20}"
 OOD_PUSH_MAG="${OOD_PUSH_MAG:-0.08}"
+OOD_BDDL_MAP="${OOD_BDDL_MAP:-}"
+STRICT_OOD_BDDL="${STRICT_OOD_BDDL:-0}"
 
 echo "  ACT Checkpoint: ${ACT_CKPT}"
 echo "  MLP Checkpoint: ${MLP_CKPT}"
@@ -90,6 +92,7 @@ echo "  Run tag: ${RUN_TAG}  episodes=${N_EPISODES}"
 echo "  Shared Steering: alpha=${ALPHA} ema_beta=${EMA_BETA} max_corr=${MAX_CORR}m threshold=${CORR_THRESH}m fail_gate=p>=${FAIL_THRESH}"
 echo "  Latent Stop: stop_threshold=${STOP_THRESH}"
 echo "  OOD obstacle: enable=${OOD_OBSTACLE} step=[${OOD_STEP_MIN},${OOD_STEP_MAX}] duration=${OOD_DURATION} push=${OOD_PUSH_MAG}"
+echo "  OOD BDDL map: ${OOD_BDDL_MAP:-<none>}  strict=${STRICT_OOD_BDDL}"
 echo ""
 
 # Verify checkpoints exist
@@ -118,6 +121,8 @@ python -u scripts/eval_act_steering.py \
     --mppi-samples 16 \
     --mppi-temperature 5.0 \
     $( [ "${OOD_OBSTACLE}" = "1" ] && echo "--ood-obstacle --ood-step-min ${OOD_STEP_MIN} --ood-step-max ${OOD_STEP_MAX} --ood-duration ${OOD_DURATION} --ood-push-magnitude ${OOD_PUSH_MAG}" ) \
+    $( [ -n "${OOD_BDDL_MAP}" ] && echo "--ood-bddl-map ${OOD_BDDL_MAP}" ) \
+    $( [ "${STRICT_OOD_BDDL}" = "1" ] && echo "--strict-ood-bddl" ) \
     --save-dir "results/eval_act_steering_${RUN_TAG}"
 
 echo ""
