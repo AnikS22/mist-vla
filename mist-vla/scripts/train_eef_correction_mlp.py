@@ -552,6 +552,130 @@ def run_loo_fold(held_out, all_rollouts, args, device):
     return result, "OK"
 
 
+def run_zero_shot_task_split(train_task_ids, test_task_ids, all_rollouts, args, device):
+    """Train on train_task_ids and evaluate on unseen test_task_ids."""
+    train_set = set(train_task_ids)
+    test_set = set(test_task_ids)
+
+    if train_set & test_set:
+        overlap = sorted(train_set & test_set)
+        return None, f"INVALID SPLIT (overlap tasks: {overlap})", None
+
+    train_rols = [r for r in all_rollouts if r["task_id"] in train_set]
+    test_rols = [r for r in all_rollouts if r["task_id"] in test_set]
+    if not train_rols or not test_rols:
+        return None, "INVALID SPLIT (empty train/test rollouts)", None
+
+    n_ts = sum(1 for r in test_rols if r["success"])
+    n_tf = sum(1 for r in test_rols if not r["success"])
+    if n_ts == 0 or n_tf == 0:
+        return None, f"SKIP ({n_ts}S/{n_tf}F in zero-shot test set)", None
+
+    train_succ = defaultdict(list)
+    test_succ = defaultdict(list)
+    for r in train_rols:
+        if r["success"]:
+            train_succ[r["task_id"]].append(r)
+    for r in test_rols:
+        if r["success"]:
+            test_succ[r["task_id"]].append(r)
+
+    all_succ = defaultdict(list)
+    for tid, rols in train_succ.items():
+        all_succ[tid].extend(rols)
+    for tid, rols in test_succ.items():
+        all_succ[tid].extend(rols)
+
+    print(f"    Preparing train samples for tasks {sorted(train_set)}...")
+    train_samples = prepare_samples(train_rols, train_succ,
+                                    subsample_chunks=args.subsample_chunks)
+    print(f"    Preparing zero-shot test samples for tasks {sorted(test_set)}...")
+    test_samples = prepare_samples(test_rols, all_succ,
+                                   subsample_chunks=args.subsample_chunks)
+
+    if len(train_samples["labels"]) < 32:
+        return None, "SKIP (too few train samples)", None
+    if len(test_samples["labels"]) < 32 or len(np.unique(test_samples["labels"])) < 2:
+        return None, "SKIP (too few / single-class test samples)", None
+
+    rids = train_samples["rollout_ids"]
+    urids = np.unique(rids)
+    np.random.shuffle(urids)
+    n_tr = int(0.85 * len(urids))
+    tr_set = set(urids[:n_tr])
+    val_set = set(urids[n_tr:])
+    tr_m = np.array([rid in tr_set for rid in rids])
+    val_m = np.array([rid in val_set for rid in rids])
+
+    sc = StandardScaler()
+    tr_x = sc.fit_transform(train_samples["hidden_states"][tr_m])
+    val_x = sc.transform(train_samples["hidden_states"][val_m])
+    te_x = sc.transform(test_samples["hidden_states"])
+
+    tr_ds = EEFCorrectionDataset(tr_x, train_samples["labels"][tr_m],
+                                 train_samples["corrections"][tr_m],
+                                 train_samples["ttf"][tr_m],
+                                 noise_std=args.input_noise, training=True)
+    val_ds = EEFCorrectionDataset(val_x, train_samples["labels"][val_m],
+                                  train_samples["corrections"][val_m],
+                                  train_samples["ttf"][val_m])
+    te_ds = EEFCorrectionDataset(te_x, test_samples["labels"],
+                                 test_samples["corrections"],
+                                 test_samples["ttf"])
+
+    tr_labels = train_samples["labels"][tr_m]
+    n_pos = tr_labels.sum()
+    n_neg = len(tr_labels) - n_pos
+    pw = n_neg / max(n_pos, 1)
+    sw = np.where(tr_labels > 0.5, pw, 1.0)
+    sampler = WeightedRandomSampler(sw, len(sw), replacement=True)
+
+    tr_loader = DataLoader(tr_ds, batch_size=args.batch_size, sampler=sampler)
+    val_loader = DataLoader(val_ds, batch_size=512, shuffle=False)
+    te_loader = DataLoader(te_ds, batch_size=512, shuffle=False)
+
+    model = EEFCorrectionMLP(input_dim=tr_x.shape[1]).to(device)
+    opt = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-3)
+    sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=args.epochs)
+
+    best_score, best_state, no_imp = 0, None, 0
+    for ep in range(1, args.epochs + 1):
+        train_epoch(model, tr_loader, opt, device,
+                    corr_mag_penalty=args.corr_mag_penalty)
+        sched.step()
+        if ep % 3 == 0 or ep == 1:
+            vr = evaluate(model, val_loader, device)
+            score = 0.4 * vr["fail_auc"] + 0.6 * max(vr.get("cosine_sim", 0), 0)
+            if score > best_score:
+                best_score = score
+                best_state = {k: v.cpu().clone() for k, v in model.state_dict().items()}
+                no_imp = 0
+            else:
+                no_imp += 1
+            if no_imp >= 15:
+                break
+
+    if best_state:
+        model.load_state_dict(best_state)
+
+    result = evaluate(model, te_loader, device)
+    result["n_test_succ"] = n_ts
+    result["n_test_fail"] = n_tf
+    result["n_train_rollouts"] = len(train_rols)
+    result["n_test_rollouts"] = len(test_rols)
+
+    ckpt = {
+        "model_state_dict": model.state_dict(),
+        "scaler_mean": sc.mean_,
+        "scaler_scale": sc.scale_,
+        "input_dim": tr_x.shape[1],
+        "arch_version": "v4",
+        "train_task_ids": sorted(train_set),
+        "test_task_ids": sorted(test_set),
+    }
+    return result, "OK", ckpt
+
+
 # ─── Main ─────────────────────────────────────────────────────────────────
 
 def main():
@@ -576,6 +700,12 @@ def main():
                              "chunk (where features change). Essential for "
                              "chunked policies like ACT to prevent inflated "
                              "metrics from duplicated features.")
+    parser.add_argument("--zero-shot-train-tasks", type=int, nargs="+",
+                        help="Explicit train task IDs for strict zero-shot "
+                             "task generalization (Task A).")
+    parser.add_argument("--zero-shot-test-tasks", type=int, nargs="+",
+                        help="Explicit unseen test task IDs for strict "
+                             "zero-shot generalization (Task B).")
     args = parser.parse_args()
 
     np.random.seed(args.seed)
@@ -614,6 +744,53 @@ def main():
         fail = pickle.load(f)
     all_rollouts = succ + fail
     print(f"  {len(succ)}S + {len(fail)}F = {len(all_rollouts)} rollouts")
+
+    if (args.zero_shot_train_tasks is None) != (args.zero_shot_test_tasks is None):
+        raise ValueError("Use both --zero-shot-train-tasks and "
+                         "--zero-shot-test-tasks together.")
+
+    if args.zero_shot_train_tasks is not None:
+        print("\n" + "=" * 70)
+        print("STRICT ZERO-SHOT TASK GENERALIZATION")
+        print(f"  Train tasks: {sorted(args.zero_shot_train_tasks)}")
+        print(f"  Test tasks:  {sorted(args.zero_shot_test_tasks)}")
+        print("  Train on Task A, evaluate on unseen Task B only.")
+        print("=" * 70)
+
+        z_result, z_status, z_ckpt = run_zero_shot_task_split(
+            args.zero_shot_train_tasks,
+            args.zero_shot_test_tasks,
+            all_rollouts,
+            args,
+            device,
+        )
+        if z_result is None:
+            raise RuntimeError(f"Zero-shot split failed: {z_status}")
+
+        torch.save(z_ckpt, save_dir / "best_model.pt")
+        z_report = {
+            "mode": "strict_zero_shot_task_split",
+            "status": z_status,
+            "train_task_ids": sorted(args.zero_shot_train_tasks),
+            "test_task_ids": sorted(args.zero_shot_test_tasks),
+            "metrics": {k: float(v) if isinstance(v, (float, np.floating)) else v
+                        for k, v in z_result.items()},
+        }
+        with open(save_dir / "results.json", "w") as f:
+            json.dump(z_report, f, indent=2)
+
+        print("\n" + "=" * 70)
+        print("ZERO-SHOT RESULTS")
+        print("=" * 70)
+        print(f"  Fail AUC:       {z_result['fail_auc']:.4f}")
+        print(f"  Cosine Sim:     {z_result.get('cosine_sim', 0):.4f}")
+        print(f"  Mean Error:     {z_result.get('mean_error_m', 0)*100:.2f} cm")
+        print(f"  Test rollouts:  {z_result.get('n_test_rollouts', 0)} "
+              f"({z_result.get('n_test_succ', 0)}S/{z_result.get('n_test_fail', 0)}F)")
+        print(f"\n  Model:   {save_dir}/best_model.pt")
+        print(f"  Results: {save_dir}/results.json")
+        print(f"\n{'='*70}\nDONE\n{'='*70}")
+        return
 
     succ_by_task = defaultdict(list)
     for r in succ:
