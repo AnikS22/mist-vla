@@ -2,7 +2,7 @@
 #SBATCH --job-name=act_zsafety
 #SBATCH --output=/mnt/onefs/home/asahai2024/mist-vla/logs/act_zsafety_%j.out
 #SBATCH --error=/mnt/onefs/home/asahai2024/mist-vla/logs/act_zsafety_%j.err
-#SBATCH --time=7:59:00
+#SBATCH --time=5:59:00
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
