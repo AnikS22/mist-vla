@@ -2,10 +2,12 @@
 
 \subsection{Final Pooled Results (All Completed Runs)}
 \input{tables/tab_final_pooled_results}
+\input{tables/tab_stat_tests}
 \input{tables/tab_openvla_final_pooled}
 \input{tables/tab_act_final_pooled}
 
 Across the pooled completed campaign, vanilla reaches 52.13\% (5192/9960), MPPI reaches 52.22\% (5201/9960), and latent steering reaches 51.81\% (5160/9960), giving $\Delta$(Steering$-$MPPI) = -0.41 pp. Runtime remains favorable: mean controller apply time is 5.593 ms for MPPI versus 0.912 ms for steering (6.13$\times$ speedup).
+Statistical testing on the pooled completed set shows no significant difference between steering and MPPI under current settings ($p=0.561$, two-proportion z-test), while preserving a large runtime advantage.
 
 \begin{figure}[t]
     \centering
