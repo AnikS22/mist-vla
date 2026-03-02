@@ -1,0 +1,21 @@
+\begin{table}[t]
+\centering
+\caption{Final pooled results across completed runs (OpenVLA sweep+OOD and ACT sweep+OOD+zero-shot OOD).}
+\label{tab:final_pooled_results}
+\begin{tabular}{lccc}
+\toprule
+Method & Success (\%) & Successes / Episodes & Mean apply time (ms) \\
+\midrule
+Vanilla & 52.13 & 5192/9960 & -- \\
+MPPI & 52.22 & 5201/9960 & 5.593 \\
+Steering (Ours) & 51.81 & 5160/9960 & 0.912 \\
+Latent Jiggle & 52.95 & 5126/9680 & -- \\
+Random Noise & 53.98 & 2742/5080 & -- \\
+Latent Stop & 24.41 & 166/680 & 1.018 \\
+EMA-only & 3.82 & 194/5080 & -- \\
+\midrule
+$\Delta$(Steering$-$MPPI) & -0.41 pp & -- & -- \\
+Speedup (MPPI/Ours) & -- & -- & 6.13$\times$ \\
+\bottomrule
+\end{tabular}
+\end{table}

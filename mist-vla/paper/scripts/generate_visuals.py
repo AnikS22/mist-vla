@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from pathlib import Path
 import json
+from collections import defaultdict
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -23,6 +24,54 @@ def save(fig, name):
     fig.savefig(out, dpi=220, bbox_inches='tight')
     plt.close(fig)
     print('wrote', out.name)
+
+
+def family(name):
+    if name.startswith('category1_sweep_'):
+        return 'openvla_sweep'
+    if name.startswith('category1_ovla_ood_'):
+        return 'openvla_ood'
+    if name.startswith('eval_act_steering_sweep_'):
+        return 'act_sweep'
+    if name.startswith('eval_act_steering_act_ood'):
+        return 'act_ood_baselines'
+    if name.startswith('eval_act_zero_shot_'):
+        return 'act_zero_shot_ood'
+    return None
+
+
+def pooled_stats():
+    groups = defaultdict(list)
+    for p in sorted(DATA.glob('*eval_results*.json')):
+        fam = family(p.name)
+        if fam:
+            groups[fam].append(p)
+    pooled = defaultdict(lambda: defaultdict(lambda: {'succ': 0, 'eps': 0, 'apply_ms': []}))
+    for fam, files in groups.items():
+        for fp in files:
+            d = json.loads(fp.read_text())
+            per = d.get('per_task', {})
+            if not isinstance(per, dict):
+                continue
+            for task_data in per.values():
+                if not isinstance(task_data, dict):
+                    continue
+                for mode, m in task_data.items():
+                    if not isinstance(m, dict):
+                        continue
+                    ns = m.get('n_successes')
+                    ne = m.get('n_episodes')
+                    if isinstance(ns, (int, float)) and isinstance(ne, (int, float)) and ne > 0:
+                        pooled[fam][mode]['succ'] += int(ns)
+                        pooled[fam][mode]['eps'] += int(ne)
+                    am = m.get('mean_apply_ms')
+                    if isinstance(am, (int, float)) and am > 0:
+                        pooled[fam][mode]['apply_ms'].append(float(am))
+    return pooled
+
+
+def pct(s):
+    return 100.0 * s['succ'] / s['eps'] if s['eps'] > 0 else np.nan
 
 
 def fig_architecture():
@@ -119,31 +168,22 @@ def fig_task_mode_heatmap():
 
 
 def fig_latency_speed():
-    files = [
-        'eval_act_zero_shot_zs_act_ood_s42_tA01234567_tB89_eval_results.json',
-        'eval_act_zero_shot_zs_act_ood_s43_tA01234567_tB89_eval_results.json',
-        'eval_act_zero_shot_zs_act_ood_s44_tA01234567_tB89_eval_results.json',
-        'eval_act_zero_shot_zs_act_ood_stop_tA01234567_tB89_eval_results.json',
-    ]
-    mppi, steer = [], []
-    for f in files:
-        d = load(f)
-        if not d:
-            continue
-        s = d.get('summary', {})
-        if s.get('avg_mppi_apply_ms') is not None and s.get('avg_steering_apply_ms') is not None:
-            mppi.append(float(s['avg_mppi_apply_ms']))
-            steer.append(float(s['avg_steering_apply_ms']))
-    if not mppi or not steer:
+    pooled = pooled_stats()
+    curated = ['openvla_sweep', 'openvla_ood', 'act_sweep', 'act_ood_baselines', 'act_zero_shot_ood']
+    mppi_vals, steer_vals = [], []
+    for fam in curated:
+        mppi_vals.extend(pooled[fam].get('mppi', {}).get('apply_ms', []))
+        steer_vals.extend(pooled[fam].get('steering', {}).get('apply_ms', []))
+    if not mppi_vals or not steer_vals:
         return
 
     fig, ax = plt.subplots(figsize=(6.5, 4))
-    vals = [np.mean(mppi), np.mean(steer)]
+    vals = [np.mean(mppi_vals), np.mean(steer_vals)]
     labels = ['MPPI', 'Steering (Ours)']
     colors = ['#5b7bb2', '#2e8b57']
     ax.bar(labels, vals, color=colors)
     ax.set_ylabel('Mean apply latency (ms)')
-    ax.set_title('Controller Step Latency (OOD zero-shot completed runs)')
+    ax.set_title('Controller Step Latency (Final pooled completed runs)')
     for i, v in enumerate(vals):
         ax.text(i, v + 0.1, f'{v:.2f} ms', ha='center', fontsize=9)
     speed = vals[0] / max(vals[1], 1e-9)
@@ -153,59 +193,49 @@ def fig_latency_speed():
     save(fig, '09_latency_speedup_ood.png')
 
 
-def fig_latent_manifold_synth():
-    # Synthetic placeholder because raw per-step latent trajectories are not yet exported.
-    rng = np.random.default_rng(7)
-    safe = np.vstack([
-        rng.normal([-2.0, -0.5], [0.7, 0.5], (350, 2)),
-        rng.normal([0.0, -1.2], [0.6, 0.4], (250, 2)),
-    ])
-    fail = np.vstack([
-        rng.normal([1.6, 0.6], [0.45, 0.35], (220, 2)),
-        rng.normal([2.5, -0.2], [0.4, 0.3], (120, 2)),
-    ])
-    traj = np.array([[-2.1, -1.0], [-1.4, -0.8], [-0.8, -0.4], [0.0, -0.1], [0.9, 0.3], [1.4, 0.6]])
-    corr = np.array([[-0.7, -0.5], [-0.6, -0.4], [-0.6, -0.4], [-0.5, -0.4], [-0.5, -0.3], [-0.5, -0.3]])
-
-    fig, ax = plt.subplots(figsize=(7.8, 5.2))
-    ax.scatter(safe[:, 0], safe[:, 1], s=8, alpha=0.35, label='Safe latent region', color='#3b6fb6')
-    ax.scatter(fail[:, 0], fail[:, 1], s=10, alpha=0.45, label='Failure latent region', color='#d9534f')
-    ax.plot(traj[:, 0], traj[:, 1], '-k', lw=1.8, label='Rollout trajectory (illustrative)')
-    for p, c in zip(traj[2:], corr[2:]):
-        ax.arrow(p[0], p[1], c[0], c[1], width=0.01, head_width=0.12, color='#2e8b57', alpha=0.9)
-    ax.text(0.01, 0.98, 'Synthetic illustration (placeholder)\nReplace with true PCA/t-SNE after latent export',
-            transform=ax.transAxes, ha='left', va='top', fontsize=9,
-            bbox=dict(facecolor='white', edgecolor='gray', alpha=0.9))
-    ax.set_title('Latent Safety Manifold Visualization (Illustrative Placeholder)')
-    ax.set_xlabel('Projection dim 1')
-    ax.set_ylabel('Projection dim 2')
-    ax.legend(loc='lower left', fontsize=8)
-    ax.grid(alpha=0.2)
-    save(fig, '10_latent_manifold_placeholder.png')
+def fig_final_pooled_success():
+    pooled = pooled_stats()
+    curated = ['openvla_sweep', 'openvla_ood', 'act_sweep', 'act_ood_baselines', 'act_zero_shot_ood']
+    combined = defaultdict(lambda: {'succ': 0, 'eps': 0})
+    for fam in curated:
+        for mode in ['vanilla', 'mppi', 'steering']:
+            s = pooled[fam].get(mode, {'succ': 0, 'eps': 0})
+            combined[mode]['succ'] += s['succ']
+            combined[mode]['eps'] += s['eps']
+    labels = ['Vanilla', 'MPPI', 'Steering']
+    vals = [pct(combined['vanilla']), pct(combined['mppi']), pct(combined['steering'])]
+    fig, ax = plt.subplots(figsize=(6.8, 4.2))
+    bars = ax.bar(labels, vals, color=['#777777', '#5b7bb2', '#2e8b57'])
+    ax.set_ylabel('Success (%)')
+    ax.set_title('Final Pooled Success Across Completed Runs')
+    for b, v in zip(bars, vals):
+        ax.text(b.get_x() + b.get_width() / 2, v + 0.2, f'{v:.2f}', ha='center', fontsize=9)
+    ax.grid(axis='y', alpha=0.25)
+    save(fig, '10_final_pooled_success.png')
 
 
-def fig_fail_calibration_synth():
-    rng = np.random.default_rng(12)
-    t = np.linspace(0, 1, 240)
-    p = 0.15 + 0.8 / (1 + np.exp(-14 * (t - 0.62))) + rng.normal(0, 0.03, len(t))
-    p = np.clip(p, 0.01, 0.99)
-
-    fig, ax = plt.subplots(figsize=(7.5, 3.8))
-    ax.plot(np.arange(len(t)), p, color='#2f4f7f', lw=2, label='Predicted fail probability')
-    ax.axhline(0.85, color='#d9534f', ls='--', lw=1.6, label='Latent-stop threshold')
-    idx = np.argmax(p >= 0.85)
-    if p[idx] >= 0.85:
-        ax.axvline(idx, color='#d9534f', ls=':', lw=1.6)
-        ax.text(idx + 2, 0.08, f't={idx}', color='#a33', fontsize=9)
-    ax.set_ylim(0, 1)
-    ax.set_xlabel('Timestep')
-    ax.set_ylabel('$p_{fail}$')
-    ax.set_title('Failure Probability Timeline and Deployment Threshold (Illustrative Placeholder)')
-    ax.text(0.01, 0.95, 'Synthetic placeholder: replace with real risk timeline plots', transform=ax.transAxes,
-            ha='left', va='top', fontsize=8, bbox=dict(facecolor='white', edgecolor='gray', alpha=0.85))
-    ax.grid(alpha=0.25)
-    ax.legend(fontsize=8, loc='lower right')
-    save(fig, '11_fail_probability_placeholder.png')
+def fig_family_breakdown():
+    pooled = pooled_stats()
+    fams = ['openvla_sweep', 'openvla_ood', 'act_sweep', 'act_ood_baselines', 'act_zero_shot_ood']
+    labels = ['OV Sweep', 'OV OOD', 'ACT Sweep', 'ACT OOD', 'ACT ZS-OOD']
+    vanilla, mppi, steering = [], [], []
+    for fam in fams:
+        vanilla.append(pct(pooled[fam].get('vanilla', {'succ': 0, 'eps': 0})))
+        mppi.append(pct(pooled[fam].get('mppi', {'succ': 0, 'eps': 0})))
+        steering.append(pct(pooled[fam].get('steering', {'succ': 0, 'eps': 0})))
+    x = np.arange(len(labels))
+    w = 0.25
+    fig, ax = plt.subplots(figsize=(9.2, 4.4))
+    ax.bar(x - w, vanilla, width=w, label='Vanilla', color='#777777')
+    ax.bar(x, mppi, width=w, label='MPPI', color='#5b7bb2')
+    ax.bar(x + w, steering, width=w, label='Steering', color='#2e8b57')
+    ax.set_xticks(x)
+    ax.set_xticklabels(labels)
+    ax.set_ylabel('Success (%)')
+    ax.set_title('Per-Family Success Rates (Completed Runs)')
+    ax.legend(fontsize=8)
+    ax.grid(axis='y', alpha=0.25)
+    save(fig, '11_family_breakdown_success.png')
 
 
 def main():
@@ -213,8 +243,8 @@ def main():
     fig_zero_shot_seed_deltas()
     fig_task_mode_heatmap()
     fig_latency_speed()
-    fig_latent_manifold_synth()
-    fig_fail_calibration_synth()
+    fig_final_pooled_success()
+    fig_family_breakdown()
 
 
 if __name__ == '__main__':

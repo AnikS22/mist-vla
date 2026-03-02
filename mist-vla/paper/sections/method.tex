@@ -52,6 +52,14 @@ We include two OOD mechanisms:
     \item \textbf{Environment OOD:} custom per-task BDDL overrides (novel obstacle/layout) via task-to-BDDL mapping.
 \end{itemize}
 
+\subsection{Final Metric Aggregation Protocol}
+All final paper metrics are computed from completed JSON result files in \texttt{paper/data} by pooling raw counts, not averaging best runs.
+For each family and controller mode, we aggregate:
+\begin{equation}
+\mathrm{Success\%} = 100 \cdot \frac{\sum_i n^{(i)}_{\mathrm{success}}}{\sum_i n^{(i)}_{\mathrm{episodes}}}.
+\end{equation}
+This prevents small-run bias and avoids cherry-picking favorable seeds. Latency is reported as the mean of logged per-task \texttt{mean\_apply\_ms} values across completed runs.
+
 \subsection{Embodied Deployment Extension (Yahboom Arm)}
 The same latent safety interface is designed for embodied deployment on a Yahboom robot arm stack:
 \begin{itemize}[leftmargin=1.2em]
@@ -61,16 +69,4 @@ The same latent safety interface is designed for embodied deployment on a Yahboo
     \item \textbf{Execution side:} corrected command is sent through the same safety checks and actuator limits as nominal commands.
 \end{itemize}
 
-To avoid overclaiming, the camera-ready paper will only report Yahboom outcomes once the physical protocol is complete and repeatable.
-
-\begin{figure}[t]
-    \centering
-    \includegraphics[width=0.9\linewidth]{figures/11_fail_probability_placeholder.png}
-    \caption{Illustrative failure-probability calibration timeline. This is a synthetic placeholder and should be replaced with real risk timelines from logged rollouts for camera-ready.}
-    \label{fig:fail_timeline_placeholder}
-\end{figure}
-
-\subsection{Implementation Status Placeholders}
-TODO-METH-1: final hyperparameter table. \\
-TODO-METH-2: final per-model feature dimensions. \\
-TODO-METH-3: final compute budget accounting.
+To avoid overclaiming, embodied Yahboom conclusions are reported separately from simulation and only after repeatable physical-trial logs are complete.
