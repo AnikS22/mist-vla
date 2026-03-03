@@ -16,6 +16,7 @@ import time
 from typing import Dict, Tuple
 from urllib import request
 
+import cv2
 import numpy as np
 from PIL import Image
 from pathlib import Path
@@ -65,6 +66,18 @@ def get_obs(base: str) -> Tuple[Image.Image, Dict]:
     return img, st
 
 
+def standardize_libero_image(img: Image.Image, size: int) -> Image.Image:
+    """Center-crop to square then resize, matching common LIBERO policy inputs."""
+    arr = np.array(img.convert("RGB"))
+    h, w = arr.shape[:2]
+    side = min(h, w)
+    y0 = (h - side) // 2
+    x0 = (w - side) // 2
+    crop = arr[y0 : y0 + side, x0 : x0 + side]
+    out = cv2.resize(crop, (size, size), interpolation=cv2.INTER_AREA)
+    return Image.fromarray(out)
+
+
 def load_policy(policy_kind: str, model_name: str, device: str, device_map: str | None):
     if policy_kind == "random":
         return None
@@ -111,6 +124,8 @@ def main() -> int:
     ap.add_argument("--device-map", default="auto", help="HF device_map for OpenVLA (e.g., auto, none)")
     ap.add_argument("--instruction", default="pick up the block and place it carefully")
     ap.add_argument("--steps", type=int, default=10)
+    ap.add_argument("--libero-image-size", type=int, default=224, help="square size for LIBERO-like image standardization")
+    ap.add_argument("--no-libero-standardize", action="store_true", help="disable center-crop+resize preprocessing")
     ap.add_argument("--dt", type=float, default=0.8)
     ap.add_argument("--xy-scale-mm", type=float, default=18.0)
     ap.add_argument("--z-scale-mm", type=float, default=12.0)
@@ -133,6 +148,9 @@ def main() -> int:
     try:
         for step in range(args.steps):
             img, st = get_obs(base)
+            raw_size = img.size
+            if not args.no_libero_standardize:
+                img = standardize_libero_image(img, args.libero_image_size)
             if not st.get("ok"):
                 print(f"[step {step}] status failed:", st)
                 return 2
@@ -172,6 +190,11 @@ def main() -> int:
             target = clamp_coords(target)
             grip_val = 80 if float(a[6]) > args.gripper_threshold else 20
             pretty_target = [round(float(v), 2) for v in target]
+            if step == 0:
+                print(
+                    f"[step {step}] camera_raw={raw_size} policy_input={img.size} "
+                    f"libero_standardize={not args.no_libero_standardize}"
+                )
             print(
                 f"[step {step}] action={np.round(a,3).tolist()} -> "
                 f"target={pretty_target} gripper={grip_val}"
@@ -181,13 +204,16 @@ def main() -> int:
                 r = api_post(base, {"action": "move_to", "coords": target, "speed": args.speed, "wait": args.dt})
                 print("  move_to:", r.get("ok"), "elapsed_ms:", r.get("elapsed_ms"), "err:", r.get("error"))
                 if not r.get("ok"):
+                    print(f"[step {step}] terminated: robot command failure")
                     return 4
                 rg = api_post(base, {"action": "set_gripper", "value": grip_val, "speed": 40})
                 print("  gripper:", rg.get("ok"), "elapsed_ms:", rg.get("elapsed_ms"), "err:", rg.get("error"))
                 if not rg.get("ok"):
+                    print(f"[step {step}] terminated: gripper command failure")
                     return 5
 
             time.sleep(max(0.05, args.dt))
+        print(f"[loop] finished normally after max steps={args.steps}")
     finally:
         if policy is not None and hasattr(policy, "close"):
             policy.close()

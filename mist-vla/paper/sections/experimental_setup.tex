@@ -39,6 +39,9 @@ This project includes an embodied track on a Yahboom 7-DoF arm controlled throug
     \item \textbf{Host bridge:} \texttt{scripts/yahboom\_bridge.py} and \texttt{scripts/run\_model\_yahboom\_loop.py}.
 \end{itemize}
 
+\paragraph{Camera and policy-input standardization.}
+The live Jetson camera stream is consumed via \texttt{/snapshot} at 640$\times$480. Before policy inference, images are center-cropped and resized to 224$\times$224 to match the LIBERO-style square-input regime used in simulation pipelines. We additionally run a camera diagnostic script (\texttt{scripts/check\_jetson\_camera\_quality.py}) that records brightness, contrast, sharpness (Laplacian variance), and a center-region occlusion proxy in canonical arm poses (home/watch).
+
 \paragraph{Embodied inference details.}
 OpenVLA is loaded with \texttt{trust\_remote\_code=True}. On multi-GPU hosts, sharded loading (\texttt{device\_map=auto}) is used to avoid single-GPU OOM. A safety interlock suppresses motion deltas when action outputs are saturated, preventing unsafe command bursts.
 

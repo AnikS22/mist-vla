@@ -99,8 +99,8 @@ def main() -> int:
     ap.add_argument("--host", default="192.168.55.1", help="Jetson host/IP")
     ap.add_argument("--port", type=int, default=5000)
     ap.add_argument("--mode", choices=["smoke", "pick_place"], default="smoke")
-    ap.add_argument("--pick", type=parse_coord, default=parse_coord("120,0,90,-175,0,-45"))
-    ap.add_argument("--place", type=parse_coord, default=parse_coord("180,60,95,-175,0,-45"))
+    ap.add_argument("--pick", type=parse_coord, default=None, help="required for pick_place: x,y,z,rx,ry,rz")
+    ap.add_argument("--place", type=parse_coord, default=None, help="required for pick_place: x,y,z,rx,ry,rz")
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args()
 
@@ -119,6 +119,9 @@ def main() -> int:
         return run_smoke(base_url)
 
     if args.mode == "pick_place":
+        if args.pick is None or args.place is None:
+            print("[bridge] pick_place mode requires --pick and --place (no hidden defaults).")
+            return 2
         return run_pick_place(base_url, args.pick, args.place, args.dry_run)
 
     return 0
