@@ -20,11 +20,13 @@ class OpenVLAWrapper:
         model_name: str,
         device: str = "cuda",
         torch_dtype: torch.dtype = torch.bfloat16,
+        device_map: Optional[str] = None,
         model: Optional[AutoModelForVision2Seq] = None,
         processor: Optional[AutoProcessor] = None,
     ) -> None:
         self.device = device
         self.model_name = model_name
+        self.device_map = device_map
         self.processor = processor or AutoProcessor.from_pretrained(
             model_name,
             trust_remote_code=True,
@@ -43,17 +45,38 @@ class OpenVLAWrapper:
                 except Exception:
                     attn_impl = "eager"
 
-            self.model = AutoModelForVision2Seq.from_pretrained(
-                model_name,
+            load_kwargs = dict(
                 torch_dtype=torch_dtype,
                 trust_remote_code=True,
                 attn_implementation=attn_impl,
-            ).to(device)
+            )
+            if device_map is not None and device_map.lower() != "none":
+                load_kwargs["device_map"] = device_map
+                load_kwargs["low_cpu_mem_usage"] = True
+
+            self.model = AutoModelForVision2Seq.from_pretrained(
+                model_name,
+                **load_kwargs,
+            )
+            if device_map is None or device_map.lower() == "none":
+                self.model = self.model.to(device)
         else:
             self.model = model
 
         self.collector = HiddenStateCollector(self.model)
         self.collector.register_hooks()
+
+    def _input_device(self) -> torch.device:
+        if hasattr(self.model, "hf_device_map"):
+            # Pick the first CUDA shard, else first listed device.
+            vals = list(self.model.hf_device_map.values())
+            for v in vals:
+                if isinstance(v, str) and v.startswith("cuda"):
+                    return torch.device(v)
+            for v in vals:
+                if isinstance(v, str):
+                    return torch.device(v)
+        return torch.device(self.device)
 
     def _to_pil(self, image):
         if isinstance(image, Image.Image):
@@ -68,10 +91,11 @@ class OpenVLAWrapper:
         prompt = f"In: {instruction}\nOut:"
         image = self._to_pil(image)
         inputs = self.processor(prompt, image, return_tensors="pt")
-        inputs = {k: v.to(self.device) for k, v in inputs.items()}
+        input_device = self._input_device()
+        inputs = {k: v.to(input_device) for k, v in inputs.items()}
         if "pixel_values" in inputs:
             inputs["pixel_values"] = inputs["pixel_values"].to(
-                self.device, dtype=self.model.dtype
+                input_device, dtype=self.model.dtype
             )
         return inputs
 
@@ -110,6 +134,7 @@ def create_vla_wrapper(
     model_type: str,
     model_name: str,
     device: Optional[str] = None,
+    device_map: Optional[str] = None,
     torch_dtype: Optional[torch.dtype] = None,
 ) -> OpenVLAWrapper:
     """
@@ -129,5 +154,10 @@ def create_vla_wrapper(
             torch_dtype = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
         else:
             torch_dtype = torch.float32
-    return OpenVLAWrapper(model_name, device=device, torch_dtype=torch_dtype)
+    return OpenVLAWrapper(
+        model_name,
+        device=device,
+        torch_dtype=torch_dtype,
+        device_map=device_map,
+    )
 
