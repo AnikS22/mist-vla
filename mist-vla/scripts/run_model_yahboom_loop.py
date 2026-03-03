@@ -115,6 +115,10 @@ def main() -> int:
     ap.add_argument("--xy-scale-mm", type=float, default=18.0)
     ap.add_argument("--z-scale-mm", type=float, default=12.0)
     ap.add_argument("--rz-scale-deg", type=float, default=8.0)
+    ap.add_argument("--force-visible-motion", action="store_true", help="enforce minimum nonzero deltas for visibility")
+    ap.add_argument("--min-xy-mm", type=float, default=6.0)
+    ap.add_argument("--min-z-mm", type=float, default=4.0)
+    ap.add_argument("--min-rz-deg", type=float, default=3.0)
     ap.add_argument("--speed", type=int, default=20)
     ap.add_argument("--gripper-threshold", type=float, default=0.2)
     ap.add_argument("--execute", action="store_true", help="actually send move_to/set_gripper")
@@ -147,6 +151,15 @@ def main() -> int:
             dy = float(a[1]) * args.xy_scale_mm
             dz = float(a[2]) * args.z_scale_mm
             drz = float(a[5]) * args.rz_scale_deg
+            if args.force_visible_motion:
+                if abs(dx) > 1e-5:
+                    dx = float(np.sign(dx)) * max(abs(dx), args.min_xy_mm)
+                if abs(dy) > 1e-5:
+                    dy = float(np.sign(dy)) * max(abs(dy), args.min_xy_mm)
+                if abs(dz) > 1e-5:
+                    dz = float(np.sign(dz)) * max(abs(dz), args.min_z_mm)
+                if abs(drz) > 1e-5:
+                    drz = float(np.sign(drz)) * max(abs(drz), args.min_rz_deg)
 
             target = [
                 float(cur[0]) + dx,
