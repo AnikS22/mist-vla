@@ -1,0 +1,306 @@
+{
+  "openvla_recommendation": {
+    "n_runs": 25,
+    "best_by_robust": {
+      "file": "category1_sweep_20260224_204844_t17_a0p1_mc0p0035_ct0p0025_ft0p6_eval_results.json",
+      "alpha": 0.1,
+      "max_corr": 0.0035,
+      "corr_th": 0.0025,
+      "fail_th": 0.6,
+      "vanilla": 52.0,
+      "mppi": 48.5,
+      "steering": 59.0,
+      "delta_vs_mppi": 10.5,
+      "delta_vs_vanilla": 7.0
+    },
+    "median_params_top_quartile": {
+      "alpha": 0.135,
+      "max_correction_m": 0.00375,
+      "correction_threshold_m": 0.0025,
+      "fail_threshold": 0.625
+    },
+    "mean_top_quartile_deltas": {
+      "steering_minus_mppi_pp": 3.9166666666666665,
+      "steering_minus_vanilla_pp": 3.5
+    },
+    "top5": [
+      {
+        "file": "category1_sweep_20260224_204844_t17_a0p1_mc0p0035_ct0p0025_ft0p6_eval_results.json",
+        "alpha": 0.1,
+        "max_correction_m": 0.0035,
+        "correction_threshold_m": 0.0025,
+        "fail_threshold": 0.6,
+        "steering_minus_mppi_pp": 10.5,
+        "steering_minus_vanilla_pp": 7.0,
+        "robust_score": 7.0
+      },
+      {
+        "file": "category1_sweep_20260224_204844_t15_a0p12_mc0p004_ct0p002_ft0p55_eval_results.json",
+        "alpha": 0.12,
+        "max_correction_m": 0.004,
+        "correction_threshold_m": 0.002,
+        "fail_threshold": 0.55,
+        "steering_minus_mppi_pp": 4.0,
+        "steering_minus_vanilla_pp": 4.5,
+        "robust_score": 4.0
+      },
+      {
+        "file": "category1_sweep_20260224_204844_t09_a0p18_mc0p0035_ct0p0025_ft0p55_eval_results.json",
+        "alpha": 0.18,
+        "max_correction_m": 0.0035,
+        "correction_threshold_m": 0.0025,
+        "fail_threshold": 0.55,
+        "steering_minus_mppi_pp": 2.5,
+        "steering_minus_vanilla_pp": 5.0,
+        "robust_score": 2.5
+      },
+      {
+        "file": "category1_sweep_20260224_204844_t22_a0p15_mc0p004_ct0p003_ft0p65_eval_results.json",
+        "alpha": 0.15,
+        "max_correction_m": 0.004,
+        "correction_threshold_m": 0.003,
+        "fail_threshold": 0.65,
+        "steering_minus_mppi_pp": 1.5,
+        "steering_minus_vanilla_pp": 3.0,
+        "robust_score": 1.5
+      },
+      {
+        "file": "category1_sweep_20260224_204844_t19_a0p12_mc0p004_ct0p0025_ft0p65_eval_results.json",
+        "alpha": 0.12,
+        "max_correction_m": 0.004,
+        "correction_threshold_m": 0.0025,
+        "fail_threshold": 0.65,
+        "steering_minus_mppi_pp": 3.0,
+        "steering_minus_vanilla_pp": 1.0,
+        "robust_score": 1.0
+      }
+    ]
+  },
+  "act_recommendation": {
+    "n_runs": 22,
+    "best_by_robust": {
+      "file": "eval_act_steering_sweep_20260224_142109_t02_a0p12_mc0p003_ct0p002_ft0p65_eval_results.json",
+      "alpha": 0.12,
+      "max_corr": 0.003,
+      "corr_th": 0.002,
+      "fail_th": 0.65,
+      "vanilla": 50.6,
+      "mppi": 53.1,
+      "steering": 55.6,
+      "delta_vs_mppi": 2.5,
+      "delta_vs_vanilla": 5.0
+    },
+    "median_params_top_quartile": {
+      "alpha": 0.12,
+      "max_correction_m": 0.003,
+      "correction_threshold_m": 0.0025,
+      "fail_threshold": 0.6
+    },
+    "mean_top_quartile_deltas": {
+      "steering_minus_mppi_pp": 1.8,
+      "steering_minus_vanilla_pp": 1.7
+    },
+    "top5": [
+      {
+        "file": "eval_act_steering_sweep_20260224_142109_t02_a0p12_mc0p003_ct0p002_ft0p65_eval_results.json",
+        "alpha": 0.12,
+        "max_correction_m": 0.003,
+        "correction_threshold_m": 0.002,
+        "fail_threshold": 0.65,
+        "steering_minus_mppi_pp": 2.5,
+        "steering_minus_vanilla_pp": 5.0,
+        "robust_score": 2.5
+      },
+      {
+        "file": "eval_act_steering_sweep_20260224_204844_t02_a0p12_mc0p003_ct0p002_ft0p65_eval_results.json",
+        "alpha": 0.12,
+        "max_correction_m": 0.003,
+        "correction_threshold_m": 0.002,
+        "fail_threshold": 0.65,
+        "steering_minus_mppi_pp": 4.5,
+        "steering_minus_vanilla_pp": 2.5,
+        "robust_score": 2.5
+      },
+      {
+        "file": "eval_act_steering_sweep_20260224_204844_t12_a0p15_mc0p003_ct0p003_ft0p6_eval_results.json",
+        "alpha": 0.15,
+        "max_correction_m": 0.003,
+        "correction_threshold_m": 0.003,
+        "fail_threshold": 0.6,
+        "steering_minus_mppi_pp": 2.5,
+        "steering_minus_vanilla_pp": 1.0,
+        "robust_score": 1.0
+      },
+      {
+        "file": "eval_act_steering_sweep_20260224_204844_t01_a0p1_mc0p003_ct0p003_ft0p6_eval_results.json",
+        "alpha": 0.1,
+        "max_correction_m": 0.003,
+        "correction_threshold_m": 0.003,
+        "fail_threshold": 0.6,
+        "steering_minus_mppi_pp": 0.5,
+        "steering_minus_vanilla_pp": -1.0,
+        "robust_score": -1.0
+      },
+      {
+        "file": "eval_act_steering_sweep_20260224_204844_t04_a0p1_mc0p004_ct0p0025_ft0p55_eval_results.json",
+        "alpha": 0.1,
+        "max_correction_m": 0.004,
+        "correction_threshold_m": 0.0025,
+        "fail_threshold": 0.55,
+        "steering_minus_mppi_pp": -1.0,
+        "steering_minus_vanilla_pp": 1.0,
+        "robust_score": -1.0
+      }
+    ]
+  },
+  "openvla_task_stratified": {
+    "n_files": 25,
+    "tasks": {
+      "0": {
+        "vanilla": 60.483870967741936,
+        "mppi": 51.61290322580645,
+        "steering": 53.024193548387096,
+        "steering_minus_mppi_pp": 1.4112903225806477,
+        "steering_minus_vanilla_pp": -7.45967741935484
+      },
+      "1": {
+        "vanilla": 13.911290322580646,
+        "mppi": 14.71774193548387,
+        "steering": 14.314516129032258,
+        "steering_minus_mppi_pp": -0.4032258064516121,
+        "steering_minus_vanilla_pp": 0.4032258064516121
+      },
+      "2": {
+        "vanilla": 93.14516129032258,
+        "mppi": 93.14516129032258,
+        "steering": 92.54032258064517,
+        "steering_minus_mppi_pp": -0.6048387096774093,
+        "steering_minus_vanilla_pp": -0.6048387096774093
+      },
+      "3": {
+        "vanilla": 96.9758064516129,
+        "mppi": 94.95967741935483,
+        "steering": 94.95967741935483,
+        "steering_minus_mppi_pp": 0.0,
+        "steering_minus_vanilla_pp": -2.016129032258064
+      },
+      "4": {
+        "vanilla": 33.87096774193548,
+        "mppi": 36.29032258064516,
+        "steering": 37.5,
+        "steering_minus_mppi_pp": 1.2096774193548399,
+        "steering_minus_vanilla_pp": 3.6290322580645196
+      },
+      "5": {
+        "vanilla": 10.685483870967742,
+        "mppi": 17.137096774193548,
+        "steering": 17.943548387096776,
+        "steering_minus_mppi_pp": 0.8064516129032278,
+        "steering_minus_vanilla_pp": 7.258064516129034
+      },
+      "6": {
+        "vanilla": 90.3225806451613,
+        "mppi": 93.14516129032258,
+        "steering": 93.75,
+        "steering_minus_mppi_pp": 0.6048387096774235,
+        "steering_minus_vanilla_pp": 3.4274193548387046
+      },
+      "7": {
+        "vanilla": 25.806451612903224,
+        "mppi": 28.629032258064516,
+        "steering": 25.806451612903224,
+        "steering_minus_mppi_pp": -2.822580645161292,
+        "steering_minus_vanilla_pp": 0.0
+      },
+      "8": {
+        "vanilla": 91.93548387096774,
+        "mppi": 81.25,
+        "steering": 82.25806451612904,
+        "steering_minus_mppi_pp": 1.0080645161290391,
+        "steering_minus_vanilla_pp": -9.677419354838705
+      },
+      "9": {
+        "vanilla": 25.201612903225808,
+        "mppi": 28.629032258064516,
+        "steering": 28.830645161290324,
+        "steering_minus_mppi_pp": 0.20161290322580783,
+        "steering_minus_vanilla_pp": 3.629032258064516
+      }
+    }
+  },
+  "act_task_stratified": {
+    "n_files": 22,
+    "tasks": {
+      "0": {
+        "vanilla": 60.18518518518518,
+        "mppi": 63.19444444444444,
+        "steering": 62.96296296296296,
+        "steering_minus_mppi_pp": -0.23148148148148096,
+        "steering_minus_vanilla_pp": 2.7777777777777786
+      },
+      "1": {
+        "vanilla": 37.73148148148148,
+        "mppi": 37.73148148148148,
+        "steering": 32.638888888888886,
+        "steering_minus_mppi_pp": -5.092592592592595,
+        "steering_minus_vanilla_pp": -5.092592592592595
+      },
+      "2": {
+        "vanilla": 84.72222222222223,
+        "mppi": 82.4074074074074,
+        "steering": 82.63888888888889,
+        "steering_minus_mppi_pp": 0.23148148148148096,
+        "steering_minus_vanilla_pp": -2.083333333333343
+      },
+      "3": {
+        "vanilla": 87.96296296296296,
+        "mppi": 91.43518518518519,
+        "steering": 89.81481481481481,
+        "steering_minus_mppi_pp": -1.620370370370381,
+        "steering_minus_vanilla_pp": 1.8518518518518476
+      },
+      "4": {
+        "vanilla": 59.49074074074074,
+        "mppi": 61.342592592592595,
+        "steering": 59.02777777777778,
+        "steering_minus_mppi_pp": -2.3148148148148167,
+        "steering_minus_vanilla_pp": -0.4629629629629619
+      },
+      "5": {
+        "vanilla": 11.805555555555555,
+        "mppi": 10.87962962962963,
+        "steering": 10.416666666666666,
+        "steering_minus_mppi_pp": -0.4629629629629637,
+        "steering_minus_vanilla_pp": -1.3888888888888893
+      },
+      "6": {
+        "vanilla": 81.25,
+        "mppi": 78.70370370370371,
+        "steering": 78.70370370370371,
+        "steering_minus_mppi_pp": 0.0,
+        "steering_minus_vanilla_pp": -2.5462962962962905
+      },
+      "7": {
+        "vanilla": 19.212962962962962,
+        "mppi": 16.89814814814815,
+        "steering": 19.90740740740741,
+        "steering_minus_mppi_pp": 3.0092592592592595,
+        "steering_minus_vanilla_pp": 0.6944444444444464
+      },
+      "8": {
+        "vanilla": 56.01851851851852,
+        "mppi": 58.101851851851855,
+        "steering": 55.78703703703704,
+        "steering_minus_mppi_pp": -2.3148148148148167,
+        "steering_minus_vanilla_pp": -0.23148148148148096
+      },
+      "9": {
+        "vanilla": 11.11111111111111,
+        "mppi": 9.722222222222221,
+        "steering": 11.342592592592593,
+        "steering_minus_mppi_pp": 1.620370370370372,
+        "steering_minus_vanilla_pp": 0.23148148148148273
+      }
+    }
+  }
+}
