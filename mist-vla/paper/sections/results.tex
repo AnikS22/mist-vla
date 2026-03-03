@@ -50,3 +50,8 @@ Statistical testing on the pooled completed set shows no significant difference 
     \caption{Controller-step latency comparison on completed runs (real data only).}
     \label{fig:ood_latency}
 \end{figure}
+
+\subsection{Embodied Bring-Up (Yahboom + Jetson)}
+\input{tables/tab_yahboom_bringup_status}
+
+We verified a full model-to-hardware control path: camera/status acquisition from Jetson, policy inference, bounded Cartesian command generation, and arm/gripper command execution. OpenVLA initially produced saturated actions under a generic token-decoding path; after switching to native \texttt{predict\_action} in the wrapper, saturated outputs were removed in live tests and bounded motion commands executed reliably. We do not report autonomous task-completion claims yet; that benchmark is intentionally left pending until a standardized block-manipulation protocol is complete.

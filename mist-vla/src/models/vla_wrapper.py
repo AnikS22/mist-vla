@@ -66,6 +66,23 @@ class OpenVLAWrapper:
         self.collector = HiddenStateCollector(self.model)
         self.collector.register_hooks()
 
+    def _resolve_unnorm_key(self) -> Optional[str]:
+        if not hasattr(self.model, "norm_stats"):
+            return None
+        norm_stats = getattr(self.model, "norm_stats", {})
+        if not isinstance(norm_stats, dict) or not norm_stats:
+            return None
+        # Prefer commonly used keys for LIBERO / bridge evaluations.
+        preferred = [
+            "libero_spatial_no_noops",
+            "libero_spatial",
+            "bridge_orig",
+        ]
+        for k in preferred:
+            if k in norm_stats:
+                return k
+        return next(iter(norm_stats.keys()))
+
     def _input_device(self) -> torch.device:
         if hasattr(self.model, "hf_device_map"):
             # Pick the first CUDA shard, else first listed device.
@@ -100,6 +117,26 @@ class OpenVLAWrapper:
         return inputs
 
     def _generate_action(self, inputs: dict) -> torch.Tensor:
+        # Preferred path: custom OpenVLA trust_remote_code API.
+        if hasattr(self.model, "predict_action"):
+            unnorm_key = self._resolve_unnorm_key()
+            try:
+                if unnorm_key is not None:
+                    act = self.model.predict_action(**inputs, unnorm_key=unnorm_key)
+                else:
+                    act = self.model.predict_action(**inputs)
+                action_np = np.asarray(act, dtype=np.float32).reshape(-1)
+                return torch.from_numpy(action_np[:7]).to(self._input_device())
+            except TypeError:
+                # Some forks accept no unnorm_key; retry minimal signature.
+                act = self.model.predict_action(**inputs)
+                action_np = np.asarray(act, dtype=np.float32).reshape(-1)
+                return torch.from_numpy(action_np[:7]).to(self._input_device())
+            except Exception:
+                # Fall back to token decoding path below.
+                pass
+
+        # Fallback path for models that do not expose predict_action.
         with torch.no_grad():
             outputs = self.model.generate(
                 **inputs,

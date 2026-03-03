@@ -1,0 +1,17 @@
+\begin{table}[t]
+\centering
+\caption{Embodied Yahboom bring-up status (verified runs on Jetson + 7-DoF arm).}
+\label{tab:yahboom_bringup_status}
+\begin{tabular}{p{0.52\linewidth}cc}
+\toprule
+Check & Outcome & Evidence \\
+\midrule
+Jetson API reachability (\texttt{/status}, \texttt{/snapshot}) & Pass & Both endpoints return valid payloads \\
+Safe bridge smoke test (angles + gripper) & Pass & Command ACK success on all checks \\
+Random closed-loop execute (tiny deltas) & Pass & 2/2 \texttt{move\_to}, 2/2 gripper ACK success \\
+OpenVLA loop before decode fix & Guarded pass & Motion safety guard prevented saturated-action deltas \\
+OpenVLA loop after decode fix & Pass & 3/3 \texttt{move\_to}, 3/3 gripper ACK success \\
+Autonomous pick/place task success benchmark & Pending & Not yet measured in standardized trial protocol \\
+\bottomrule
+\end{tabular}
+\end{table}

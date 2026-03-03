@@ -29,25 +29,21 @@ Train safety head on task subset A, evaluate on disjoint unseen subset B.
 Use disturbance OOD and/or custom OOD BDDL environments.
 
 \subsection{Embodied Platform Track: Yahboom Arm}
-This project now includes an embodied robotics track centered on a Yahboom arm setup.
+This project includes an embodied track on a Yahboom 7-DoF arm controlled through a Jetson-hosted HTTP API.
 
-\paragraph{Hardware scope (to finalize).}
-TODO-HW-1: final robot model and DOF configuration. \\
-TODO-HW-2: end-effector and gripper configuration. \\
-TODO-HW-3: onboard compute and acceleration stack. \\
-TODO-HW-4: camera and sensor suite and calibration pipeline.
+\paragraph{Current hardware/software stack.}
+\begin{itemize}[leftmargin=1.2em]
+    \item \textbf{Robot:} Yahboom 7-DoF arm + gripper, serial link on \texttt{/dev/ttyUSB0}.
+    \item \textbf{Edge compute:} Jetson Orin running \texttt{arm\_server.py} with camera stream and action API.
+    \item \textbf{Control API:} \texttt{/status}, \texttt{/snapshot}, and \texttt{/action} endpoints for \texttt{move\_to}, \texttt{send\_angles}, \texttt{set\_gripper}, \texttt{pick\_at}, \texttt{place\_at}.
+    \item \textbf{Host bridge:} \texttt{scripts/yahboom\_bridge.py} and \texttt{scripts/run\_model\_yahboom\_loop.py}.
+\end{itemize}
 
-\paragraph{Software/control scope (to finalize).}
-TODO-SW-1: command interface and control frequency. \\
-TODO-SW-2: IK/controller stack and safety limits. \\
-TODO-SW-3: latency instrumentation path (policy, safety head, controller, actuation). \\
-TODO-SW-4: synchronization and logging schema for sim-to-real comparability.
+\paragraph{Embodied inference details.}
+OpenVLA is loaded with \texttt{trust\_remote\_code=True}. On multi-GPU hosts, sharded loading (\texttt{device\_map=auto}) is used to avoid single-GPU OOM. A safety interlock suppresses motion deltas when action outputs are saturated, preventing unsafe command bursts.
 
-\paragraph{Real-robot evaluation protocol (planned).}
-TODO-RR-1: baseline and steering mode definitions on hardware. \\
-TODO-RR-2: dynamic obstacle protocol and human-in-loop safety constraints. \\
-TODO-RR-3: trial count, seed/randomization policy, and reset protocol. \\
-TODO-RR-4: failure taxonomy for real-robot events (safety stop, near-collision, contact deviation, task failure).
+\paragraph{Real-robot protocol status.}
+Bring-up and closed-loop command validation are complete (API, gripper, and bounded motion). Standardized autonomous pick/place success-rate benchmarking remains pending and is reported explicitly as future work.
 
 \subsection{Metrics}
 Success rate, $\Delta$ vs vanilla, $\Delta$(Ours$-$MPPI), intervention rate, correction magnitude, and controller apply latency (mean/p95).
