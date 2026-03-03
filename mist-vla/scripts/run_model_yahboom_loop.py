@@ -124,9 +124,13 @@ def main() -> int:
     ap.add_argument("--device-map", default="auto", help="HF device_map for OpenVLA (e.g., auto, none)")
     ap.add_argument("--instruction", default="pick up the block and place it carefully")
     ap.add_argument("--steps", type=int, default=10)
+    ap.add_argument("--model-only-strict", action="store_true", help="disable heuristic motion/gripper overrides (safety clamps remain)")
     ap.add_argument("--libero-image-size", type=int, default=224, help="square size for LIBERO-like image standardization")
     ap.add_argument("--no-libero-standardize", action="store_true", help="disable center-crop+resize preprocessing")
     ap.add_argument("--dt", type=float, default=0.8)
+    ap.add_argument("--action-space", choices=["normalized", "meters"], default="meters", help="interpretation of policy xyz/rz outputs")
+    ap.add_argument("--xyz-gain", type=float, default=1.0, help="gain on xyz deltas before mapping")
+    ap.add_argument("--rot-gain", type=float, default=1.0, help="gain on rz delta before mapping")
     ap.add_argument("--xy-scale-mm", type=float, default=18.0)
     ap.add_argument("--z-scale-mm", type=float, default=12.0)
     ap.add_argument("--rz-scale-deg", type=float, default=8.0)
@@ -136,6 +140,7 @@ def main() -> int:
     ap.add_argument("--min-rz-deg", type=float, default=3.0)
     ap.add_argument("--speed", type=int, default=20)
     ap.add_argument("--gripper-threshold", type=float, default=0.2)
+    ap.add_argument("--gripper-continuous", action="store_true", help="map model gripper action continuously to 0..100")
     ap.add_argument("--execute", action="store_true", help="actually send move_to/set_gripper")
     ap.add_argument("--seed", type=int, default=42)
     args = ap.parse_args()
@@ -161,15 +166,23 @@ def main() -> int:
 
             a = predict_action(policy, args.policy, img, args.instruction, rng)
             sat_ratio = float(np.mean(np.abs(a[:6]) >= 0.95))
-            if sat_ratio >= 0.8:
+            if (not args.model_only_strict) and sat_ratio >= 0.8:
                 # Guardrail: token-decoding mismatches can produce saturated actions.
                 print(f"[step {step}] warning: saturated action ratio={sat_ratio:.2f}; zeroing motion delta for safety")
                 a[:6] = 0.0
-            dx = float(a[0]) * args.xy_scale_mm
-            dy = float(a[1]) * args.xy_scale_mm
-            dz = float(a[2]) * args.z_scale_mm
-            drz = float(a[5]) * args.rz_scale_deg
-            if args.force_visible_motion:
+            if args.action_space == "meters":
+                # OpenVLA-style task-space deltas: xyz in meters, rz in radians.
+                dx = float(a[0]) * 1000.0 * args.xyz_gain
+                dy = float(a[1]) * 1000.0 * args.xyz_gain
+                dz = float(a[2]) * 1000.0 * args.xyz_gain
+                drz = float(np.degrees(a[5])) * args.rot_gain
+            else:
+                # Legacy normalized mapping.
+                dx = float(a[0]) * args.xy_scale_mm
+                dy = float(a[1]) * args.xy_scale_mm
+                dz = float(a[2]) * args.z_scale_mm
+                drz = float(a[5]) * args.rz_scale_deg
+            if args.force_visible_motion and not args.model_only_strict:
                 if abs(dx) > 1e-5:
                     dx = float(np.sign(dx)) * max(abs(dx), args.min_xy_mm)
                 if abs(dy) > 1e-5:
@@ -188,7 +201,10 @@ def main() -> int:
                 float(cur[5]) + drz,
             ]
             target = clamp_coords(target)
-            grip_val = 80 if float(a[6]) > args.gripper_threshold else 20
+            if args.gripper_continuous or args.model_only_strict:
+                grip_val = int(clamp(((float(a[6]) + 1.0) * 50.0), 0.0, 100.0))
+            else:
+                grip_val = 80 if float(a[6]) > args.gripper_threshold else 20
             pretty_target = [round(float(v), 2) for v in target]
             if step == 0:
                 print(
