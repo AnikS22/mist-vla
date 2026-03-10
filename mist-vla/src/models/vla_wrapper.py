@@ -105,7 +105,8 @@ class OpenVLAWrapper:
         return image
 
     def _prepare_inputs(self, image, instruction: str) -> dict:
-        prompt = f"In: {instruction}\nOut:"
+        # Match OpenVLA/OFT evaluation prompt style used in LIBERO pipelines.
+        prompt = f"In: What action should the robot take to {instruction.lower()}?\nOut:"
         image = self._to_pil(image)
         inputs = self.processor(prompt, image, return_tensors="pt")
         input_device = self._input_device()
