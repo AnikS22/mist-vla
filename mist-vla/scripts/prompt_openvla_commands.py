@@ -89,6 +89,8 @@ def main() -> int:
     ap.add_argument("--wait", type=float, default=0.8)
     ap.add_argument("--xyz-gain", type=float, default=1.0, help="gain for xyz when action-space is meters")
     ap.add_argument("--rot-gain", type=float, default=1.0, help="gain for rz (radians->deg) when action-space is meters")
+    ap.add_argument("--min-action-delta", type=float, default=0.02, help="minimum L2 delta vs previous action to send a new command")
+    ap.add_argument("--allow-repeat-actions", action="store_true", help="allow sending near-identical repeated actions")
     ap.add_argument(
         "--prompt-mode",
         choices=["openvla", "raw"],
@@ -100,6 +102,7 @@ def main() -> int:
     base = f"http://{args.host}:{args.port}"
     print(f"[prompt] base={base} model={args.model_name} execute={args.execute}")
     print(f"[prompt] mode={args.prompt_mode} (type anything, or 'quit')")
+    last_action = None
 
     policy = create_vla_wrapper(
         "openvla",
@@ -136,6 +139,7 @@ def main() -> int:
                 prompt = "RAW_PROMPT::" + instruction
             action, _feat = policy.get_action_with_features(img, prompt, obs=None)
             a = to_action_np(action)
+            delta = None if last_action is None else float(np.linalg.norm(a - last_action))
 
             # OpenVLA metric interpretation (xyz in meters, rz in radians)
             dx = float(a[0]) * 1000.0 * args.xyz_gain
@@ -154,14 +158,23 @@ def main() -> int:
             )
             grip = int(clamp(((float(a[6]) + 1.0) * 50.0), 0.0, 100.0))
 
-            print("[prompt] action:", np.round(a, 4).tolist())
+            print("[prompt] action:", np.round(a, 4).tolist(), "delta_vs_prev:", None if delta is None else round(delta, 6))
             print("[prompt] command target:", [round(float(v), 2) for v in target], "gripper:", grip)
 
-            if args.execute:
+            should_send = True
+            if (not args.allow_repeat_actions) and delta is not None and delta < args.min_action_delta:
+                should_send = False
+                print(
+                    f"[prompt] blocked: repeated action (delta {delta:.6f} < threshold {args.min_action_delta:.6f}). "
+                    "Model appears stuck; no command sent."
+                )
+
+            if args.execute and should_send:
                 rm = api_post(base, {"action": "move_to", "coords": target, "speed": args.speed, "wait": args.wait})
                 rg = api_post(base, {"action": "set_gripper", "value": grip, "speed": 40})
                 print("[prompt] move_to:", rm.get("ok"), "err:", rm.get("error"))
                 print("[prompt] gripper:", rg.get("ok"), "err:", rg.get("error"))
+            last_action = a.copy()
     finally:
         policy.close()
     return 0
