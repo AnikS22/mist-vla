@@ -89,11 +89,17 @@ def main() -> int:
     ap.add_argument("--wait", type=float, default=0.8)
     ap.add_argument("--xyz-gain", type=float, default=1.0, help="gain for xyz when action-space is meters")
     ap.add_argument("--rot-gain", type=float, default=1.0, help="gain for rz (radians->deg) when action-space is meters")
+    ap.add_argument(
+        "--prompt-mode",
+        choices=["openvla", "raw"],
+        default="raw",
+        help="openvla: wraps your text in OpenVLA template; raw: sends your text verbatim",
+    )
     args = ap.parse_args()
 
     base = f"http://{args.host}:{args.port}"
     print(f"[prompt] base={base} model={args.model_name} execute={args.execute}")
-    print("[prompt] type instruction and press enter, or 'quit'")
+    print(f"[prompt] mode={args.prompt_mode} (type anything, or 'quit')")
 
     policy = create_vla_wrapper(
         "openvla",
@@ -123,7 +129,12 @@ def main() -> int:
             img = Image.open(io.BytesIO(img_bytes)).convert("RGB")
             img = standardize(img, args.image_size)
 
-            action, _feat = policy.get_action_with_features(img, instruction, obs=None)
+            if args.prompt_mode == "openvla":
+                prompt = instruction
+            else:
+                # True passthrough: no template edits, no lower-casing.
+                prompt = "RAW_PROMPT::" + instruction
+            action, _feat = policy.get_action_with_features(img, prompt, obs=None)
             a = to_action_np(action)
 
             # OpenVLA metric interpretation (xyz in meters, rz in radians)

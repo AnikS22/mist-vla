@@ -105,8 +105,14 @@ class OpenVLAWrapper:
         return image
 
     def _prepare_inputs(self, image, instruction: str) -> dict:
-        # Match OpenVLA/OFT evaluation prompt style used in LIBERO pipelines.
-        prompt = f"In: What action should the robot take to {instruction.lower()}?\nOut:"
+        if instruction.startswith("RAW_PROMPT::"):
+            prompt = instruction[len("RAW_PROMPT::") :]
+        # Allow fully raw prompts when the caller provides a complete prompt.
+        elif "In:" in instruction and "Out:" in instruction:
+            prompt = instruction
+        else:
+            # Default OpenVLA-style prompt template.
+            prompt = f"In: What action should the robot take to {instruction}?\nOut:"
         image = self._to_pil(image)
         inputs = self.processor(prompt, image, return_tensors="pt")
         input_device = self._input_device()
