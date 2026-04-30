@@ -1,0 +1,204 @@
+{
+  "timestamp": "Linux version 4.18.0-425.3.1.el8.x86_64 (mockbuild",
+  "grand_total": 1448,
+  "sources": [
+    {
+      "label": "combined",
+      "count": 724,
+      "success": 359,
+      "failure": 365,
+      "tasks": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "n_tasks": 10,
+      "feat_dim": 4096,
+      "has_eef": true,
+      "total_steps": 158304,
+      "model": "openvla-oft",
+      "suite": "libero_spatial",
+      "description": "Original 724-rollout dataset"
+    },
+    {
+      "label": "multi_suite/libero_spatial",
+      "count": 246,
+      "success": 137,
+      "failure": 109,
+      "tasks": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "n_tasks": 10,
+      "feat_dim": 4096,
+      "has_eef": true,
+      "total_steps": 38233,
+      "model": "openvla-oft",
+      "suite": "libero_spatial",
+      "description": "Earlier spatial collection"
+    },
+    {
+      "label": "multi_suite/libero_object",
+      "count": 188,
+      "success": 75,
+      "failure": 113,
+      "tasks": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "n_tasks": 9,
+      "feat_dim": 4096,
+      "has_eef": true,
+      "total_steps": 42962,
+      "model": "openvla-oft",
+      "suite": "libero_object",
+      "description": "Earlier object collection"
+    },
+    {
+      "label": "multi_suite/libero_goal",
+      "count": 203,
+      "success": 110,
+      "failure": 93,
+      "tasks": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "n_tasks": 10,
+      "feat_dim": 4096,
+      "has_eef": true,
+      "total_steps": 38957,
+      "model": "openvla-oft",
+      "suite": "libero_goal",
+      "description": "Earlier goal collection"
+    },
+    {
+      "label": "multi_suite/libero_10",
+      "count": 87,
+      "success": 37,
+      "failure": 50,
+      "tasks": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "n_tasks": 5,
+      "feat_dim": 4096,
+      "has_eef": true,
+      "total_steps": 38152,
+      "model": "openvla-oft",
+      "suite": "libero_10",
+      "description": "Earlier LIBERO-10 collection"
+    }
+  ],
+  "model_totals": {
+    "openvla-oft": {
+      "success": 718,
+      "failure": 730,
+      "total": 1448,
+      "suites": [
+        "libero_spatial",
+        "libero_object",
+        "libero_10",
+        "libero_goal"
+      ]
+    }
+  },
+  "suite_totals": {
+    "libero_spatial": {
+      "success": 496,
+      "failure": 474,
+      "total": 970,
+      "models": [
+        "openvla-oft"
+      ]
+    },
+    "libero_object": {
+      "success": 75,
+      "failure": 113,
+      "total": 188,
+      "models": [
+        "openvla-oft"
+      ]
+    },
+    "libero_goal": {
+      "success": 110,
+      "failure": 93,
+      "total": 203,
+      "models": [
+        "openvla-oft"
+      ]
+    },
+    "libero_10": {
+      "success": 37,
+      "failure": 50,
+      "total": 87,
+      "models": [
+        "openvla-oft"
+      ]
+    }
+  },
+  "models_info": {
+    "openvla-oft": {
+      "full_name": "OpenVLA-7B-OFT",
+      "type": "Autoregressive VLA (LLaMA-2 backbone)",
+      "embedding_dim": 4096,
+      "framework": "PyTorch / HuggingFace",
+      "checkpoints": [
+        "moojink/openvla-7b-oft-finetuned-libero-spatial",
+        "moojink/openvla-7b-oft-finetuned-libero-object",
+        "moojink/openvla-7b-oft-finetuned-libero-goal",
+        "moojink/openvla-7b-oft-finetuned-libero-10"
+      ]
+    },
+    "openvla-oft-allsuite": {
+      "full_name": "OpenVLA-7B-OFT (All Suites)",
+      "type": "Autoregressive VLA (LLaMA-2 backbone, multi-task)",
+      "embedding_dim": 4096,
+      "framework": "PyTorch / HuggingFace",
+      "checkpoints": [
+        "moojink/openvla-7b-oft-finetuned-libero-spatial-object-goal-10"
+      ]
+    },
+    "octo-base": {
+      "full_name": "Octo-Base-1.5",
+      "type": "Diffusion Transformer VLA",
+      "embedding_dim": 512,
+      "framework": "JAX / Flax",
+      "checkpoints": [
+        "hf://rail-berkeley/octo-base-1.5"
+      ]
+    }
+  }
+}

@@ -1,26 +1,14 @@
 \section{Introduction}
-Reliable robot behavior in deployment requires both task competence and rapid safety adaptation under distribution shift. Foundation-scale policies can be powerful but brittle in closed-loop manipulation, while heavier planning baselines can introduce latency and model dependence. This paper studies a focused question:
 
-\begin{quote}
-\emph{Can a lightweight hidden-state controller predict impending failure and apply continuous corrective steering at inference-time across heterogeneous policy classes?}
-\end{quote}
+Robot foundation models---VLA policies and imitation-learning architectures---have made rapid progress on generalizable manipulation~\citep{openvla_paper, act_paper}. Yet deploying these models in unstructured environments exposes a fundamental gap: when the policy enters a dangerous configuration, the failure is often silent and unrecoverable.
 
-\paragraph{Core idea.}
-Attach a compact safety head to frozen policies. Hidden state in; risk, timing, and correction out. No base-policy retraining required.
+Current approaches either \emph{retrain} the policy with safety constraints (architecture-specific, expensive) or \emph{bolt on} state-space planners like MPPI or CBFs~\citep{mppi_paper, cbf_paper} (ignore internal representations, add latency). A natural question follows from failure-detection work~\citep{safe_paper}: if a policy's hidden states encode impending failure, do they also encode \emph{when} and \emph{how to correct}?
 
-\paragraph{Why this matters.}
-If successful, the method provides a model-agnostic safety layer that can be reused across policy families and embodiments, reducing per-model safety engineering cost.
-
-\paragraph{Target claims for final CoRL submission.}
-\begin{itemize}[leftmargin=1.2em]
-    \item \textbf{C1:} Failure detection from hidden states transfers beyond training tasks.
-    \item \textbf{C2:} Detection-only intervention (freeze/stop) is insufficient for task recovery.
-    \item \textbf{C3:} Continuous latent steering improves recovery relative to vanilla and is competitive with planning baselines.
-    \item \textbf{C4:} Inference-time steering has favorable control-step latency.
+\paragraph{Contributions.} We show that they do:
+\begin{itemize}[leftmargin=1.2em, topsep=2pt, itemsep=1pt]
+    \item[\textbf{C1}] \textbf{Robot policies encode a latent safety manifold.} An MLP probe (108K--1.1M params) achieves failure AUC 0.83--0.89, TTF correlation $r{=}0.86$, and per-axis correction AUC 0.66--0.88 from frozen hidden states---across OpenVLA (4096-d) and ACT (256-d), a $16{\times}$ dimensionality gap.
+    \item[\textbf{C2}] \textbf{The manifold supports inference-time steering.} Risk-gated corrections preserve task completion at $6{\times}$ lower latency than MPPI (0.9\,ms vs.\ 5.6\,ms), with the probe self-calibrating to task difficulty ($r{=}{-}0.98$, $p{<}10^{-6}$; $n{=}10$ tasks). A mechanism analysis shows failure detection---not correction direction---is the operative component.
+    \item[\textbf{C3}] \textbf{The manifold generalizes.} Zero-shot task transfer maintains vanilla-level success. Cross-architecture consistency holds despite $16{\times}$ dimensionality gap. Linear cross-model transfer fails, indicating shared structure but architecture-specific coordinates.
 \end{itemize}
 
-\paragraph{What this draft contains now.}
-This draft is structured as a complete CoRL paper with all methods and experiment design finalized, and explicit placeholders for final numerical outcomes from ongoing runs.
-
-\paragraph{Embodied extension in scope.}
-Beyond simulation, this project now includes an embodied evaluation track on a Yahboom robotic arm platform. The manuscript includes dedicated placeholders for hardware protocol, safety checks, and real-robot outcome reporting so that camera-ready claims remain evidence-linked.
+\paragraph{Scope.} Simulation results on LIBERO-Spatial with two policy architectures. Correction direction is a bottleneck (jiggle ablation, Section~\ref{sec:mechanism}). Physical robot validation is planned (Section~\ref{sec:physical_setup}).

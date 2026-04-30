@@ -1,0 +1,124 @@
+{
+  "config": {
+    "env": "libero_spatial",
+    "tasks": [
+      4,
+      6,
+      7,
+      8
+    ],
+    "max_corrections": [
+      0.01
+    ],
+    "gate_mode": "magnitude",
+    "correction_threshold": 0.005,
+    "episodes_per_task": 20,
+    "alpha": 0.1,
+    "ema_beta": 0.7,
+    "action_scale": 0.05,
+    "seed": 42
+  },
+  "results": {
+    "(4, 'vanilla')": {
+      "task_id": 4,
+      "label": "vanilla",
+      "max_correction": null,
+      "success_rate_pct": 35.0,
+      "n_successes": 7,
+      "n_episodes": 20,
+      "mean_intervention_rate": 0.0,
+      "mean_corr_mag": 0.0,
+      "mean_raw_mag": 0.0,
+      "mean_p_fail": 0.0
+    },
+    "(4, 'clamp=0.010m')": {
+      "task_id": 4,
+      "label": "clamp=0.010m",
+      "max_correction": 0.01,
+      "success_rate_pct": 40.0,
+      "n_successes": 8,
+      "n_episodes": 20,
+      "mean_intervention_rate": 0.6614,
+      "mean_corr_mag": 0.007315,
+      "mean_raw_mag": 0.085522,
+      "mean_p_fail": 0.5583,
+      "effective_max_action_perturbation": 0.02
+    },
+    "(6, 'vanilla')": {
+      "task_id": 6,
+      "label": "vanilla",
+      "max_correction": null,
+      "success_rate_pct": 90.0,
+      "n_successes": 18,
+      "n_episodes": 20,
+      "mean_intervention_rate": 0.0,
+      "mean_corr_mag": 0.0,
+      "mean_raw_mag": 0.0,
+      "mean_p_fail": 0.0
+    },
+    "(6, 'clamp=0.010m')": {
+      "task_id": 6,
+      "label": "clamp=0.010m",
+      "max_correction": 0.01,
+      "success_rate_pct": 90.0,
+      "n_successes": 18,
+      "n_episodes": 20,
+      "mean_intervention_rate": 0.4737,
+      "mean_corr_mag": 0.005746,
+      "mean_raw_mag": 0.018665,
+      "mean_p_fail": 0.1718,
+      "effective_max_action_perturbation": 0.02
+    },
+    "(7, 'vanilla')": {
+      "task_id": 7,
+      "label": "vanilla",
+      "max_correction": null,
+      "success_rate_pct": 30.0,
+      "n_successes": 6,
+      "n_episodes": 20,
+      "mean_intervention_rate": 0.0,
+      "mean_corr_mag": 0.0,
+      "mean_raw_mag": 0.0,
+      "mean_p_fail": 0.0
+    },
+    "(7, 'clamp=0.010m')": {
+      "task_id": 7,
+      "label": "clamp=0.010m",
+      "max_correction": 0.01,
+      "success_rate_pct": 25.0,
+      "n_successes": 5,
+      "n_episodes": 20,
+      "mean_intervention_rate": 0.916,
+      "mean_corr_mag": 0.009279,
+      "mean_raw_mag": 0.084391,
+      "mean_p_fail": 0.7461,
+      "effective_max_action_perturbation": 0.02
+    },
+    "(8, 'vanilla')": {
+      "task_id": 8,
+      "label": "vanilla",
+      "max_correction": null,
+      "success_rate_pct": 90.0,
+      "n_successes": 18,
+      "n_episodes": 20,
+      "mean_intervention_rate": 0.0,
+      "mean_corr_mag": 0.0,
+      "mean_raw_mag": 0.0,
+      "mean_p_fail": 0.0
+    },
+    "(8, 'clamp=0.010m')": {
+      "task_id": 8,
+      "label": "clamp=0.010m",
+      "max_correction": 0.01,
+      "success_rate_pct": 75.0,
+      "n_successes": 15,
+      "n_episodes": 20,
+      "mean_intervention_rate": 0.6877,
+      "mean_corr_mag": 0.007383,
+      "mean_raw_mag": 0.022839,
+      "mean_p_fail": 0.2959,
+      "effective_max_action_perturbation": 0.02
+    }
+  },
+  "recommendation": null
+}

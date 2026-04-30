@@ -56,11 +56,16 @@ def main() -> int:
     ap.add_argument("--host", default="192.168.55.1")
     ap.add_argument("--port", type=int, default=5000)
     ap.add_argument("--model-name", default="openvla/openvla-7b")
+    ap.add_argument("--policy", choices=["openvla", "openvla_oft", "smolvla"], default="openvla")
     ap.add_argument("--device", default="cuda")
     ap.add_argument("--device-map", default="auto")
     ap.add_argument("--image-size", type=int, default=224)
     ap.add_argument("--frames", type=int, default=4)
     ap.add_argument("--sleep", type=float, default=0.5)
+    ap.add_argument("--min-global-std", type=float, default=0.005)
+    ap.add_argument("--min-prompt-delta", type=float, default=0.02)
+    ap.add_argument("--min-frame-delta", type=float, default=0.01)
+    ap.add_argument("--min-gripper-std", type=float, default=0.01)
     args = ap.parse_args()
 
     base = f"http://{args.host}:{args.port}"
@@ -72,7 +77,7 @@ def main() -> int:
     ]
 
     model = create_vla_wrapper(
-        "openvla",
+        args.policy,
         args.model_name,
         device=args.device,
         device_map=args.device_map,
@@ -103,6 +108,7 @@ def main() -> int:
         frame_means[str(i)] = afm.mean(axis=0).tolist()
 
     out = {
+        "policy": args.policy,
         "model": args.model_name,
         "prompts": prompts,
         "n_samples": int(arr.shape[0]),
@@ -114,11 +120,50 @@ def main() -> int:
         "xyz_norm_std": float(np.std(np.linalg.norm(arr[:, :3], axis=1))),
     }
 
+    # Acceptance gates for research-ready non-degenerate control.
+    prompt_mean_actions = np.stack([np.asarray(prompt_means[p], dtype=np.float32) for p in prompts], axis=0)
+    frame_mean_actions = np.stack([np.asarray(frame_means[str(i)], dtype=np.float32) for i in range(args.frames)], axis=0)
+    prompt_deltas = []
+    for i in range(len(prompt_mean_actions)):
+        for j in range(i + 1, len(prompt_mean_actions)):
+            prompt_deltas.append(float(np.linalg.norm(prompt_mean_actions[i] - prompt_mean_actions[j])))
+    frame_deltas = []
+    for i in range(len(frame_mean_actions)):
+        for j in range(i + 1, len(frame_mean_actions)):
+            frame_deltas.append(float(np.linalg.norm(frame_mean_actions[i] - frame_mean_actions[j])))
+    max_prompt_delta = max(prompt_deltas) if prompt_deltas else 0.0
+    max_frame_delta = max(frame_deltas) if frame_deltas else 0.0
+    global_std_mean = float(arr.std(axis=0).mean())
+    gripper_std = float(arr[:, 6].std())
+    passed = (
+        global_std_mean >= args.min_global_std
+        and max_prompt_delta >= args.min_prompt_delta
+        and max_frame_delta >= args.min_frame_delta
+        and gripper_std >= args.min_gripper_std
+    )
+    out["acceptance"] = {
+        "passed": bool(passed),
+        "global_std_mean": global_std_mean,
+        "max_prompt_delta_l2": max_prompt_delta,
+        "max_frame_delta_l2": max_frame_delta,
+        "gripper_std": gripper_std,
+        "thresholds": {
+            "min_global_std": args.min_global_std,
+            "min_prompt_delta": args.min_prompt_delta,
+            "min_frame_delta": args.min_frame_delta,
+            "min_gripper_std": args.min_gripper_std,
+        },
+    }
+
     out_path = REPO_ROOT / "research_data" / "results" / "vla_control_diagnostics.json"
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(json.dumps(out, indent=2))
     print(json.dumps(out, indent=2))
     print(f"saved {out_path}")
+    if not passed:
+        print("[diagnostics] FAILED acceptance gates; model output appears degenerate.")
+        return 2
+    print("[diagnostics] PASSED acceptance gates.")
     return 0
 
 

@@ -1,0 +1,102 @@
+\documentclass[10pt]{article}
+\usepackage[margin=0.6in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,linkcolor=blue,urlcolor=blue]{hyperref}
+\setlength{\parskip}{4pt}
+\setlength{\parindent}{0pt}
+\pagestyle{empty}
+
+\begin{document}
+
+{\centering\Large\bfseries PULSE: Physical Validation of Latent Safety Steering for VLAs\par}
+\vspace{2pt}
+{\centering\small Anik Sahai $\cdot$ FAU $\cdot$ \texttt{asahai2021@fau.edu} $\cdot$ Target: CoRL 2026\par}
+\vspace{6pt}
+
+\textbf{Project Summary.} VLA policies and imitation learners encode a latent safety manifold in their hidden states---failure risk (detection AUC 0.83--0.89), time-to-failure ($r{=}0.86$), and corrective geometry (per-axis AUC 0.66--0.88). We attach a lightweight MLP probe (108K--1.1M params) to frozen policy hidden states at inference time. The probe predicts failure and outputs bounded Cartesian corrections, gated by a double-threshold mechanism that self-calibrates to task difficulty ($r{=}{-}0.98$, $p{<}10^{-6}$). Validated in simulation (LIBERO, 10,000+ episodes) across OpenVLA-7B (4096-d) and ACT (256-d). \textbf{Physical robot experiments are the remaining gap.}
+
+\vspace{2pt}
+\hrule
+\vspace{4pt}
+
+\textbf{Experimental Modes (6 conditions).} The evaluation is designed so each mode isolates a specific component of the safety system, directly answering whether the learned safety signal is the source of improvement.
+
+\vspace{-2pt}
+{\small
+\begin{tabular}{@{}p{2.8cm}p{8.2cm}p{4cm}@{}}
+\toprule
+\textbf{Mode} & \textbf{What It Does} & \textbf{What It Tests} \\
+\midrule
+\texttt{vanilla} & Raw policy, no modification & Lower bound \\
+\texttt{steering} (ours) & Learned probe: detection + correction, double-gated & Full system \\
+\texttt{mppi} & Sampling planner using probe's failure head as cost & Planning baseline \\
+\texttt{latent\_stop} & Freeze action when probe predicts failure & Detection-only ablation \\
+\texttt{latent\_jiggle} & Random correction direction, matched magnitude & Randomized-output ablation \\
+\texttt{heuristic} & Slow down when action magnitude is high or EEF nears workspace edge & Non-learned baseline \\
+\bottomrule
+\end{tabular}
+}
+
+\vspace{2pt}
+\texttt{latent\_jiggle} directly addresses the question ``is the improvement from the safety signal or just from perturbation?''---it uses the probe's \emph{magnitude} but \emph{randomizes direction}. \texttt{heuristic} answers ``do you even need a learned model?''---it uses hand-coded rules with no learned component. \texttt{latent\_stop} tests detection without correction.
+
+\vspace{4pt}
+\textbf{What I Do With the Robot Arm.}
+
+\vspace{-2pt}
+{\small
+\begin{tabular}{@{}p{2.2cm}p{13cm}@{}}
+\toprule
+\textbf{Phase} & \textbf{Detail} \\
+\midrule
+\textbf{1. Setup} & Mount wrist RGB camera (640$\times$480, 30fps). Connect arm controller to GPU server over ethernet. Load OpenVLA-7B and ACT. Load sim-trained safety probe (no fine-tuning on real data). Calibrate workspace bounds. Run acceptance diagnostics. \\
+\midrule
+\textbf{2. Tasks} & 3 tabletop pick-and-place tasks with colored blocks. T1: pick-place with obstacle. T2: pick near edge. T3: pick from clutter. Binary success: block within 2\,cm of target, $\leq$300 steps. \\
+\midrule
+\textbf{3. Collection} & 50 ep $\times$ 6 modes $\times$ 3 tasks $\times$ 2 policies = \textbf{1,800 episodes}. Blind success labeling. \\
+\midrule
+\textbf{4. Analysis} & (a) Per-mode success rates + z-tests. (b) Per-episode analysis: do episodes \emph{where the probe intervened} succeed more than episodes where it didn't? (c) Failure AUC: does probe's fail\_prob predict annotator-labeled failures? (d) Intervention-conditioned analysis: among failed episodes, did the probe fire early enough? Among successful episodes with intervention, would vanilla have failed? \\
+\bottomrule
+\end{tabular}
+}
+
+\vspace{4pt}
+\textbf{Per-Step Control Loop ($\sim$5 Hz).}
+
+\vspace{-2pt}
+{\small
+\begin{tabular}{@{}rp{4.5cm}p{2cm}p{6.5cm}@{}}
+& \textbf{Operation} & \textbf{Latency} & \textbf{I/O} \\
+\midrule
+1. & Capture RGB frame & $<$5\,ms & $\to$ 640$\times$480$\times$3 uint8 \\
+2. & Policy forward pass & $\sim$200\,ms & image + instruction $\to$ $\mathbf{h}_t \in \mathbb{R}^{4096/256}$, $\mathbf{a}_t \in \mathbb{R}^{7}$ \\
+3. & Safety probe forward & $<$1\,ms & $\mathbf{h}_t \to$ fail\_logit, TTF, $\Delta\mathbf{p} \in \mathbb{R}^3$ \\
+4. & EMA + clamp + double gate & $<$0.5\,ms & fire if $\|\Delta\mathbf{p}\| > \tau_c$ AND $\sigma(\text{fail}) > \tau_f$ \\
+5. & Action modification + safety check & $<$0.5\,ms & reject if $\|\Delta\text{EEF}\| > 50$mm or $\|\mathbf{a}\|_\infty > 0.95$ \\
+6. & Send to arm & $\sim$5\,ms & 7-d action $\to$ arm controller via ethernet \\
+\bottomrule
+\end{tabular}
+}
+
+\vspace{4pt}
+\textbf{Logged Per Step:} $\mathbf{h}_t$, raw action, modified action, fail\_prob, TTF, $\Delta\mathbf{p}$, gate status, EEF pose, timestamp.
+
+\textbf{Logged Per Episode:} Video (MP4), blind success label, full trajectory, intervention count, probe firing times.
+
+\vspace{2pt}
+\textbf{How We Show Interventions Actually Help (not just occur).}
+\begin{enumerate}[leftmargin=1.2em, topsep=2pt, itemsep=1pt]
+\item \textbf{Episode-level:} Among steering episodes, compare success rate when probe intervened ($\mathbb{I}_t{=}1$ on $>$20\% of steps) vs.\ when it stayed silent. If intervention episodes succeed more, the signal is causal.
+\item \textbf{Counterfactual:} For successful steering episodes with heavy intervention, replay the \emph{vanilla} actions from the same initial state. If vanilla fails where steering succeeded, intervention was necessary.
+\item \textbf{Failure timing:} Among failed episodes across all modes, plot when the probe's fail\_prob crossed 0.5 vs.\ when failure actually occurred. Early detection = useful signal even when correction didn't save the episode.
+\end{enumerate}
+
+\vspace{2pt}
+\textbf{Safety.} Workspace box ($\pm$50mm/step), velocity freeze, stuck detection (4 identical actions), human e-stop.
+
+\textbf{What I Need:} Arm access (4--5 weeks), tabletop workspace, ethernet to GPU server. I provide all compute, software, and analysis. Happy to coordinate with Shuaib on system access.
+
+\end{document}

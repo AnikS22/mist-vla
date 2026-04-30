@@ -253,6 +253,7 @@ class SteeredAgent:
 
             with torch.no_grad():
                 out = self.mlp(x)
+            raw_logit = out["will_fail"].item()
             fail_prob = torch.sigmoid(out["will_fail"]).item()
             raw = out["correction"].cpu().numpy()[0]  # (3,) meters
 
@@ -272,10 +273,11 @@ class SteeredAgent:
 
             self._corr_mags.append(mag)
 
-            # Gate: only intervene if correction is meaningful
+            # Gate on raw logit (sigmoid saturates at 1.0 for logits > 10).
+            # Calibrated: success logits ~16.09, failure ~17.03.
             should_intervene = mag > self.correction_threshold
             if self.use_fail_gate:
-                should_intervene = should_intervene and (fail_prob >= self.fail_threshold)
+                should_intervene = should_intervene and (raw_logit >= self.fail_threshold)
 
             if should_intervene:
                 self._interventions += 1
@@ -327,8 +329,9 @@ class LatentStopAgent:
             x = torch.FloatTensor(scaled).to(self.device)
             with torch.no_grad():
                 out = self.mlp(x)
+            raw_logit = out["will_fail"].item()
             fail_prob = torch.sigmoid(out["will_fail"]).item()
-            if fail_prob >= self.stop_threshold:
+            if raw_logit >= self.stop_threshold:
                 self._interventions += 1
                 # Freeze all action dimensions as a strict stop baseline.
                 action[:] = 0.0
@@ -400,8 +403,9 @@ class MPPIController:
             with torch.no_grad():
                 out = self.mlp(x)
 
+            raw_logit = out["will_fail"].item()
             fail_prob = torch.sigmoid(out["will_fail"]).item()
-            if fail_prob < 0.5:
+            if raw_logit < 16.0:  # below safe-zone logit threshold
                 self._corr_mags.append(0.0)
                 return action, False
 
@@ -418,7 +422,7 @@ class MPPIController:
                 x_p = torch.FloatTensor(feat_perturbed).to(self.device)
                 with torch.no_grad():
                     out_p = self.mlp(x_p)
-                scores[i] = -torch.sigmoid(out_p["will_fail"]).item()
+                scores[i] = -out_p["will_fail"].item()  # lower logit = safer
 
             weights = np.exp(self.temperature * (scores - scores.max()))
             weights /= weights.sum()
@@ -713,10 +717,10 @@ def main():
     parser.add_argument("--max-correction", type=float, default=0.01)
     parser.add_argument("--use-fail-gate", action="store_true",
                         help="Only intervene when fail prob >= --fail-threshold")
-    parser.add_argument("--fail-threshold", type=float, default=0.5,
-                        help="Fail-prob threshold when fail-gate is enabled")
-    parser.add_argument("--stop-threshold", type=float, default=0.85,
-                        help="Fail-prob threshold for latent_stop freeze baseline")
+    parser.add_argument("--fail-threshold", type=float, default=16.56,
+                        help="Raw logit threshold (calibrated: success=16.09, failure=17.03)")
+    parser.add_argument("--stop-threshold", type=float, default=16.56,
+                        help="Raw logit threshold for latent_stop freeze baseline")
     parser.add_argument("--ood-obstacle", action="store_true",
                         help="Enable synthetic OOD obstacle push during episodes")
     parser.add_argument("--ood-step-min", type=int, default=40)

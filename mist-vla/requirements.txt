@@ -17,7 +17,7 @@ gymnasium
 # ML utilities
 scikit-learn
 numpy
-scipy
+scipy>=1.9.0
 
 # Utilities
 wandb

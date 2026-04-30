@@ -1,0 +1,15 @@
+\begin{table}[t]
+\centering
+\caption{Detection vs.\ correction: latent stop destroys task completion while continuous correction preserves it.}
+\label{tab:detection_vs_correction}
+\begin{tabular}{lcc}
+\toprule
+Mode & Success (\%) & $n$ (succ/total) \\
+\midrule
+Vanilla (no intervention) & 52.0 & 5205/10000 \\
+Latent Stop (detect only) & 24.4 & 176/720 \\
+Steering (detect + correct) & 51.7 & 5174/10000 \\
+MPPI (planning baseline) & 52.1 & 5212/10000 \\
+\bottomrule
+\end{tabular}
+\end{table}

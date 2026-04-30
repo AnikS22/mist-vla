@@ -1,15 +1,9 @@
-\documentclass[11pt]{article}
+\documentclass{article}
 
-% NOTE: Switch to official CoRL template/class before submission if required.
-% This draft is structured to be CoRL-ready with modular sections/tables/figures.
+\usepackage{corl_2026} % Initial submission (anonymous).
+% \usepackage[final]{corl_2026} % Camera-ready version.
 
-\usepackage[utf8]{inputenc}
-\usepackage[T1]{fontenc}
-\usepackage{lmodern}
-\usepackage{microtype}
-\usepackage{geometry}
-\geometry{margin=1in}
-\usepackage{amsmath,amssymb,amsthm}
+\usepackage{amsmath,amssymb}
 \usepackage{bm}
 \usepackage{booktabs}
 \usepackage{graphicx}
@@ -17,31 +11,30 @@
 \usepackage{multirow}
 \usepackage{xcolor}
 \usepackage{enumitem}
-\usepackage{hyperref}
-\usepackage[numbers,sort&compress]{natbib}
 
-\title{Inference-Time Latent Safety Steering for Vision-Language-Action and Imitation Policies}
+\title{Robot Policies Encode Safety:\\Probing and Exploiting the Latent Safety Manifold\\for Inference-Time Steering}
 
 \author{
-Anik Sahai$^{1,2,3}$ \and
-Merhdad Nojoumian$^{3}$ \and
-William Hahn$^{2,3}$
-\\[0.5em]
-$^{1}$Praxis Labs \quad
-$^{2}$MPCR Labs \quad
-$^{3}$Florida Atlantic University (FAU)
-\\[0.5em]
-\texttt{anik.sahai@TODO} \quad
-\texttt{merhdad.nojoumian@TODO} \quad
-\texttt{william.hahn@TODO}
+  Anik Sahai \\
+  Florida Atlantic University \\
+  \texttt{asahai2021@fau.edu} \\
+  \And
+  Mehrdad Nojoumian \\
+  Florida Atlantic University \\
+  \texttt{mnojoumian@fau.edu} \\
+  \And
+  William Hahn \\
+  Florida Atlantic University \\
+  \texttt{whahn@fau.edu}
 }
-
-\date{\today}
 
 \begin{document}
 \maketitle
 
 \input{sections/abstract}
+
+\keywords{robot safety, latent representations, inference-time steering, vision-language-action models}
+
 \input{sections/introduction}
 \input{sections/related_work}
 \input{sections/method}
@@ -49,10 +42,11 @@ $^{3}$Florida Atlantic University (FAU)
 \input{sections/results}
 \input{sections/discussion}
 \input{sections/conclusion}
-\input{sections/reproducibility_ethics}
-\input{sections/appendix}
 
-\bibliographystyle{plainnat}
+% \acknowledgments{TODO for camera-ready.}
+
 \bibliography{references}
+
+\input{sections/appendix}
 
 \end{document}

@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
+"""Generate all paper figures from frozen data artifacts."""
+
 from pathlib import Path
 import json
 from collections import defaultdict
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
-PAPER = Path('/home/mpcr/Desktop/SalusV5/mist-vla/paper')
+PAPER = Path(__file__).resolve().parents[1]
 DATA = PAPER / 'data'
 FIG = PAPER / 'figures'
 FIG.mkdir(parents=True, exist_ok=True)
@@ -238,6 +242,298 @@ def fig_family_breakdown():
     save(fig, '11_family_breakdown_success.png')
 
 
+def fig_primary_ci():
+    st = load('stat_tests_summary.json')
+    if not st:
+        return
+    comp = st.get('families', {}).get('paper_curated', {}).get('comparisons', {})
+    order = [
+        ('steering_vs_mppi', 'Steering - MPPI'),
+        ('steering_vs_vanilla', 'Steering - Vanilla'),
+        ('mppi_vs_vanilla', 'MPPI - Vanilla'),
+    ]
+    labels, means, lo_err, hi_err = [], [], [], []
+    for key, lbl in order:
+        pooled = comp.get(key, {}).get('pooled', {})
+        if not pooled:
+            continue
+        d = float(pooled['diff_pp'])
+        ci = pooled['ci95_diff_pp']
+        labels.append(lbl)
+        means.append(d)
+        lo_err.append(d - float(ci[0]))
+        hi_err.append(float(ci[1]) - d)
+    if not labels:
+        return
+
+    y = np.arange(len(labels))
+    fig, ax = plt.subplots(figsize=(7.2, 3.9))
+    ax.errorbar(
+        means,
+        y,
+        xerr=np.vstack([lo_err, hi_err]),
+        fmt='o',
+        color='#2e8b57',
+        ecolor='#2e8b57',
+        capsize=4,
+    )
+    ax.axvline(0.0, color='black', linewidth=1)
+    ax.set_yticks(y)
+    ax.set_yticklabels(labels)
+    ax.set_xlabel('Delta success (pp), 95% CI')
+    ax.set_title('Primary Contrasts on Paper-Curated Pool')
+    ax.grid(axis='x', alpha=0.25)
+    save(fig, '12_primary_contrasts_ci.png')
+
+
+def fig_holm_pvals():
+    st = load('stat_tests_summary.json')
+    if not st:
+        return
+    comp = st.get('families', {}).get('paper_curated', {}).get('comparisons', {})
+    holm = st.get('meta', {}).get('holm_adjusted_p_z_paper_curated', {})
+    order = [
+        ('steering_vs_mppi', 'Steering vs MPPI'),
+        ('steering_vs_vanilla', 'Steering vs Vanilla'),
+        ('mppi_vs_vanilla', 'MPPI vs Vanilla'),
+    ]
+    labels, zvals, hvals = [], [], []
+    for key, lbl in order:
+        pooled = comp.get(key, {}).get('pooled', {})
+        if not pooled:
+            continue
+        labels.append(lbl)
+        zvals.append(float(pooled.get('p_value_z', np.nan)))
+        hvals.append(float(holm.get(key, np.nan)))
+    if not labels:
+        return
+
+    x = np.arange(len(labels))
+    w = 0.35
+    fig, ax = plt.subplots(figsize=(8.0, 4.0))
+    ax.bar(x - w / 2, zvals, width=w, label='p(z-test)', color='#5b7bb2')
+    ax.bar(x + w / 2, hvals, width=w, label='p(Holm-adjusted)', color='#d55e5e')
+    ax.axhline(0.05, color='black', linestyle='--', linewidth=1, label='alpha=0.05')
+    ax.set_xticks(x)
+    ax.set_xticklabels(labels, rotation=15, ha='right')
+    ax.set_ylim(0.0, max(1.02, max(zvals + hvals) * 1.05))
+    ax.set_ylabel('p-value')
+    ax.set_title('Primary Contrast p-values (Raw and Holm-adjusted)')
+    ax.legend(fontsize=8)
+    ax.grid(axis='y', alpha=0.25)
+    save(fig, '13_primary_pvalues_holm.png')
+
+
+def fig_required_n():
+    st = load('stat_tests_summary.json')
+    if not st:
+        return
+    comp = st.get('families', {}).get('paper_curated', {}).get('comparisons', {})
+    order = [
+        ('steering_vs_mppi', 'S-M'),
+        ('steering_vs_vanilla', 'S-V'),
+        ('mppi_vs_vanilla', 'M-V'),
+    ]
+    deltas = ['delta_1pp_symmetric', 'delta_2pp_symmetric', 'delta_5pp_symmetric', 'delta_10pp_symmetric']
+    delta_labels = ['1pp', '2pp', '5pp', '10pp']
+    vals = np.full((len(order), len(deltas)), np.nan)
+    for i, (key, _) in enumerate(order):
+        req = comp.get(key, {}).get('pooled', {}).get('required_n_per_arm_delta_pp', {})
+        for j, d in enumerate(deltas):
+            if d in req:
+                vals[i, j] = float(req[d])
+    if np.isnan(vals).all():
+        return
+
+    fig, ax = plt.subplots(figsize=(7.8, 4.2))
+    for i, (_, lbl) in enumerate(order):
+        ax.plot(delta_labels, vals[i], marker='o', linewidth=2, label=lbl)
+    ax.set_yscale('log')
+    ax.set_ylabel('Required episodes per arm (log scale)')
+    ax.set_title('Required N for Detecting Fixed Effect Sizes (80% power)')
+    ax.grid(axis='y', alpha=0.25, which='both')
+    ax.legend(title='Contrast', fontsize=8)
+    save(fig, '14_required_n_by_effect_size.png')
+
+
+def fig_cross_arch_comparison():
+    """Bar chart comparing OpenVLA vs ACT across modes."""
+    pooled = pooled_stats()
+
+    ov = defaultdict(lambda: {'succ': 0, 'eps': 0})
+    for fam in ['openvla_sweep', 'openvla_ood']:
+        for mode, s in pooled[fam].items():
+            ov[mode]['succ'] += s['succ']
+            ov[mode]['eps'] += s['eps']
+
+    act = defaultdict(lambda: {'succ': 0, 'eps': 0})
+    for fam in ['act_sweep', 'act_ood_baselines', 'act_zero_shot_ood']:
+        for mode, s in pooled[fam].items():
+            act[mode]['succ'] += s['succ']
+            act[mode]['eps'] += s['eps']
+
+    modes = ['vanilla', 'latent_stop', 'mppi', 'steering']
+    mode_labels = ['Vanilla', 'Latent Stop', 'MPPI', 'Steering']
+    ov_vals = [pct(ov.get(m, {'succ': 0, 'eps': 0})) for m in modes]
+    act_vals = [pct(act.get(m, {'succ': 0, 'eps': 0})) for m in modes]
+
+    x = np.arange(len(modes))
+    w = 0.35
+    fig, ax = plt.subplots(figsize=(9, 4.5))
+    ax.bar(x - w/2, ov_vals, width=w, label='OpenVLA (4096-d)', color='#5b7bb2')
+    ax.bar(x + w/2, act_vals, width=w, label='ACT (256-d)', color='#2e8b57')
+    ax.set_xticks(x)
+    ax.set_xticklabels(mode_labels)
+    ax.set_ylabel('Success (%)')
+    ax.set_title('Cross-Architecture Comparison: OpenVLA vs ACT')
+    ax.legend(fontsize=9)
+    ax.grid(axis='y', alpha=0.25)
+    for i in range(len(modes)):
+        if not np.isnan(ov_vals[i]):
+            ax.text(x[i] - w/2, ov_vals[i] + 0.5, f'{ov_vals[i]:.1f}', ha='center', fontsize=7)
+        if not np.isnan(act_vals[i]):
+            ax.text(x[i] + w/2, act_vals[i] + 0.5, f'{act_vals[i]:.1f}', ha='center', fontsize=7)
+    save(fig, '21_cross_arch_comparison.png')
+
+
+def fig_clamping_ablation():
+    """Plot clamping ablation from tuning data."""
+    path = PAPER.parent / 'hpc_mirror' / 'results' / 'tuning' / 'clamping_sweep.json'
+    if not path.exists():
+        return
+    d = json.loads(path.read_text())
+    results = d.get('results', {})
+    tasks = sorted(set(v['task_id'] for v in results.values()))
+
+    vanilla_sr = []
+    clamp_sr = []
+    task_labels = []
+    for tid in tasks:
+        v = results.get(f"({tid}, 'vanilla')", {})
+        c = results.get(f"({tid}, 'clamp=0.010m')", {})
+        vanilla_sr.append(v.get('success_rate_pct', 0))
+        clamp_sr.append(c.get('success_rate_pct', 0))
+        task_labels.append(f'Task {tid}')
+
+    x = np.arange(len(tasks))
+    w = 0.35
+    fig, ax = plt.subplots(figsize=(8, 4))
+    ax.bar(x - w/2, vanilla_sr, width=w, label='Vanilla', color='#777777')
+    ax.bar(x + w/2, clamp_sr, width=w, label='Clamp=0.01m', color='#2e8b57')
+    ax.set_xticks(x)
+    ax.set_xticklabels(task_labels)
+    ax.set_ylabel('Success (%)')
+    ax.set_title('Clamping Ablation: Trust Region Effect')
+    ax.legend(fontsize=9)
+    ax.grid(axis='y', alpha=0.25)
+    save(fig, '22_clamping_ablation.png')
+
+
+def fig_intervention_vs_difficulty():
+    """Scatter: vanilla SR (x) vs actual intervention rate (y) per task, computed from all eval JSONs."""
+    from collections import defaultdict
+
+    # Compute actual mean_ir per task from all steering eval data
+    task_ir = defaultdict(list)
+    task_vanilla = defaultdict(lambda: {'succ': 0, 'eps': 0})
+
+    for fp in sorted(DATA.glob('*eval_results*.json')):
+        d_file = json.loads(fp.read_text())
+        per = d_file.get('per_task', {})
+        if not isinstance(per, dict):
+            continue
+        for tid, td in per.items():
+            if not isinstance(td, dict):
+                continue
+            v = td.get('vanilla', {})
+            if isinstance(v, dict) and v.get('n_episodes', 0) > 0:
+                task_vanilla[tid]['succ'] += int(v.get('n_successes', 0))
+                task_vanilla[tid]['eps'] += int(v['n_episodes'])
+            s = td.get('steering', {})
+            if isinstance(s, dict):
+                ir = s.get('mean_ir')
+                if isinstance(ir, (int, float)) and ir > 0:
+                    task_ir[tid].append(float(ir))
+
+    tasks = sorted(set(task_ir.keys()) & set(task_vanilla.keys()), key=int)
+    if len(tasks) < 3:
+        return
+
+    xs, ys, labels = [], [], []
+    for tid in tasks:
+        if task_vanilla[tid]['eps'] > 0 and task_ir[tid]:
+            vsr = 100.0 * task_vanilla[tid]['succ'] / task_vanilla[tid]['eps']
+            mir = np.mean(task_ir[tid])
+            xs.append(vsr)
+            ys.append(mir * 100)  # as percentage
+            labels.append(f'T{tid}')
+
+    xs = np.array(xs)
+    ys = np.array(ys)
+
+    fig, ax = plt.subplots(figsize=(7.5, 5))
+    ax.scatter(xs, ys, s=60, color='#2e8b57', edgecolors='#1a5e37', linewidths=0.6, zorder=3)
+    for i, lbl in enumerate(labels):
+        ax.annotate(lbl, (xs[i], ys[i]), fontsize=7.5, textcoords='offset points',
+                    xytext=(5, 4), color='#333')
+
+    # Correlation + fit line
+    from scipy import stats as sp_stats
+    r_val, p_val = sp_stats.pearsonr(xs, ys)
+    m, b = np.polyfit(xs, ys, 1)
+    xfit = np.linspace(xs.min() - 5, xs.max() + 5, 50)
+    ax.plot(xfit, m * xfit + b, color='#999', linewidth=1, linestyle='--', zorder=1)
+    ax.text(0.03, 0.97, f'r = {r_val:.2f}, p = {p_val:.1e}', transform=ax.transAxes,
+            fontsize=10, va='top', bbox=dict(facecolor='white', edgecolor='gray', alpha=0.85))
+
+    ax.set_xlabel('Vanilla Success Rate (%)')
+    ax.set_ylabel('Mean Intervention Rate (%)')
+    ax.set_title('Adaptive Gating: Intervention Rate vs Task Difficulty')
+    ax.grid(alpha=0.2)
+    save(fig, '23_intervention_vs_difficulty.png')
+
+
+def fig_safety_head_auc():
+    """Bar chart comparing OpenVLA vs ACT safety head metrics."""
+    ov_path = PAPER.parent / 'hpc_mirror' / 'checkpoints' / 'eef_correction_mlp' / 'results.json'
+    act_path = PAPER.parent / 'hpc_mirror' / 'checkpoints' / 'eef_correction_mlp_act_honest' / 'results.json'
+    if not ov_path.exists() or not act_path.exists():
+        return
+    ov = json.loads(ov_path.read_text())['test_results']
+    act = json.loads(act_path.read_text())['test_results']
+
+    metrics = ['fail_auc', 'ttf_corr', 'X_dir_auc', 'Y_dir_auc', 'Z_dir_auc']
+    labels = ['Failure\nAUC', 'TTF\nCorr', 'X Dir\nAUC', 'Y Dir\nAUC', 'Z Dir\nAUC']
+    ov_vals = [ov[m] for m in metrics]
+    act_vals = [act[m] for m in metrics]
+
+    x = np.arange(len(metrics))
+    w = 0.35
+    fig, ax = plt.subplots(figsize=(9, 4.5))
+    ax.bar(x - w / 2, ov_vals, width=w, label='OpenVLA (4096-d, 1.1M)', color='#5b7bb2')
+    ax.bar(x + w / 2, act_vals, width=w, label='ACT (256-d, 108K)', color='#2e8b57')
+    ax.set_xticks(x)
+    ax.set_xticklabels(labels)
+    ax.set_ylabel('Score')
+    ax.set_ylim(0, 1.05)
+    ax.set_title('Safety Head: OpenVLA vs ACT')
+    ax.legend(fontsize=9)
+    ax.grid(axis='y', alpha=0.25)
+    for i in range(len(metrics)):
+        ax.text(x[i] - w / 2, ov_vals[i] + 0.01, f'{ov_vals[i]:.2f}', ha='center', fontsize=7)
+        ax.text(x[i] + w / 2, act_vals[i] + 0.01, f'{act_vals[i]:.2f}', ha='center', fontsize=7)
+    save(fig, '24_safety_head_auc.png')
+
+
+def fig_latent_pca():
+    """Check if latent PCA figure already exists; note availability."""
+    pca_path = FIG / '17_latent_pca_success_failure.png'
+    if pca_path.exists():
+        print(f'fig_latent_pca: {pca_path.name} already exists, skipping regeneration')
+    else:
+        print(f'fig_latent_pca: {pca_path.name} not found; run generate_latent_embeddings.py to create it')
+
+
 def main():
     fig_architecture()
     fig_zero_shot_seed_deltas()
@@ -245,6 +541,14 @@ def main():
     fig_latency_speed()
     fig_final_pooled_success()
     fig_family_breakdown()
+    fig_primary_ci()
+    fig_holm_pvals()
+    fig_required_n()
+    fig_cross_arch_comparison()
+    fig_clamping_ablation()
+    fig_intervention_vs_difficulty()
+    fig_safety_head_auc()
+    fig_latent_pca()
 
 
 if __name__ == '__main__':

@@ -1,0 +1,18 @@
+\begin{table}[t]
+\centering
+\small
+\caption{Stronger OOD evaluation (ACT, hard tasks 1/5/7/9, 50 ep/task, 3 seeds). Steering shows a modest advantage at moderate disturbance (3$\times$) but the effect is not significant pooled.}
+\label{tab:stronger_ood}
+\begin{tabular}{lccccc}
+\toprule
+Push & Vanilla (\%) & Steering (\%) & Jiggle (\%) & $\Delta$(S$-$V) & $p$ \\
+\midrule
+2$\times$ (0.16) & 18.7 & 18.0 & 18.3 & -0.7 & 0.728 \\
+3$\times$ (0.24) & 16.5 & 20.2 & 17.7 & +3.7 & 0.111 \\
+4$\times$ (0.32) & 17.3 & 16.0 & 15.7 & -1.3 & 0.094 \\
+5$\times$ (0.4) & 14.7 & 15.5 & 13.5 & +0.8 & 0.300 \\
+\midrule
+Pooled & 16.8 & 17.4 & -- & +0.6 & 0.425 \\
+\bottomrule
+\end{tabular}
+\end{table}

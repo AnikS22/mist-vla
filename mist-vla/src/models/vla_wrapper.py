@@ -7,11 +7,24 @@ from __future__ import annotations
 from typing import Optional
 
 import torch
+import transformers
 from transformers import AutoModelForVision2Seq, AutoProcessor
 from PIL import Image
 import numpy as np
 
 from src.data_collection.hooks import HiddenStateCollector
+
+
+def _force_eager_attention() -> bool:
+    """
+    Use eager attention only for newer transformers stacks where OpenVLA dynamic modules
+    can fail on SDPA capability checks. Keep default attention on the known-good 4.40.x stack.
+    """
+    try:
+        major, minor, *_ = [int(x) for x in transformers.__version__.split(".")]
+    except Exception:
+        return False
+    return (major, minor) >= (4, 56)
 
 
 class OpenVLAWrapper:
@@ -21,35 +34,30 @@ class OpenVLAWrapper:
         device: str = "cuda",
         torch_dtype: torch.dtype = torch.bfloat16,
         device_map: Optional[str] = None,
+        allow_token_fallback: bool = False,
+        force_token_fallback: bool = False,
+        enable_hidden_state_hooks: bool = False,
         model: Optional[AutoModelForVision2Seq] = None,
         processor: Optional[AutoProcessor] = None,
     ) -> None:
         self.device = device
         self.model_name = model_name
         self.device_map = device_map
+        self.allow_token_fallback = allow_token_fallback
+        self.force_token_fallback = force_token_fallback
+        self.enable_hidden_state_hooks = enable_hidden_state_hooks
         self.processor = processor or AutoProcessor.from_pretrained(
             model_name,
             trust_remote_code=True,
         )
 
         if model is None:
-            # Try FlashAttention2 on Ampere+ GPUs; fall back to eager otherwise.
-            attn_impl = "eager"
-            if device.startswith("cuda") and torch.cuda.is_available():
-                try:
-                    major, _minor = torch.cuda.get_device_capability()
-                    if major >= 8:
-                        import flash_attn  # noqa: F401
-
-                        attn_impl = "flash_attention_2"
-                except Exception:
-                    attn_impl = "eager"
-
             load_kwargs = dict(
                 torch_dtype=torch_dtype,
                 trust_remote_code=True,
-                attn_implementation=attn_impl,
             )
+            if _force_eager_attention():
+                load_kwargs["attn_implementation"] = "eager"
             if device_map is not None and device_map.lower() != "none":
                 load_kwargs["device_map"] = device_map
                 load_kwargs["low_cpu_mem_usage"] = True
@@ -63,8 +71,10 @@ class OpenVLAWrapper:
         else:
             self.model = model
 
-        self.collector = HiddenStateCollector(self.model)
-        self.collector.register_hooks()
+        self.collector = None
+        if self.enable_hidden_state_hooks:
+            self.collector = HiddenStateCollector(self.model)
+            self.collector.register_hooks()
 
     def _resolve_unnorm_key(self) -> Optional[str]:
         if not hasattr(self.model, "norm_stats"):
@@ -85,11 +95,10 @@ class OpenVLAWrapper:
 
     def _input_device(self) -> torch.device:
         if hasattr(self.model, "hf_device_map"):
-            # Pick the first CUDA shard, else first listed device.
+            # For sharded HF models, feed inputs to cuda:0 (root shard) for stable generation.
             vals = list(self.model.hf_device_map.values())
-            for v in vals:
-                if isinstance(v, str) and v.startswith("cuda"):
-                    return torch.device(v)
+            if any(isinstance(v, str) and v.startswith("cuda") for v in vals):
+                return torch.device("cuda:0")
             for v in vals:
                 if isinstance(v, str):
                     return torch.device(v)
@@ -125,23 +134,31 @@ class OpenVLAWrapper:
 
     def _generate_action(self, inputs: dict) -> torch.Tensor:
         # Preferred path: custom OpenVLA trust_remote_code API.
-        if hasattr(self.model, "predict_action"):
+        if (not self.force_token_fallback) and hasattr(self.model, "predict_action"):
             unnorm_key = self._resolve_unnorm_key()
+            def _to_np_action(act_obj):
+                if isinstance(act_obj, (list, tuple)) and len(act_obj) > 0:
+                    act_obj = act_obj[0]
+                if torch.is_tensor(act_obj):
+                    return act_obj.detach().float().cpu().numpy().reshape(-1)
+                return np.asarray(act_obj, dtype=np.float32).reshape(-1)
             try:
                 if unnorm_key is not None:
-                    act = self.model.predict_action(**inputs, unnorm_key=unnorm_key)
+                    try:
+                        act = self.model.predict_action(**inputs, unnorm_key=unnorm_key)
+                    except TypeError:
+                        # Some forks accept no unnorm_key; retry minimal signature.
+                        act = self.model.predict_action(**inputs)
                 else:
                     act = self.model.predict_action(**inputs)
-                action_np = np.asarray(act, dtype=np.float32).reshape(-1)
+                action_np = _to_np_action(act)
                 return torch.from_numpy(action_np[:7]).to(self._input_device())
-            except TypeError:
-                # Some forks accept no unnorm_key; retry minimal signature.
-                act = self.model.predict_action(**inputs)
-                action_np = np.asarray(act, dtype=np.float32).reshape(-1)
-                return torch.from_numpy(action_np[:7]).to(self._input_device())
-            except Exception:
-                # Fall back to token decoding path below.
-                pass
+            except Exception as e:
+                if not self.allow_token_fallback:
+                    raise RuntimeError(
+                        f"OpenVLA predict_action failed for {self.model_name}; "
+                        f"token fallback disabled to avoid degenerate actions. root_error={type(e).__name__}: {e}"
+                    ) from e
 
         # Fallback path for models that do not expose predict_action.
         with torch.no_grad():
@@ -156,6 +173,8 @@ class OpenVLAWrapper:
         return action[0]
 
     def _extract_features(self, inputs: dict) -> torch.Tensor:
+        if self.collector is None:
+            return torch.zeros((1, 1), device=self._input_device())
         self.collector.clear()
         self.collector._active = True
         with torch.no_grad():
@@ -170,7 +189,8 @@ class OpenVLAWrapper:
         return action, features
 
     def close(self) -> None:
-        self.collector.remove_hooks()
+        if self.collector is not None:
+            self.collector.remove_hooks()
         del self.model
 
 
@@ -180,14 +200,33 @@ def create_vla_wrapper(
     device: Optional[str] = None,
     device_map: Optional[str] = None,
     torch_dtype: Optional[torch.dtype] = None,
+    allow_token_fallback: bool = False,
+    force_token_fallback: bool = False,
+    enable_hidden_state_hooks: bool = False,
 ) -> OpenVLAWrapper:
     """
     Factory for VLA wrappers. Currently supports OpenVLA.
     """
+    if model_type == "smolvla":
+        from src.models.xvla_wrapper import XVLAWrapper
+
+        return XVLAWrapper(model_name=model_name, device=device or "cuda")
     if model_type == "openvla_oft":
         from src.models.openvla_oft_wrapper import OpenVLAOFTWrapper
-
-        return OpenVLAOFTWrapper(model_name, device=device)
+        try:
+            return OpenVLAOFTWrapper(model_name, device=device, device_map=device_map)
+        except Exception as e:
+            # Keep the control stack usable when OFT env/runtime is brittle on low-VRAM hosts.
+            print(f"[vla_wrapper] OpenVLA-OFT init failed; falling back to OpenVLA path: {e}")
+            return OpenVLAWrapper(
+                model_name,
+                device=device or ("cuda" if torch.cuda.is_available() else "cpu"),
+                torch_dtype=torch_dtype or (torch.bfloat16 if torch.cuda.is_available() and torch.cuda.is_bf16_supported() else torch.float16),
+                device_map=device_map or "auto",
+                allow_token_fallback=allow_token_fallback,
+                force_token_fallback=force_token_fallback,
+                enable_hidden_state_hooks=enable_hidden_state_hooks,
+            )
     if model_type != "openvla":
         raise ValueError(f"Unsupported model_type: {model_type}")
     if device is None:
@@ -203,5 +242,8 @@ def create_vla_wrapper(
         device=device,
         torch_dtype=torch_dtype,
         device_map=device_map,
+        allow_token_fallback=allow_token_fallback,
+        force_token_fallback=force_token_fallback,
+        enable_hidden_state_hooks=enable_hidden_state_hooks,
     )
 

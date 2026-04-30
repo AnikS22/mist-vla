@@ -1,0 +1,51 @@
+{
+  "method": "cartesian_eef_correction",
+  "description": "correction = EEF_success(t) - EEF_failed(t) in meters",
+  "arch_version": "v4",
+  "test_results": {
+    "fail_auc": 0.8952314545806702,
+    "fail_acc": 0.8003826530612245,
+    "ttf_r2": 0.7363225221633911,
+    "ttf_corr": 0.8604971980592896,
+    "cosine_sim": 0.35795485973358154,
+    "cosine_sim_median": 0.5700273513793945,
+    "mag_r2": -0.6879264116287231,
+    "mag_corr": 0.3930486158267129,
+    "mean_error_m": 0.15634387731552124,
+    "median_error_m": 0.11315197497606277,
+    "X_r2": 0.10427075624465942,
+    "X_corr": 0.3788662059022399,
+    "X_needs_auc": 0.703419415278586,
+    "X_dir_acc": 0.6207593601687467,
+    "X_dir_auc": 0.6351003816802205,
+    "Y_r2": 0.1075783371925354,
+    "Y_corr": 0.5352436597302336,
+    "Y_needs_auc": 0.766405380046011,
+    "Y_dir_acc": 0.6795799505824215,
+    "Y_dir_auc": 0.7070050181927298,
+    "Z_r2": 0.08355206251144409,
+    "Z_corr": 0.40393132680112454,
+    "Z_needs_auc": 0.7690350555202923,
+    "Z_dir_acc": 0.6834915284307638,
+    "Z_dir_auc": 0.7235687861633672
+  },
+  "model_params": 108677,
+  "best_epoch": 15,
+  "architecture": {
+    "hidden_dim": 256,
+    "input_norm": "LayerNorm(input_dim)",
+    "dropout": 0.3,
+    "activation": "GELU",
+    "classification_loss": "BCEWithLogitsLoss(dynamic_pos_weight)",
+    "regression_loss": "HuberLoss(delta=0.1)",
+    "weight_decay": 0.001,
+    "input_noise_std": 0.01,
+    "corr_mag_penalty": 0.1,
+    "early_stopping_patience": 20,
+    "cosine_gap_stop": 0.2
+  },
+  "overfitting_check": {
+    "auc_gap": 0.0887,
+    "cos_gap": 0.0519
+  }
+}

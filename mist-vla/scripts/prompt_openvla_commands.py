@@ -81,6 +81,7 @@ def main() -> int:
     ap.add_argument("--host", default="192.168.55.1")
     ap.add_argument("--port", type=int, default=5000)
     ap.add_argument("--model-name", default="openvla/openvla-7b")
+    ap.add_argument("--policy", choices=["openvla", "openvla_oft", "smolvla"], default="openvla")
     ap.add_argument("--device", default="cuda")
     ap.add_argument("--device-map", default="auto")
     ap.add_argument("--image-size", type=int, default=224)
@@ -105,7 +106,7 @@ def main() -> int:
     last_action = None
 
     policy = create_vla_wrapper(
-        "openvla",
+        args.policy,
         args.model_name,
         device=args.device,
         device_map=args.device_map,

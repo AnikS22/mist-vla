@@ -1,18 +1,10 @@
 \section{Related Work}
-\paragraph{Foundation robot policies and VLAs.}
-Large VLA systems enable broad language-conditioned behavior but frequently require additional deployment-time stabilization. We position our method as an inference-time safety adapter for this regime.
 
-\paragraph{Imitation policy baselines.}
-ACT and Diffusion Policy represent strong task-specialized baselines. Evaluating a shared safety interface on both VLA and imitation policies is central to this work's cross-architecture scope.
+\paragraph{Foundation robot policies.}
+VLA systems~\citep{openvla_paper, octo_paper} and imitation learners such as ACT~\citep{act_paper} and Diffusion Policy~\citep{dp_paper} enable broad manipulation but lack deployment-time safety guarantees. PULSE attaches to any frozen policy without modifying weights.
 
-\paragraph{Failure detection versus continuous recovery.}
-A key distinction in this paper is between (i) predicting failure and stopping, and (ii) predicting a directional correction for recovery. Our latent-stop baseline isolates detection-only behavior, while steering evaluates continuous intervention.
+\paragraph{Inference-time steering in LLMs.}
+Representation engineering~\citep{repr_engineering} and activation steering~\citep{activation_steering} show that LLM hidden states encode controllable safety directions. We extend this to robotics: policy hidden states encode a spatial safety manifold---not a binary attribute, but a directional recovery vector in Cartesian space.
 
-\paragraph{Planning-based controllers.}
-Sampling-based planners such as MPPI provide robust optimization baselines but can be computationally expensive at high control frequency. We compare directly against MPPI and report per-step controller latency.
-
-\paragraph{Training-time safety constraints versus inference-time adaptation.}
-Constraint-in-training approaches can improve safety but are model-specific and expensive to retrain. Our approach is complementary: frozen-policy adaptation at inference-time via hidden-state probing.
-
-\paragraph{Placeholder citations to finalize.}
-TODO: SAFE citation], TODO: SafeVLA citation], TODO: OpenVLA citation], TODO: Octo citation], TODO: ACT citation], TODO: Diffusion Policy citation], TODO: MPPI citation], TODO: LIBERO citation].
+\paragraph{Robot safety via detection and planning.}
+SAFE~\citep{safe_paper} predicts failure from learned features but only triggers stop actions. CBFs~\citep{cbf_paper} and shielded RL~\citep{shielded_rl} use hand-designed state-space constraints. MPPI~\citep{mppi_paper} uses learned costs for sampling-based planning. Our probe extends detection to continuous correction, achieving MPPI-equivalent success at $6{\times}$ lower latency.

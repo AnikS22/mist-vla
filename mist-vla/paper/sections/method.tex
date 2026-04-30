@@ -1,72 +1,41 @@
 \section{Method}
 
-\subsection{Problem Formulation}
-At each control step $t$, a frozen policy emits hidden state $\mathbf{h}_t \in \mathbb{R}^m$ and action $\mathbf{a}_t \in \mathbb{R}^d$. We learn a safety head:
-\begin{equation}
-f_\theta(\mathbf{h}_t) = \{\hat{y}^{\mathrm{fail}}_t,\hat{\tau}_t,\widehat{\Delta\mathbf{p}}_t\},
-\end{equation}
-where $\hat{y}^{\mathrm{fail}}_t$ is failure logit, $\hat{\tau}_t$ is time-to-failure, and $\widehat{\Delta\mathbf{p}}_t=(\Delta x,\Delta y,\Delta z)$ is Cartesian correction.
-
-\subsection{Architecture (v4)}
-\begin{itemize}[leftmargin=1.2em]
-    \item Input LayerNorm on hidden state.
-    \item Shared encoder with hidden width 256, GELU, dropout 0.3.
-    \item Three heads: fail, ttf, correction.
-\end{itemize}
+We hypothesize that frozen robot policies encode a latent safety manifold---a low-dimensional structure in hidden-state space along which failure risk, temporal urgency, and corrective geometry are organized. To test this, we train a lightweight MLP probe that reads the manifold and produces corrective steering signals. The only assumption is access to per-step hidden states.
 
 \begin{figure}[t]
     \centering
-    \includegraphics[width=0.96\linewidth]{figures/06_ours_system_architecture.png}
-    \caption{Inference-time latent safety steering pipeline used in this project.}
-    \label{fig:ours_arch}
+    \includegraphics[width=0.98\linewidth]{figures/27_pipeline_overview.png}
+    \caption{\textbf{PULSE pipeline.} Top: offline training from paired success/failure rollouts. Bottom: online deployment---the frozen policy produces hidden states, the probe predicts risk and corrections, double gating ensures sparse intervention.}
+    \label{fig:pipeline}
 \end{figure}
 
-\subsection{Training Objective}
-\begin{align}
-\mathcal{L}_{\mathrm{fail}} &= \mathrm{BCEWithLogits}(\hat{y}^{\mathrm{fail}}, y; w^+_{\mathrm{batch}}), \\
-\mathcal{L}_{\tau} &= \mathrm{Huber}_{\delta}(\hat{\tau},\tau), \quad \delta=0.1, \\
-\mathcal{L}_{\Delta p} &= \mathrm{Huber}_{\delta}(\widehat{\Delta\mathbf{p}},\Delta\mathbf{p}), \\
-\mathcal{L} &= \lambda_f\mathcal{L}_{\mathrm{fail}} + \lambda_\tau\mathcal{L}_{\tau} + \lambda_c\mathcal{L}_{\Delta p}.
-\end{align}
-Optimizer: AdamW with weight decay $10^{-3}$.
+\subsection{Problem Formulation}
+At each control step $t$, a frozen policy emits hidden state $\mathbf{h}_t \in \mathbb{R}^m$ and action $\mathbf{a}_t \in \mathbb{R}^d$. We learn a \textbf{latent safety controller}:
+\begin{equation}
+f_\theta(\mathbf{h}_t) = \bigl\{\hat{y}^{\mathrm{fail}}_t,\;\hat{\tau}_t,\;\widehat{\Delta\mathbf{p}}_t\bigr\},
+\end{equation}
+where $\hat{y}^{\mathrm{fail}}_t$ is the failure logit, $\hat{\tau}_t$ is time-to-failure, and $\widehat{\Delta\mathbf{p}}_t = (\Delta x, \Delta y, \Delta z)$ is a Cartesian correction vector.
+
+\subsection{Architecture}
+The safety probe is a compact MLP (108K params for ACT 256-d; 1.1M for OpenVLA 4096-d):
+\begin{itemize}[leftmargin=1.2em, topsep=2pt, itemsep=1pt]
+    \item \textbf{Input:} LayerNorm on the policy's hidden state (any dimension $m$).
+    \item \textbf{Encoder:} Bottleneck: $m \to 256 \to 128 \to 64$, GELU, LayerNorm, Dropout(0.3).
+    \item \textbf{Three heads:} Linear projections from 64-d to failure logit, TTF scalar, 3-D correction.
+\end{itemize}
+
+\subsection{Training}
+\begin{equation}
+\mathcal{L} = \lambda_f \,\mathrm{BCE}(\hat{y}^{\mathrm{fail}}, y;\; w^+) + \lambda_\tau \,\mathrm{Huber}(\hat{\tau}, \tau) + \lambda_c \,\mathrm{Huber}(\widehat{\Delta\mathbf{p}}, \Delta\mathbf{p}).
+\end{equation}
+Labels come from paired success/failure trajectories: $\Delta\mathbf{p}_t = \mathbf{p}^{\mathrm{succ}}_t - \mathbf{p}^{\mathrm{fail}}_t$ in Cartesian EEF space (Figure~\ref{fig:pipeline}, top). The MLP sees only hidden states; EEF positions are used only for training labels.
 
 \subsection{Inference-Time Steering}
+At deployment, corrections are smoothed, clamped, and gated:
 \begin{align}
-\tilde{\Delta\mathbf{p}}_t &= \beta\tilde{\Delta\mathbf{p}}_{t-1} + (1-\beta)\widehat{\Delta\mathbf{p}}_t,\\
-\bar{\Delta\mathbf{p}}_t &= \mathrm{ClampNorm}(\tilde{\Delta\mathbf{p}}_t, c_{\max}),\\
-\mathbb{I}_t &= \mathbb{1}[\|\bar{\Delta\mathbf{p}}_t\|>\tau_c] \cdot \mathbb{1}[\sigma(\hat{y}^{\mathrm{fail}}_t)\ge \tau_f],\\
-\mathbf{a}^{xyz}_t &\leftarrow \mathbf{a}^{xyz}_t + \alpha\,\mathbb{I}_t\,\bar{\Delta\mathbf{p}}_t/s_a.
+\tilde{\Delta\mathbf{p}}_t &= \beta\,\tilde{\Delta\mathbf{p}}_{t-1} + (1{-}\beta)\,\widehat{\Delta\mathbf{p}}_t, \label{eq:ema} \\
+\bar{\Delta\mathbf{p}}_t &= \mathrm{ClampNorm}(\tilde{\Delta\mathbf{p}}_t,\; c_{\max}), \label{eq:clamp} \\
+\mathbb{I}_t &= \mathbb{1}[\|\bar{\Delta\mathbf{p}}_t\| > \tau_c] \cdot \mathbb{1}[\sigma(\hat{y}^{\mathrm{fail}}_t) \ge \tau_f], \label{eq:gate} \\
+\mathbf{a}^{xyz}_t &\leftarrow \mathbf{a}^{xyz}_t + \alpha\,\mathbb{I}_t\,\bar{\Delta\mathbf{p}}_t / s_a. \label{eq:apply}
 \end{align}
-
-\subsection{Failure-Detection-Only Baseline (Latent Stop)}
-To isolate detection from recovery, we define a stop-only baseline:
-\begin{equation}
-\mathbf{a}_t \leftarrow \mathbf{0} \quad \text{if} \quad \sigma(\hat{y}^{\mathrm{fail}}_t) \ge \tau_{\mathrm{stop}}.
-\end{equation}
-This directly tests whether detection alone preserves success.
-
-\subsection{OOD Protocols}
-We include two OOD mechanisms:
-\begin{itemize}[leftmargin=1.2em]
-    \item \textbf{Disturbance OOD:} sudden exogenous action-space push mid-episode.
-    \item \textbf{Environment OOD:} custom per-task BDDL overrides (novel obstacle/layout) via task-to-BDDL mapping.
-\end{itemize}
-
-\subsection{Final Metric Aggregation Protocol}
-All final paper metrics are computed from completed JSON result files in \texttt{paper/data} by pooling raw counts, not averaging best runs.
-For each family and controller mode, we aggregate:
-\begin{equation}
-\mathrm{Success\%} = 100 \cdot \frac{\sum_i n^{(i)}_{\mathrm{success}}}{\sum_i n^{(i)}_{\mathrm{episodes}}}.
-\end{equation}
-This prevents small-run bias and avoids cherry-picking favorable seeds. Latency is reported as the mean of logged per-task \texttt{mean\_apply\_ms} values across completed runs.
-
-\subsection{Embodied Deployment Extension (Yahboom Arm)}
-The same latent safety interface is designed for embodied deployment on a Yahboom robot arm stack:
-\begin{itemize}[leftmargin=1.2em]
-    \item \textbf{Policy side:} frozen base policy produces hidden state and nominal action.
-    \item \textbf{Safety side:} MLP predicts fail risk, TTF, and Cartesian correction.
-    \item \textbf{Control side:} correction is mapped to robot-compatible command space (e.g., EEF or joint-space through controller/IK layer), with clamp/gating preserved.
-    \item \textbf{Execution side:} corrected command is sent through the same safety checks and actuator limits as nominal commands.
-\end{itemize}
-
-To avoid overclaiming, embodied Yahboom conclusions are reported separately from simulation and only after repeatable physical-trial logs are complete.
+\textbf{Double gating} (Eq.~\ref{eq:gate}): corrections fire only when both correction magnitude and failure probability exceed thresholds, ensuring sparse intervention ($\sim$46\% of timesteps). \textbf{Clamping} (Eq.~\ref{eq:clamp}) acts as a trust region.

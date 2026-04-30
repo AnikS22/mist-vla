@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Large files (sync via HPC, not git)
+hpc_mirror/checkpoints/*/best_model.pt
+hpc_mirror/checkpoints/*/best_model_*.pt
+hpc_mirror/checkpoints/*/training_curves.json
+research_data/
+*.pkl
+*.mp4
+*.avi
+
+# Paper build artifacts
+paper/main.aux
+paper/main.bbl
+paper/main.blg
+paper/main.log
+paper/main.out
+paper/main.pdf
+paper/corl_2026_template.zip
+paper/corl_template/
+
+# Logs
+logs/
+*.log

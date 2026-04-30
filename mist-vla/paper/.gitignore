@@ -1,0 +1,27 @@
+# LaTeX build artifacts
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.fmt
+*.fot
+*.lof
+*.log
+*.lot
+*.out
+*.run.xml
+*.synctex.gz
+*.toc
+*.xdv
+
+# Built PDF (regenerate locally / on Overleaf)
+main.pdf
+
+# Python
+__pycache__/
+*.py[cod]
+.Python
+.venv/
+venv/

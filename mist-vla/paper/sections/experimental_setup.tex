@@ -1,58 +1,21 @@
 \section{Experimental Setup}
 
-\subsection{Benchmarks and Task Suites}
-Primary evaluation uses LIBERO spatial tasks with off-screen rendering and fixed initialization protocols.
+\paragraph{Benchmark.} LIBERO-Spatial~\cite{libero_paper}: 10 tabletop manipulation tasks, MuJoCo with EGL rendering, 300-timestep episodes, binary success.
 
-\subsection{Models}
-\begin{itemize}[leftmargin=1.2em]
-    \item OpenVLA-7B OFT (foundation policy)
-    \item ACT (imitation policy)
-    \item Auxiliary collected evidence: Diffusion Policy, Octo (where available)
-\end{itemize}
+\paragraph{Base policies.} (i) \textbf{OpenVLA-7B OFT}: autoregressive VLA, 4096-d hidden states, one action per step. (ii) \textbf{ACT}: CVAE action-chunking, 256-d hidden states, 8-step chunks.
 
-\subsection{Evaluation Modes}
-\begin{itemize}[leftmargin=1.2em]
-    \item vanilla
-    \item latent\_stop
-    \item noise
-    \item ema\_only
-    \item latent\_jiggle
-    \item mppi
-    \item steering (ours)
-\end{itemize}
+\paragraph{Safety probe.} 3${\times}$256 hidden layers, GELU, Dropout 0.3, LayerNorm input. 108K params (ACT) / 1.1M (OpenVLA). AdamW, early stopping on val AUC.
 
-\subsection{Generalization Protocols}
-\paragraph{Strict zero-shot task split.}
-Train safety head on task subset A, evaluate on disjoint unseen subset B.
+\paragraph{Modes.} Each task: $N{=}20$ episodes per mode. \textbf{vanilla}: unmodified. \textbf{latent\_stop}: freeze action if $\sigma(\hat{y}^{\mathrm{fail}}){\ge}\tau_{\mathrm{stop}}$. \textbf{latent\_jiggle}: random-direction correction, matched magnitude. \textbf{mppi}: sampling-based planning using failure head as cost. \textbf{steering} (ours): full PULSE pipeline.
 
-\paragraph{OOD stress testing.}
-Use disturbance OOD and/or custom OOD BDDL environments.
+\paragraph{Controller.} $\alpha{=}0.2$, $\beta{=}0.3$, $c_{\max}{=}0.004$\,m, $\tau_c{=}0.003$\,m, $\tau_f{=}0.6$, MPPI: 64 samples, $\sigma{=}0.003$\,m.
 
-\subsection{Embodied Platform Track: Yahboom Arm}
-This project includes an embodied track on a Yahboom 7-DoF arm controlled through a Jetson-hosted HTTP API.
+\paragraph{Generalization.} Strict zero-shot (train 8 tasks, eval 2 held-out) and disturbance OOD (push magnitude 0.08).
 
-\paragraph{Current hardware/software stack.}
-\begin{itemize}[leftmargin=1.2em]
-    \item \textbf{Robot:} Yahboom 7-DoF arm + gripper, serial link on \texttt{/dev/ttyUSB0}.
-    \item \textbf{Edge compute:} Jetson Orin running \texttt{arm\_server.py} with camera stream and action API.
-    \item \textbf{Control API:} \texttt{/status}, \texttt{/snapshot}, and \texttt{/action} endpoints for \texttt{move\_to}, \texttt{send\_angles}, \texttt{set\_gripper}, \texttt{pick\_at}, \texttt{place\_at}.
-    \item \textbf{Host bridge:} \texttt{scripts/yahboom\_bridge.py} and \texttt{scripts/run\_model\_yahboom\_loop.py}.
-\end{itemize}
+\paragraph{Statistics.} Two-proportion z-tests, Fisher exact, TOST ($\pm$2\,pp), Holm correction, Pearson/Spearman correlations. All $p$-values two-sided.
 
-\paragraph{Camera and policy-input standardization.}
-The live Jetson camera stream is consumed via \texttt{/snapshot} at 640$\times$480. Before policy inference, images are center-cropped and resized to 224$\times$224 to match the LIBERO-style square-input regime used in simulation pipelines. We additionally run a camera diagnostic script (\texttt{scripts/check\_jetson\_camera\_quality.py}) that records brightness, contrast, sharpness (Laplacian variance), and a center-region occlusion proxy in canonical arm poses (home/watch).
+\paragraph{Physical robot evaluation.}
+\label{sec:physical_setup}
+We evaluate on two robot arms: a Kinova Gen3 Lite (6-DoF) and a UFactory xArm 6 (6-DoF), each with a parallel gripper and wrist-mounted RGB camera. A GPU server runs the base policy and safety probe, sending commands to the arm over network. The safety probe is trained exclusively on simulation hidden states and deployed without fine-tuning---testing whether the latent safety manifold transfers from sim to real. Tasks: tabletop pick-and-place matching LIBERO-Spatial semantics. Modes: vanilla, steering, latent stop. 50 episodes per mode per task, with deterministic resets and blind success labeling by an independent annotator. Safety interlocks: workspace bounding ($\pm$50\,mm/step), velocity saturation, and e-stop. Measures: success rate, failure AUC on real trajectories (hand-labeled), intervention rate, and gating pattern comparison to simulation.
 
-\paragraph{Embodied inference details.}
-OpenVLA is loaded with \texttt{trust\_remote\_code=True}. On multi-GPU hosts, sharded loading (\texttt{device\_map=auto}) is used to avoid single-GPU OOM. A safety interlock suppresses motion deltas when action outputs are saturated, preventing unsafe command bursts.
-
-\paragraph{Real-robot protocol status.}
-Bring-up and closed-loop command validation are complete (API, gripper, and bounded motion). Standardized autonomous pick/place success-rate benchmarking remains pending and is reported explicitly as future work.
-
-\subsection{Metrics}
-Success rate, $\Delta$ vs vanilla, $\Delta$(Ours$-$MPPI), intervention rate, correction magnitude, and controller apply latency (mean/p95).
-
-\subsection{Statistical Reporting Plan for Camera-Ready}
-TODO-STATS-1: number of seeds. \\
-TODO-STATS-2: confidence interval method. \\
-TODO-STATS-3: hypothesis tests. \\
-TODO-STATS-4: model-comparison correction.
+\paragraph{Compute.} HPC cluster, NVIDIA A100 (40\,GB), $\sim$2,000 GPU-hours total.

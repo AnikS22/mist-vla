@@ -3,7 +3,7 @@ import json
 from collections import defaultdict
 from pathlib import Path
 
-PAPER = Path('/home/mpcr/Desktop/SalusV5/mist-vla/paper')
+PAPER = Path(__file__).resolve().parents[1]
 DATA = PAPER / 'data'
 TABLES = PAPER / 'tables'
 TABLES.mkdir(parents=True, exist_ok=True)
@@ -195,5 +195,53 @@ for mode in ['vanilla', 'mppi', 'steering', 'latent_jiggle', 'latent_stop']:
     act_table.append(f"{mode.replace('_', ' ').title()} & {pct(s):.2f} & {s['succ']}/{s['eps']} & {ms_txt} {EOL}")
 act_table += [r"\bottomrule", r"\end{tabular}", r"\end{table}"]
 write('tab_act_final_pooled.tex', act_table)
+
+# ---------------------------------------------------------------------
+# Table: Wilson 95% CIs (paper-curated family) from stat_tests_summary.json
+# ---------------------------------------------------------------------
+st_path = DATA / "stat_tests_summary.json"
+if st_path.exists():
+    st = load_json(st_path)
+    wm = st.get("families", {}).get("paper_curated", {}).get("wilson_per_mode", {})
+    if wm:
+        wtab = [
+            r"\begin{table}[t]",
+            r"\centering",
+            r"\caption{Wilson 95\% score intervals for success rate (\%) on the paper-curated LIBERO pool (same counts as Table~\ref{tab:final_pooled_results}).}",
+            r"\label{tab:wilson_paper_curated}",
+            r"\begin{tabular}{lccc}",
+            r"\toprule",
+            r"Method & $\hat p$ (\%) & 95\% Wilson CI (\%) & $n$ (succ/total) \\",
+            r"\midrule",
+        ]
+        order = [
+            "vanilla",
+            "mppi",
+            "steering",
+            "latent_jiggle",
+            "noise",
+            "latent_stop",
+            "ema_only",
+        ]
+        labels = {
+            "vanilla": "Vanilla",
+            "mppi": "MPPI",
+            "steering": "Steering (Ours)",
+            "latent_jiggle": "Latent Jiggle",
+            "noise": "Random Noise",
+            "latent_stop": "Latent Stop",
+            "ema_only": "EMA-only",
+        }
+        for mode in order:
+            row = wm.get(mode)
+            if not row:
+                continue
+            lo, hi = row["wilson95_pp"]
+            wtab.append(
+                f"{labels[mode]} & {row['p_hat_pp']:.2f} & "
+                f"[{lo:.2f},\\,{hi:.2f}] & {row['succ']}/{row['eps']} {EOL}"
+            )
+        wtab += [r"\bottomrule", r"\end{tabular}", r"\end{table}"]
+        write("tab_wilson_paper_curated.tex", wtab)
 
 print('Wrote tables:', sorted([p.name for p in TABLES.glob('tab_*.tex')]))

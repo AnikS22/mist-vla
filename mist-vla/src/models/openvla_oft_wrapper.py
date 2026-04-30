@@ -16,10 +16,17 @@ PROPRIO_DIM = 8
 
 
 def _ensure_openvla_oft_on_path() -> None:
-    repo_root = Path(__file__).resolve().parents[2]
-    oft_path = repo_root / "openvla-oft"
-    if oft_path.exists() and str(oft_path) not in sys.path:
-        sys.path.insert(0, str(oft_path))
+    # Candidate 1: sibling to `mist-vla` repo root (current layout).
+    # Candidate 2: nested under `mist-vla` (legacy layout).
+    here = Path(__file__).resolve()
+    candidates = [
+        here.parents[3] / "openvla-oft",  # /.../SalusV5/openvla-oft
+        here.parents[2] / "openvla-oft",  # /.../SalusV5/mist-vla/openvla-oft
+    ]
+    for oft_path in candidates:
+        if oft_path.exists() and str(oft_path) not in sys.path:
+            sys.path.insert(0, str(oft_path))
+            break
 
 
 class OpenVLAOFTWrapper:
@@ -28,7 +35,10 @@ class OpenVLAOFTWrapper:
         pretrained_checkpoint: str,
         unnorm_key: str = "libero_spatial_no_noops",
         device: Optional[str] = None,
+        device_map: Optional[str] = None,
+        load_in_4bit: Optional[bool] = None,
     ) -> None:
+        self.pretrained_checkpoint = pretrained_checkpoint
         _ensure_openvla_oft_on_path()
 
         # Some diffusers versions expect torch.xpu to exist.
@@ -82,6 +92,19 @@ class OpenVLAOFTWrapper:
             device = "cuda" if torch.cuda.is_available() else "cpu"
         self.device = device
 
+        # OFT checkpoints can OOM on smaller GPUs; use device_map auto-offload there.
+        self.device_map = None if device_map in (None, "", "none") else device_map
+        if load_in_4bit is None:
+            load_in_4bit = False
+            if self.device_map is None and device.startswith("cuda") and torch.cuda.is_available():
+                try:
+                    total_mem_gb = torch.cuda.get_device_properties(0).total_memory / (1024**3)
+                    if total_mem_gb < 16.0:
+                        self.device_map = "auto"
+                except Exception:
+                    self.device_map = "auto"
+        self.load_in_4bit = bool(load_in_4bit)
+
         self.cfg = GenerateConfig(
             pretrained_checkpoint=pretrained_checkpoint,
             use_l1_regression=True,
@@ -90,11 +113,12 @@ class OpenVLAOFTWrapper:
             num_images_in_input=1,
             use_proprio=True,
             load_in_8bit=False,
-            load_in_4bit=False,
+            load_in_4bit=self.load_in_4bit,
             center_crop=True,
             num_open_loop_steps=8,
             unnorm_key=unnorm_key,
         )
+        self.cfg.device_map = self.device_map
 
         self.vla = get_vla(self.cfg)
         self._resolve_unnorm_key()
@@ -107,6 +131,7 @@ class OpenVLAOFTWrapper:
         )
         self.get_vla_action = get_vla_action
         self.normalize_proprio = normalize_proprio
+        self._fallback_openvla = None
 
     def _to_pil(self, image):
         if isinstance(image, Image.Image):
@@ -131,6 +156,13 @@ class OpenVLAOFTWrapper:
         inputs = self.processor(prompt, image)
         if "labels" in inputs:
             inputs.pop("labels")
+        # For quantized / device_map models, HF accelerate handles placement.
+        if self.cfg.load_in_4bit or self.cfg.load_in_8bit or getattr(self.cfg, "device_map", None) is not None:
+            for key, val in inputs.items():
+                if torch.is_tensor(val):
+                    if val.is_floating_point():
+                        inputs[key] = val.to(dtype=torch.bfloat16)
+            return inputs
         dtype = None
         if hasattr(self.vla, "llm_backbone") and hasattr(self.vla.llm_backbone, "half_precision_dtype"):
             dtype = self.vla.llm_backbone.half_precision_dtype
@@ -179,14 +211,27 @@ class OpenVLAOFTWrapper:
                 norm_stats = self.vla.norm_stats[self.cfg.unnorm_key]["proprio"]
                 proprio = self.normalize_proprio(proprio, norm_stats)
 
-        actions, actions_hidden_states = self.vla.predict_action(
-            **inputs,
-            unnorm_key=self.cfg.unnorm_key,
-            proprio=proprio,
-            proprio_projector=self.proprio_projector,
-            action_head=self.action_head,
-            use_film=self.cfg.use_film,
-        )
+        try:
+            actions, actions_hidden_states = self.vla.predict_action(
+                **inputs,
+                unnorm_key=self.cfg.unnorm_key,
+                proprio=proprio,
+                proprio_projector=self.proprio_projector,
+                action_head=self.action_head,
+                use_film=self.cfg.use_film,
+            )
+        except Exception as e:
+            # Runtime fallback for brittle OFT inference on low-VRAM / mixed-device hosts.
+            if self._fallback_openvla is None:
+                from src.models.vla_wrapper import OpenVLAWrapper
+
+                print(f"[openvla_oft_wrapper] OFT inference failed, falling back to OpenVLA path: {e}")
+                self._fallback_openvla = OpenVLAWrapper(
+                    self.pretrained_checkpoint,
+                    device=self.device,
+                    device_map="auto",
+                )
+            return self._fallback_openvla.get_action_with_features(image, instruction, obs=obs)
         action = torch.from_numpy(actions[0]).to(self.device)
 
         if actions_hidden_states is None:
@@ -199,4 +244,6 @@ class OpenVLAOFTWrapper:
         return action, hidden_states.detach()
 
     def close(self) -> None:
+        if self._fallback_openvla is not None:
+            self._fallback_openvla.close()
         del self.vla

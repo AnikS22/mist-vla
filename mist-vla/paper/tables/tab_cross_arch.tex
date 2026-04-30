@@ -1,0 +1,17 @@
+\begin{table}[t]
+\centering
+\caption{Cross-architecture comparison: OpenVLA (4096-d) vs.\ ACT (256-d). Both exhibit the same qualitative pattern.}
+\label{tab:cross_arch}
+\begin{tabular}{lcccc}
+\toprule
+ & \multicolumn{2}{c}{OpenVLA} & \multicolumn{2}{c}{ACT} \\
+\cmidrule(lr){2-3} \cmidrule(lr){4-5}
+Mode & Success (\%) & $n$ & Success (\%) & $n$ \\
+\midrule
+Vanilla & 54.2 & 2754/5080 & 49.8 & 2451/4920 \\
+Latent Stop & 43.3 & 52/120 & 20.7 & 124/600 \\
+Steering & 54.1 & 2748/5080 & 49.3 & 2426/4920 \\
+MPPI & 54.0 & 2742/5080 & 50.2 & 2470/4920 \\
+\bottomrule
+\end{tabular}
+\end{table}

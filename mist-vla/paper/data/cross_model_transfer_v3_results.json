@@ -1,0 +1,33 @@
+{
+  "transfers": [
+    {
+      "direction": "ACT_to_OpenVLA",
+      "src_dim": 256,
+      "tgt_dim": 4096,
+      "native_tgt_ts_auc": 0.6973149952788888,
+      "native_tgt_ro_auc": 0.9673318814169518,
+      "native_src_ts_auc": 0.9380874208917654,
+      "native_src_ro_auc": 0.9991743486973949,
+      "transfer_ts_auc": 0.27038566972312117,
+      "transfer_ro_auc": 0.06862124248496994,
+      "efficiency_ts": 0.3877525530839636,
+      "efficiency_ro": 0.07093867554996043,
+      "n_matched": 300
+    },
+    {
+      "direction": "OpenVLA_to_ACT",
+      "src_dim": 4096,
+      "tgt_dim": 256,
+      "native_tgt_ts_auc": 0.9380874208917654,
+      "native_tgt_ro_auc": 0.9991743486973949,
+      "native_src_ts_auc": 0.6973149952788888,
+      "native_src_ro_auc": 0.9673318814169518,
+      "transfer_ts_auc": 0.4196701451852469,
+      "transfer_ro_auc": 0.42108538157251435,
+      "efficiency_ts": 0.4473678420997264,
+      "efficiency_ro": 0.4214333385574556,
+      "n_matched": 300
+    }
+  ],
+  "seed": 42
+}

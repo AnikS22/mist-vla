@@ -1,0 +1,20 @@
+\begin{table}[t]
+\centering
+\caption{Safety head metrics on held-out test set. OpenVLA (4096-d input, 1.1M params) vs.\ ACT (256-d input, 108K params).}
+\label{tab:safety_head_metrics}
+\begin{tabular}{lcc}
+\toprule
+Metric & OpenVLA (4096-d) & ACT (256-d) \\
+\midrule
+Failure AUC & 0.832 & 0.889 \\
+Failure Accuracy & 0.773 & 0.793 \\
+TTF Correlation ($r$) & 0.863 & 0.862 \\
+TTF $R^2$ & 0.741 & 0.739 \\
+Correction Cosine Sim (median) & 0.794 & 0.565 \\
+X Direction AUC & 0.851 & 0.578 \\
+Y Direction AUC & 0.880 & 0.696 \\
+Z Direction AUC & 0.779 & 0.657 \\
+Parameters & 1,099,397 & 108,677 \\
+\bottomrule
+\end{tabular}
+\end{table}

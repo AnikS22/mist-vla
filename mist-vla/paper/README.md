@@ -18,10 +18,14 @@ This folder contains the full CoRL-oriented paper structure with:
 - `figures/` — current visual assets
 - `data/` — synced run JSONs used for table generation
 
-## Regenerate Tables
+## Regenerate statistics and tables
 ```bash
-python3 scripts/generate_tables.py
+cd scripts
+python3 run_stat_tests.py    # STAT_TESTS_REPORT.md, stat_tests_summary.json, tab_stat_tests.tex
+python3 generate_tables.py   # pooled + Wilson + family tables
 ```
+
+See `SIM_PRIMARY_CLAIM.md`, `SIM_EVAL_PROTOCOL.md`, and `REPRO.md` for the simulation-first CoRL workflow.
 
 ## Generate Visuals
 ```bash
@@ -31,6 +35,7 @@ python3 scripts/generate_visuals.py
 Notes:
 - Some visuals are generated from completed run JSONs.
 - Some are intentionally synthetic placeholders and are labeled as such in captions.
+- Yahboom embodied-track sections are intentionally placeholder-complete; fill only from completed hardware trials.
 
 ## Build PDF (tectonic)
 ```bash
@@ -45,3 +50,4 @@ tectonic --keep-logs --keep-intermediates main.tex
 
 ## Camera-Ready Checklist
 Search for `TODO-` in `sections/` and resolve each item only with completed evidence.
+Search for `TODO-YB-` and `TODO-YBA-` for Yahboom-specific embodied placeholders.

@@ -1,0 +1,205 @@
+{
+  "config": {
+    "env": "libero_spatial",
+    "tasks": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "episodes_per_task": 20,
+    "alpha": 1.0,
+    "max_correction_m": 0.01,
+    "correction_threshold_m": 0.005,
+    "ema_beta": 0.7,
+    "action_scale": 0.05,
+    "seed": 42,
+    "arch_version": "v4"
+  },
+  "per_task": {
+    "0": {
+      "vanilla": {
+        "success_rate_pct": 65.0,
+        "n_successes": 13,
+        "n_episodes": 20,
+        "mean_ir": 0.0,
+        "mean_corr_mag_m": 0.0
+      },
+      "steering": {
+        "success_rate_pct": 15.0,
+        "n_successes": 3,
+        "n_episodes": 20,
+        "mean_ir": 0.8564,
+        "mean_corr_mag_m": 0.00856
+      },
+      "delta_pp": -50.0
+    },
+    "1": {
+      "vanilla": {
+        "success_rate_pct": 15.0,
+        "n_successes": 3,
+        "n_episodes": 20,
+        "mean_ir": 0.0,
+        "mean_corr_mag_m": 0.0
+      },
+      "steering": {
+        "success_rate_pct": 5.0,
+        "n_successes": 1,
+        "n_episodes": 20,
+        "mean_ir": 0.9732,
+        "mean_corr_mag_m": 0.009611
+      },
+      "delta_pp": -10.0
+    },
+    "2": {
+      "vanilla": {
+        "success_rate_pct": 95.0,
+        "n_successes": 19,
+        "n_episodes": 20,
+        "mean_ir": 0.0,
+        "mean_corr_mag_m": 0.0
+      },
+      "steering": {
+        "success_rate_pct": 75.0,
+        "n_successes": 15,
+        "n_episodes": 20,
+        "mean_ir": 0.2979,
+        "mean_corr_mag_m": 0.00429
+      },
+      "delta_pp": -20.0
+    },
+    "3": {
+      "vanilla": {
+        "success_rate_pct": 100.0,
+        "n_successes": 20,
+        "n_episodes": 20,
+        "mean_ir": 0.0,
+        "mean_corr_mag_m": 0.0
+      },
+      "steering": {
+        "success_rate_pct": 95.0,
+        "n_successes": 19,
+        "n_episodes": 20,
+        "mean_ir": 0.1627,
+        "mean_corr_mag_m": 0.003394
+      },
+      "delta_pp": -5.0
+    },
+    "4": {
+      "vanilla": {
+        "success_rate_pct": 35.0,
+        "n_successes": 7,
+        "n_episodes": 20,
+        "mean_ir": 0.0,
+        "mean_corr_mag_m": 0.0
+      },
+      "steering": {
+        "success_rate_pct": 70.0,
+        "n_successes": 14,
+        "n_episodes": 20,
+        "mean_ir": 0.4165,
+        "mean_corr_mag_m": 0.005148
+      },
+      "delta_pp": 35.0
+    },
+    "5": {
+      "vanilla": {
+        "success_rate_pct": 15.0,
+        "n_successes": 3,
+        "n_episodes": 20,
+        "mean_ir": 0.0,
+        "mean_corr_mag_m": 0.0
+      },
+      "steering": {
+        "success_rate_pct": 60.0,
+        "n_successes": 12,
+        "n_episodes": 20,
+        "mean_ir": 0.7547,
+        "mean_corr_mag_m": 0.007878
+      },
+      "delta_pp": 45.0
+    },
+    "6": {
+      "vanilla": {
+        "success_rate_pct": 95.0,
+        "n_successes": 19,
+        "n_episodes": 20,
+        "mean_ir": 0.0,
+        "mean_corr_mag_m": 0.0
+      },
+      "steering": {
+        "success_rate_pct": 70.0,
+        "n_successes": 14,
+        "n_episodes": 20,
+        "mean_ir": 0.5013,
+        "mean_corr_mag_m": 0.005882
+      },
+      "delta_pp": -25.0
+    },
+    "7": {
+      "vanilla": {
+        "success_rate_pct": 25.0,
+        "n_successes": 5,
+        "n_episodes": 20,
+        "mean_ir": 0.0,
+        "mean_corr_mag_m": 0.0
+      },
+      "steering": {
+        "success_rate_pct": 0.0,
+        "n_successes": 0,
+        "n_episodes": 20,
+        "mean_ir": 0.9152,
+        "mean_corr_mag_m": 0.009229
+      },
+      "delta_pp": -25.0
+    },
+    "8": {
+      "vanilla": {
+        "success_rate_pct": 95.0,
+        "n_successes": 19,
+        "n_episodes": 20,
+        "mean_ir": 0.0,
+        "mean_corr_mag_m": 0.0
+      },
+      "steering": {
+        "success_rate_pct": 55.0,
+        "n_successes": 11,
+        "n_episodes": 20,
+        "mean_ir": 0.6066,
+        "mean_corr_mag_m": 0.006887
+      },
+      "delta_pp": -40.0
+    },
+    "9": {
+      "vanilla": {
+        "success_rate_pct": 25.0,
+        "n_successes": 5,
+        "n_episodes": 20,
+        "mean_ir": 0.0,
+        "mean_corr_mag_m": 0.0
+      },
+      "steering": {
+        "success_rate_pct": 65.0,
+        "n_successes": 13,
+        "n_episodes": 20,
+        "mean_ir": 0.5099,
+        "mean_corr_mag_m": 0.006053
+      },
+      "delta_pp": 40.0
+    }
+  },
+  "summary": {
+    "avg_vanilla_pct": 56.5,
+    "avg_steering_pct": 51.0,
+    "avg_delta_pp": -5.5,
+    "tasks_helped": 3,
+    "tasks_hurt": 7,
+    "tasks_same": 0
+  }
+}
