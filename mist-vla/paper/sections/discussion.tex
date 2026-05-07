@@ -1,16 +1,13 @@
 \section{Discussion}
 
 \paragraph{Detection is strong and cross-architectural.}
-The probe achieves AUC 0.83--0.98 and TTF $r{=}0.86$ across a $16{\times}$ dimensionality gap. This extends prior detection-only work by showing the signal is rich enough to extract temporal and spatial structure, not just binary failure labels.
+The probe achieves strong failure detection and TTF prediction across a $16{\times}$ dimensionality gap. This extends prior detection-only work by showing the signal is rich enough to extract temporal structure, not just binary failure labels.
 
-\paragraph{Detection is the operative mechanism.}
-The jiggle ablation is the most informative result: matched-magnitude random corrections perform comparably to learned corrections. Any bounded perturbation timed by the failure signal works comparably. This means safety adapters should prioritize failure detection over correction-direction learning---a simpler design than previously assumed.
+\paragraph{The correction direction does not help.}
+The jiggle ablation is the most important result in this paper, and it is a negative one: matched-magnitude random corrections perform comparably to our learned corrections. In plain terms, the MLP learns \emph{when} the robot is in trouble but not \emph{which direction} to push it. A random nudge timed by the failure signal works just as well as the learned correction vector. This does not mean the system is useless---the detection timing is genuinely valuable (AUC 0.83--0.98)---but the correction head needs fundamental improvement before steering can outperform vanilla execution. We attempted continuous spatial correction and it did not succeed; improving correction fidelity is the primary direction for future work.
 
 \paragraph{Adaptive gating is emergent.}
 The $r{=}{-}0.98$ correlation ($p{<}10^{-6}$) between intervention rate and difficulty arises without explicit difficulty signal. The double-gating mechanism naturally modulates intervention density based on latent-state uncertainty.
 
-\paragraph{Correction fidelity is the bottleneck.}
-The correction head does not outperform random direction. This limits the practical benefit of steering beyond what detection-and-stop provides. The nearest-neighbor trajectory-matching labels may be too noisy; recovery-conditioned training data and multi-step planners are promising directions.
-
 \paragraph{Limitations.}
-Pooled success differences are not significant. Correction direction $\approx$ random. OOD effect is modest. Gating correlation is on $n{=}10$ tasks. Current results are in simulation; physical robot validation on SO-101 arms is planned.
+Pooled success differences are not significant---steering does not improve over vanilla. Correction direction $\approx$ random. OOD effect is modest. Gating correlation is on $n{=}10$ tasks. All current results are in simulation; {\color{blue}physical robot validation on SO-101 arms is planned.}

@@ -16,6 +16,6 @@
 
 \paragraph{Physical robot evaluation.}
 \label{sec:physical_setup}
-We evaluate on SO-101 robot arms (6-DoF, open-source) with multiple LeRobot VLAs, testing whether the latent safety signal transfers from sim to real. The safety probe is trained on simulation hidden states and deployed without fine-tuning. Tasks: tabletop pick-and-place. Modes: vanilla, steering, MPPI. 50 episodes per mode per task, blind success labeling. Safety interlocks: workspace bounding, velocity saturation, and e-stop. Measures: success rate, failure AUC on real trajectories, intervention rate.
+{\color{blue}We evaluate on SO-101 robot arms (6-DoF, open-source) with multiple LeRobot VLAs, testing whether the latent safety signal transfers from sim to real. The safety probe is trained on simulation hidden states and deployed without fine-tuning. Tasks: tabletop pick-and-place. Modes: vanilla, steering, MPPI. 50 episodes per mode per task, blind success labeling. Safety interlocks: workspace bounding, velocity saturation, and e-stop. Measures: success rate, failure AUC on real trajectories, intervention rate.}
 
 \paragraph{Compute.} HPC cluster, NVIDIA A100 (40\,GB), $\sim$2,000 GPU-hours total.

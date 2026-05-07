@@ -1,14 +1,14 @@
 \section{Introduction}
 
-Robot foundation models---VLA policies and imitation-learning architectures---have made rapid progress on generalizable manipulation~\citep{openvla_paper, act_paper}. Yet deploying these models in unstructured environments exposes a fundamental gap: failures are silent and unrecoverable.
+Robot foundation models---VLA policies and imitation-learning architectures---have made major advances in robotic capability~\citep{openvla_paper, act_paper}. Yet despite these gains, reliable generalization and safe deployment in open-world environments remain difficult due to distribution shifts, ambiguous states, and the unpredictability of real-world interaction.
 
-Recent work has shown that policy hidden states encode failure signals: SAFE~\citep{safe_paper} trains classifiers on VLA features for binary failure detection. A natural question follows: do these representations encode not just \emph{whether} failure will occur, but \emph{when} and \emph{how to correct}? If so, we can move beyond detection-and-stop to continuous inference-time correction.
+Recent work has shown that policy hidden states encode failure signals: SAFE~\citep{safe_paper} trains classifiers on VLA features for binary failure detection. We take it a step further asking if these representations encode not just \emph{whether} failure will occur, but \emph{when} and \emph{how to correct}? If so, we can move beyond detection-and-stop to continuous inference-time correction.
 
 \paragraph{Contributions.}
 \begin{itemize}[leftmargin=1.2em, topsep=2pt, itemsep=1pt]
-    \item[\textbf{C1}] \textbf{From detection to correction.} We extend failure-detection probes to output continuous Cartesian corrections and time-to-failure estimates. An MLP probe achieves failure AUC 0.83--0.98, TTF $r{=}0.86$, and per-axis correction AUC 0.66--0.88 across OpenVLA (4096-d) and ACT (256-d).
-    \item[\textbf{C2}] \textbf{Detection-gated perturbation as mechanism.} A mechanism analysis shows that failure detection---not correction direction---is the operative safety component. Matched-magnitude random corrections perform comparably to learned directions, simplifying the safety-adapter design space.
-    \item[\textbf{C3}] \textbf{Cross-architecture generalization at low latency.} The probe self-calibrates to task difficulty ($r{=}{-}0.98$, $p{<}10^{-6}$; $n{=}10$ tasks), generalizes zero-shot, and matches MPPI at $6{\times}$ lower latency (0.9\,ms vs.\ 5.6\,ms) across a $16{\times}$ dimensionality gap.
+    \item[\textbf{C1}] \textbf{From detection to correction.} We extend failure-detection probes to output continuous Cartesian corrections and time-to-failure estimates across OpenVLA (4096-d) and ACT (256-d).
+    \item[\textbf{C2}] \textbf{Detection-gated perturbation as mechanism.} We attempted continuous steering but found that the learned correction direction does not outperform random perturbation (jiggle ablation). The failure-detection timing---not the correction vector---is the operative safety component. This simplifies the design space and identifies correction fidelity as the key bottleneck for future work.
+    \item[\textbf{C3}] \textbf{Cross-architecture generalization at low latency.} The probe self-calibrates to task difficulty ($r{=}{-}0.98$, $p{<}10^{-6}$; $n{=}10$ tasks), generalizes zero-shot, and matches MPPI at $6{\times}$ lower latency across a $16{\times}$ dimensionality gap.
 \end{itemize}
 
-\paragraph{Scope.} Simulation results on LIBERO-Spatial with two policy architectures. The correction head is a bottleneck (jiggle ablation, Section~\ref{sec:mechanism}). Physical robot validation is planned on SO-101 arms.
+\paragraph{Scope.} Simulation results on LIBERO-Spatial with two policy architectures. The correction head is a bottleneck (Section~\ref{sec:mechanism}). {\color{blue}Physical robot validation is planned on SO-101 arms.}

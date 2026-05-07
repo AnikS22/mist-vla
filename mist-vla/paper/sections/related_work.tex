@@ -1,13 +1,13 @@
 \section{Related Work}
 
 \paragraph{Failure detection from policy representations.}
-Recent work has shown that learned policy features encode failure signals. SAFE~\citep{safe_paper} trains MLP classifiers on VLA hidden states for binary failure prediction with conformal guarantees. FAIL-Detect uses OOD detection in the policy's embedding space without labeled failure data. FIPER combines random network distillation with action-chunk entropy. Our work extends detection to \emph{continuous spatial correction}: the probe outputs not just a failure signal but a Cartesian recovery vector and time-to-failure estimate. The mechanism analysis reveals that detection-gated perturbation---not the correction direction---is the operative component, connecting to these detection-only approaches.
+Recent work has shown that learned policy features encode failure signals. SAFE~\citep{safe_paper} trains MLP classifiers on VLA hidden states for binary failure prediction with conformal guarantees. FAIL-Detect~\citep{fail_detect} uses OOD detection in the policy's embedding space without labeled failure data. FIPER~\citep{fiper} combines random network distillation with action-chunk entropy. Our work extends detection to include temporal prediction (TTF) and correction estimation. The mechanism analysis reveals that detection timing---not correction direction---is the operative component.
 
 \paragraph{Inference-time steering in LLMs.}
-Representation engineering~\citep{repr_engineering} and activation steering~\citep{activation_steering} show that LLM hidden states encode controllable safety directions. We extend this to robotics: policy hidden states encode spatial safety signals that can be acted on in real time, though the correction fidelity remains a bottleneck.
+Representation engineering~\citep{repr_engineering} and activation steering~\citep{activation_steering} show that LLM hidden states encode controllable safety directions. We extend this to robotics: policy hidden states encode spatial safety signals that can be acted on in real time, though correction fidelity remains a bottleneck.
 
 \paragraph{Latent activation editing for robots.}
-Concurrent work on latent activation editing modifies intermediate policy activations for collision avoidance in navigation. Mechanistic interpretability for VLAs identifies sparse semantic directions (speed, direction) causally linked to action selection. Our approach is complementary: we probe post-hoc rather than editing activations, and focus on manipulation safety rather than navigation.
+Concurrent work on latent activation editing~\citep{lae_paper} modifies intermediate policy activations for collision avoidance in navigation. Mechanistic interpretability for VLAs~\citep{mech_interp_vla} identifies sparse semantic directions causally linked to action selection. Our approach differs: we probe post-hoc rather than editing activations, and focus on manipulation safety rather than navigation.
 
 \paragraph{Classical safety filters.}
 CBFs~\citep{cbf_paper}, shielded RL~\citep{shielded_rl}, and MPPI~\citep{mppi_paper} operate in state/action space with hand-designed or learned constraints. Our probe accesses the policy's internal representations directly, achieving MPPI-equivalent success at $6{\times}$ lower latency.
