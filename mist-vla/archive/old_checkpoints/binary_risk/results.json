@@ -1,0 +1,26 @@
+{
+  "test_metrics": {
+    "binary_auc": 0.9997707368517584,
+    "binary_acc": 0.9952267303102625,
+    "binary_balanced_acc": 0.995575221238938,
+    "x_auc": 0.9997707368517584,
+    "y_auc": 0.9997707368517584,
+    "z_auc": 0.9997707368517585,
+    "roll_auc": 0.9996331789628135,
+    "pitch_auc": 0.9996790315924619,
+    "yaw_auc": 0.9995873263331653,
+    "gripper_auc": 0.9996790315924619,
+    "mean_per_dim_auc": 0.9996986827194538
+  },
+  "best_val_auc": 1.0,
+  "args": {
+    "data": "data/training_datasets/temporal_risk_balanced.pkl",
+    "output_dir": "checkpoints/binary_risk",
+    "epochs": 50,
+    "batch_size": 128,
+    "lr": 0.001,
+    "hidden_dim": 512,
+    "device": "cpu",
+    "seed": 42
+  }
+}

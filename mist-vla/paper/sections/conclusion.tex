@@ -1,9 +1,20 @@
 \section{Conclusion}
 
-Robot policies encode safety. Frozen hidden states of both a 7B VLA and a compact imitation learner organize failure risk, temporal urgency, and corrective geometry along a shared latent manifold. PULSE reads this manifold with a lightweight probe, steering at inference time at $6{\times}$ lower latency than MPPI, self-calibrating to difficulty ($r{=}{-}0.98$, $p{<}10^{-6}$), and generalizing zero-shot to unseen tasks. Linear cross-model transfer fails, indicating the manifold is architecture-specific in its coordinates despite shared structure.
+We probe the hidden states of two architecturally distinct robot policies and show they encode failure risk (AUC 0.83--0.98), temporal urgency ($r{=}0.86$), and corrective geometry---extending detection-only approaches like SAFE to continuous spatial correction. PULSE reads these signals with a lightweight probe and steers at inference time at $6{\times}$ lower latency than MPPI, self-calibrating to difficulty ($r{=}{-}0.98$, $p{<}10^{-6}$) and generalizing zero-shot.
 
-The mechanism analysis shows failure \emph{detection}---not correction \emph{direction}---is the operative component. The bottleneck for future safety adapters is predicting recovery direction, not detecting risk.
+The mechanism analysis reveals that detection-gated perturbation---not learned correction direction---is the operative component, simplifying the safety-adapter design space.
 
-\paragraph{Future work.} (i) Physical robot validation on Kinova Gen3 Lite and xArm 6. (ii) Nonlinear cross-model transfer. (iii) Improved correction heads. (iv) Stronger OOD with larger sample sizes.
+\paragraph{Improving the correction head.}
+The current correction head does not outperform random-direction perturbation (jiggle ablation). Three directions may address this:
+\begin{enumerate}[leftmargin=1.5em, topsep=2pt, itemsep=1pt]
+    \item \textbf{Recovery-conditioned labels.} Current labels use nearest-neighbor trajectory matching ($\Delta\mathbf{p}_t = \mathbf{p}^{\mathrm{succ}}_t - \mathbf{p}^{\mathrm{fail}}_t$). Training on demonstrations that \emph{recovered from near-failure} would provide cleaner directional signal.
+    \item \textbf{Multi-step correction planning.} Single-step Cartesian deltas cannot capture multi-step recovery strategies. A sequence model over hidden states could plan corrective trajectories.
+    \item \textbf{Task-specific correction heads.} Training the correction head on the specific failure modes of the target tasks and embodiment, rather than a single universal head.
+\end{enumerate}
+
+\paragraph{Additional future work.}
+(i) Physical robot validation on SO-101 arms with multiple LeRobot VLAs.
+(ii) Nonlinear cross-model transfer.
+(iii) Integration with conformal prediction guarantees for calibrated failure detection.
 
 All code, data, checkpoints, and evaluation scripts will be released.

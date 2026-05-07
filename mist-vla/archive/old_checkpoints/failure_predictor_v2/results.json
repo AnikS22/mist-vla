@@ -1,0 +1,30 @@
+{
+  "test_metrics": {
+    "ttf_mae": 0.1055944487452507,
+    "ttf_r2": 0.8356539011001587,
+    "failure_auc": 0.924830663078229,
+    "failure_acc": 0.8459495351925631,
+    "action_x_mae": 0.19560983777046204,
+    "action_y_mae": 0.19770240783691406,
+    "action_z_mae": 0.21792851388454437,
+    "action_roll_mae": 0.09415911138057709,
+    "action_pitch_mae": 0.11029110103845596,
+    "action_yaw_mae": 0.10013783723115921,
+    "action_gripper_mae": 0.361087828874588,
+    "action_mean_mae": 0.1824166625738144,
+    "anomaly_failure_corr": 0.20874457175065741
+  },
+  "best_val_auc": 0.9430896264229598,
+  "args": {
+    "failure_data": "data/diverse_failures/failure_rollouts.pkl",
+    "success_data": "data/diverse_failures/success_rollouts.pkl",
+    "output_dir": "checkpoints/failure_predictor_v2",
+    "epochs": 100,
+    "batch_size": 256,
+    "lr": 0.001,
+    "hidden_dim": 512,
+    "action_weight": 0.3,
+    "device": "cpu",
+    "seed": 42
+  }
+}

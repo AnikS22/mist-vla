@@ -1,0 +1,360 @@
+[
+  {
+    "episode": 0,
+    "mode": "steering",
+    "steps": [
+      {
+        "step": 0,
+        "fail_prob": 1.0,
+        "ttf": 0.4571828842163086,
+        "correction_mag": 0.0034999999999999996,
+        "gate_fired": true
+      },
+      {
+        "step": 1,
+        "fail_prob": 1.0,
+        "ttf": 0.47090137004852295,
+        "correction_mag": 0.0035,
+        "gate_fired": true
+      },
+      {
+        "step": 2,
+        "fail_prob": 1.0,
+        "ttf": 0.42491939663887024,
+        "correction_mag": 0.0034999999999999996,
+        "gate_fired": true
+      },
+      {
+        "step": 3,
+        "fail_prob": 1.0,
+        "ttf": 0.4393575191497803,
+        "correction_mag": 0.0035,
+        "gate_fired": true
+      },
+      {
+        "step": 4,
+        "fail_prob": 1.0,
+        "ttf": 0.4502222239971161,
+        "correction_mag": 0.0035000000000000005,
+        "gate_fired": true
+      },
+      {
+        "step": 5,
+        "fail_prob": 1.0,
+        "ttf": 0.4453849196434021,
+        "correction_mag": 0.0035,
+        "gate_fired": true
+      },
+      {
+        "step": 6,
+        "fail_prob": 1.0,
+        "ttf": 0.4234775900840759,
+        "correction_mag": 0.0035,
+        "gate_fired": true
+      },
+      {
+        "step": 7,
+        "fail_prob": 1.0,
+        "ttf": 0.42611414194107056,
+        "correction_mag": 0.0034999999999999996,
+        "gate_fired": true
+      },
+      {
+        "step": 8,
+        "fail_prob": 1.0,
+        "ttf": 0.43447867035865784,
+        "correction_mag": 0.0035,
+        "gate_fired": true
+      },
+      {
+        "step": 9,
+        "fail_prob": 1.0,
+        "ttf": 0.43658995628356934,
+        "correction_mag": 0.0035,
+        "gate_fired": true
+      },
+      {
+        "step": 10,
+        "fail_prob": 1.0,
+        "ttf": 0.4355173408985138,
+        "correction_mag": 0.0034999999999999996,
+        "gate_fired": true
+      },
+      {
+        "step": 11,
+        "fail_prob": 1.0,
+        "ttf": 0.4354807138442993,
+        "correction_mag": 0.0035,
+        "gate_fired": true
+      },
+      {
+        "step": 12,
+        "fail_prob": 1.0,
+        "ttf": 0.42977988719940186,
+        "correction_mag": 0.0035,
+        "gate_fired": true
+      },
+      {
+        "step": 13,
+        "fail_prob": 1.0,
+        "ttf": 0.44058775901794434,
+        "correction_mag": 0.0035,
+        "gate_fired": true
+      },
+      {
+        "step": 14,
+        "fail_prob": 1.0,
+        "ttf": 0.4357329308986664,
+        "correction_mag": 0.0035,
+        "gate_fired": true
+      },
+      {
+        "step": 15,
+        "fail_prob": 1.0,
+        "ttf": 0.4382533133029938,
+        "correction_mag": 0.0035,
+        "gate_fired": true
+      },
+      {
+        "step": 16,
+        "fail_prob": 1.0,
+        "ttf": 0.43398189544677734,
+        "correction_mag": 0.0034999999999999996,
+        "gate_fired": true
+      },
+      {
+        "step": 17,
+        "fail_prob": 1.0,
+        "ttf": 0.43605607748031616,
+        "correction_mag": 0.0035,
+        "gate_fired": true
+      },
+      {
+        "step": 18,
+        "fail_prob": 1.0,
+        "ttf": 0.4351985454559326,
+        "correction_mag": 0.0035000000000000005,
+        "gate_fired": true
+      },
+      {
+        "step": 19,
+        "fail_prob": 1.0,
+        "ttf": 0.4387624263763428,
+        "correction_mag": 0.0035,
+        "gate_fired": true
+      },
+      {
+        "step": 20,
+        "fail_prob": 1.0,
+        "ttf": 0.4405076205730438,
+        "correction_mag": 0.0034999999999999996,
+        "gate_fired": true
+      },
+      {
+        "step": 21,
+        "fail_prob": 1.0,
+        "ttf": 0.43821215629577637,
+        "correction_mag": 0.0035,
+        "gate_fired": true
+      },
+      {
+        "step": 22,
+        "fail_prob": 1.0,
+        "ttf": 0.44007349014282227,
+        "correction_mag": 0.0035,
+        "gate_fired": true
+      },
+      {
+        "step": 23,
+        "fail_prob": 1.0,
+        "ttf": 0.4445257782936096,
+        "correction_mag": 0.0035,
+        "gate_fired": true
+      },
+      {
+        "step": 24,
+        "fail_prob": 1.0,
+        "ttf": 0.43940234184265137,
+        "correction_mag": 0.0035,
+        "gate_fired": true
+      },
+      {
+        "step": 25,
+        "fail_prob": 1.0,
+        "ttf": 0.4358166456222534,
+        "correction_mag": 0.0035000000000000005,
+        "gate_fired": true
+      },
+      {
+        "step": 26,
+        "fail_prob": 1.0,
+        "ttf": 0.4363415241241455,
+        "correction_mag": 0.0034999999999999996,
+        "gate_fired": true
+      },
+      {
+        "step": 27,
+        "fail_prob": 1.0,
+        "ttf": 0.43507277965545654,
+        "correction_mag": 0.0035,
+        "gate_fired": true
+      },
+      {
+        "step": 28,
+        "fail_prob": 1.0,
+        "ttf": 0.4300963878631592,
+        "correction_mag": 0.0034999999999999996,
+        "gate_fired": true
+      },
+      {
+        "step": 29,
+        "fail_prob": 1.0,
+        "ttf": 0.435324490070343,
+        "correction_mag": 0.0035,
+        "gate_fired": true
+      },
+      {
+        "step": 30,
+        "fail_prob": 1.0,
+        "ttf": 0.4367736577987671,
+        "correction_mag": 0.0035,
+        "gate_fired": true
+      },
+      {
+        "step": 31,
+        "fail_prob": 1.0,
+        "ttf": 0.43501225113868713,
+        "correction_mag": 0.0034999999999999996,
+        "gate_fired": true
+      },
+      {
+        "step": 32,
+        "fail_prob": 1.0,
+        "ttf": 0.43152889609336853,
+        "correction_mag": 0.0035000000000000005,
+        "gate_fired": true
+      },
+      {
+        "step": 33,
+        "fail_prob": 1.0,
+        "ttf": 0.4278056025505066,
+        "correction_mag": 0.0035,
+        "gate_fired": true
+      },
+      {
+        "step": 34,
+        "fail_prob": 1.0,
+        "ttf": 0.4322018027305603,
+        "correction_mag": 0.0035,
+        "gate_fired": true
+      },
+      {
+        "step": 35,
+        "fail_prob": 1.0,
+        "ttf": 0.43607473373413086,
+        "correction_mag": 0.0035,
+        "gate_fired": true
+      },
+      {
+        "step": 36,
+        "fail_prob": 1.0,
+        "ttf": 0.4384912848472595,
+        "correction_mag": 0.0035,
+        "gate_fired": true
+      },
+      {
+        "step": 37,
+        "fail_prob": 1.0,
+        "ttf": 0.4375670850276947,
+        "correction_mag": 0.0035,
+        "gate_fired": true
+      },
+      {
+        "step": 38,
+        "fail_prob": 1.0,
+        "ttf": 0.44044506549835205,
+        "correction_mag": 0.0035,
+        "gate_fired": true
+      },
+      {
+        "step": 39,
+        "fail_prob": 1.0,
+        "ttf": 0.43369635939598083,
+        "correction_mag": 0.0035,
+        "gate_fired": true
+      },
+      {
+        "step": 40,
+        "fail_prob": 1.0,
+        "ttf": 0.4386219382286072,
+        "correction_mag": 0.0034999999999999996,
+        "gate_fired": true
+      },
+      {
+        "step": 41,
+        "fail_prob": 1.0,
+        "ttf": 0.44588032364845276,
+        "correction_mag": 0.0034999999999999996,
+        "gate_fired": true
+      },
+      {
+        "step": 42,
+        "fail_prob": 1.0,
+        "ttf": 0.4392458200454712,
+        "correction_mag": 0.0035,
+        "gate_fired": true
+      },
+      {
+        "step": 43,
+        "fail_prob": 1.0,
+        "ttf": 0.43778756260871887,
+        "correction_mag": 0.0035,
+        "gate_fired": true
+      },
+      {
+        "step": 44,
+        "fail_prob": 1.0,
+        "ttf": 0.43796002864837646,
+        "correction_mag": 0.0035000000000000005,
+        "gate_fired": true
+      },
+      {
+        "step": 45,
+        "fail_prob": 1.0,
+        "ttf": 0.43933093547821045,
+        "correction_mag": 0.0034999999999999996,
+        "gate_fired": true
+      },
+      {
+        "step": 46,
+        "fail_prob": 1.0,
+        "ttf": 0.438564658164978,
+        "correction_mag": 0.0035000000000000005,
+        "gate_fired": true
+      },
+      {
+        "step": 47,
+        "fail_prob": 1.0,
+        "ttf": 0.4346598982810974,
+        "correction_mag": 0.0034999999999999996,
+        "gate_fired": true
+      },
+      {
+        "step": 48,
+        "fail_prob": 1.0,
+        "ttf": 0.43712282180786133,
+        "correction_mag": 0.003500000000000001,
+        "gate_fired": true
+      },
+      {
+        "step": 49,
+        "fail_prob": 1.0,
+        "ttf": 0.4440521001815796,
+        "correction_mag": 0.0034999999999999996,
+        "gate_fired": true
+      }
+    ],
+    "success": false,
+    "final_step": 49
+  }
+]

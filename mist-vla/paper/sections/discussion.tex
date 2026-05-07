@@ -1,16 +1,16 @@
 \section{Discussion}
 
-\paragraph{The safety manifold is real.}
-Frozen VLA and imitation-learning hidden states encode failure risk (AUC 0.83--0.89), temporal urgency ($r{=}0.86$), and corrective geometry (direction AUC 0.66--0.88). This structure is consistent across a $16{\times}$ dimensionality gap---analogous to LLM hidden states encoding safety directions~\citep{repr_engineering}.
+\paragraph{Detection is strong and cross-architectural.}
+The probe achieves AUC 0.83--0.98 and TTF $r{=}0.86$ across a $16{\times}$ dimensionality gap. This extends prior detection-only work by showing the signal is rich enough to extract temporal and spatial structure, not just binary failure labels.
 
-\paragraph{Detection is the mechanism.}
-The jiggle ablation shows matched-magnitude random corrections perform comparably to learned corrections. Any bounded perturbation gated by risk prevents catastrophic commitment. This simplifies the design space: invest in failure detection, not correction direction.
+\paragraph{Detection is the operative mechanism.}
+The jiggle ablation is the most informative result: matched-magnitude random corrections perform comparably to learned corrections. Any bounded perturbation gated by the failure signal prevents the policy from committing to catastrophic trajectories. This means safety adapters should prioritize failure detection over correction-direction learning---a simpler design than previously assumed.
 
 \paragraph{Adaptive gating is emergent.}
-The $r{=}{-}0.98$ correlation ($p{<}10^{-6}$) between intervention rate and difficulty arises without explicit difficulty signal.
+The $r{=}{-}0.98$ correlation ($p{<}10^{-6}$) between intervention rate and difficulty arises without explicit difficulty signal. The double-gating mechanism naturally modulates intervention density based on latent-state uncertainty.
 
-\paragraph{Transfer requires nonlinear alignment.}
-Linear projection between architectures fails (Section~\ref{sec:transfer}). The manifold exists in both but the coordinate systems differ. This motivates nonlinear alignment or architecture-agnostic probing as future work.
+\paragraph{Correction fidelity is the bottleneck.}
+The correction head does not outperform random direction. This limits the practical benefit of steering beyond what detection-and-stop provides. The nearest-neighbor trajectory-matching labels may be too noisy; recovery-conditioned training data and multi-step planners are promising directions.
 
 \paragraph{Limitations.}
-Pooled success differences are not significant. Correction direction $\approx$ random. OOD effect is modest ($+3.7$\,pp best, not significant). Gating correlation is on $n{=}10$ tasks. Current results are in simulation; physical robot validation is planned.
+Pooled success differences are not significant. Correction direction $\approx$ random. OOD effect is modest. Gating correlation is on $n{=}10$ tasks. Current results are in simulation; physical robot validation on SO-101 arms is in progress.
