@@ -17,20 +17,8 @@ Moderate clamping ($c_{\max}{=}0.01$\,m) preserves base-policy success on easy t
 
 \begin{figure}[h]
     \centering
-    \includegraphics[width=0.82\linewidth]{figures/10_final_pooled_success.png}
+    \includegraphics[width=0.7\linewidth]{figures/10_final_pooled_success.png}
     \caption{Pooled success rates across all completed runs.}
-\end{figure}
-
-\begin{figure}[h]
-    \centering
-    \includegraphics[width=0.75\linewidth]{figures/09_latency_speedup_ood.png}
-    \caption{Controller latency: steering vs.\ MPPI.}
-\end{figure}
-
-\begin{figure}[h]
-    \centering
-    \includegraphics[width=0.85\linewidth]{figures/24_safety_head_auc.png}
-    \caption{Safety probe metrics across architectures.}
 \end{figure}
 
 \section{Zero-Shot and OOD Details}
@@ -41,7 +29,7 @@ Moderate clamping ($c_{\max}{=}0.01$\,m) preserves base-policy success on easy t
 
 \begin{figure}[h]
     \centering
-    \includegraphics[width=0.9\linewidth]{figures/07_zero_shot_seed_deltas.png}
+    \includegraphics[width=0.8\linewidth]{figures/07_zero_shot_seed_deltas.png}
     \caption{Zero-shot OOD: per-seed deltas vs.\ vanilla.}
 \end{figure}
 
@@ -49,9 +37,17 @@ Moderate clamping ($c_{\max}{=}0.01$\,m) preserves base-policy success on easy t
 
 \begin{figure}[h]
     \centering
-    \includegraphics[width=0.75\linewidth]{figures/26_transfer_result.png}
+    \includegraphics[width=0.65\linewidth]{figures/26_transfer_result.png}
     \caption{Cross-model transfer via linear projection. Native AUCs are strong but transfer drops below chance.}
     \label{fig:transfer}
+\end{figure}
+
+\section{OOD Push Sweep Details}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.78\linewidth]{figures/25_ood_push_sweep.png}
+    \caption{Left: success rate under increasing OOD disturbance. Right: steering advantage by push magnitude.}
 \end{figure}
 
 \section{Reproducibility}
