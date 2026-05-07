@@ -1,6 +1,6 @@
 \section{Method}
 
-We hypothesize that frozen robot policies encode a latent safety manifold---a low-dimensional structure in hidden-state space along which failure risk, temporal urgency, and corrective geometry are organized. To test this, we train a lightweight MLP probe that reads the manifold and produces corrective steering signals. The only assumption is access to per-step hidden states.
+We hypothesize that frozen robot policies encode latent safety signals---failure risk, temporal urgency, and corrective geometry readable from hidden states. To test this, we train a lightweight MLP probe that reads these signals and produces corrective steering outputs. The only assumption is access to per-step hidden states.
 
 \begin{figure}[t]
     \centering

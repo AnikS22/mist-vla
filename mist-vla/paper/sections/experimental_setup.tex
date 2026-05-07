@@ -16,6 +16,6 @@
 
 \paragraph{Physical robot evaluation.}
 \label{sec:physical_setup}
-We evaluate on two robot arms: a Kinova Gen3 Lite (6-DoF) and a UFactory xArm 6 (6-DoF), each with a parallel gripper and wrist-mounted RGB camera. A GPU server runs the base policy and safety probe, sending commands to the arm over network. The safety probe is trained exclusively on simulation hidden states and deployed without fine-tuning---testing whether the latent safety manifold transfers from sim to real. Tasks: tabletop pick-and-place matching LIBERO-Spatial semantics. Modes: vanilla, steering, latent stop. 50 episodes per mode per task, with deterministic resets and blind success labeling by an independent annotator. Safety interlocks: workspace bounding ($\pm$50\,mm/step), velocity saturation, and e-stop. Measures: success rate, failure AUC on real trajectories (hand-labeled), intervention rate, and gating pattern comparison to simulation.
+We evaluate on SO-101 robot arms (6-DoF, open-source) with multiple LeRobot VLAs, testing whether the latent safety signal transfers from sim to real. The safety probe is trained on simulation hidden states and deployed without fine-tuning. Tasks: tabletop pick-and-place. Modes: vanilla, steering, latent stop. 50 episodes per mode per task, blind success labeling. Safety interlocks: workspace bounding, velocity saturation, and e-stop. Measures: success rate, failure AUC on real trajectories, intervention rate.
 
 \paragraph{Compute.} HPC cluster, NVIDIA A100 (40\,GB), $\sim$2,000 GPU-hours total.

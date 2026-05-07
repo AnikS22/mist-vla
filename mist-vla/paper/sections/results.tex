@@ -1,8 +1,8 @@
 \section{Results}
 \label{sec:results}
 
-\subsection{The Safety Manifold Exists}
-\label{sec:manifold_exists}
+\subsection{Hidden States Encode Safety}
+\label{sec:safety_encoding}
 
 \input{tables/tab_safety_head_metrics}
 
@@ -65,7 +65,7 @@ Under $2{-}5{\times}$ baseline disturbance on the four hardest tasks (Table~\ref
 \subsection{Cross-Model Transfer}
 \label{sec:transfer}
 
-We test whether a safety head trained on one architecture detects failure on another via learned linear projection. Linear transfer fails: ACT$\to$OpenVLA AUC = 0.27 (native 0.70); OpenVLA$\to$ACT = 0.42 (native 0.94). The manifold exists in both architectures but the coordinate systems are not linearly alignable (Figure~\ref{fig:transfer} in Appendix). Nonlinear transfer is future work.
+We test whether a safety head trained on one architecture detects failure on another via learned linear projection. Linear transfer fails: ACT$\to$OpenVLA AUC = 0.27 (native 0.70); OpenVLA$\to$ACT = 0.42 (native 0.94). The safety signal exists in both architectures but the coordinate systems are not linearly alignable (Figure~\ref{fig:transfer} in Appendix). Nonlinear transfer is future work.
 
 \subsection{Physical Robot Evaluation}
 \label{sec:physical_results}
