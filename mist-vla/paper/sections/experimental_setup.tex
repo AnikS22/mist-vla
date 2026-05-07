@@ -6,7 +6,7 @@
 
 \paragraph{Safety probe.} 3${\times}$256 hidden layers, GELU, Dropout 0.3, LayerNorm input. 108K params (ACT) / 1.1M (OpenVLA). AdamW, early stopping on val AUC.
 
-\paragraph{Modes.} Each task: $N{=}20$ episodes per mode. \textbf{vanilla}: unmodified. \textbf{latent\_stop}: freeze action if $\sigma(\hat{y}^{\mathrm{fail}}){\ge}\tau_{\mathrm{stop}}$. \textbf{latent\_jiggle}: random-direction correction, matched magnitude. \textbf{mppi}: sampling-based planning using failure head as cost. \textbf{steering} (ours): full PULSE pipeline.
+\paragraph{Modes.} Each task: $N{=}20$ episodes per mode. \textbf{vanilla}: unmodified. \textbf{latent\_jiggle}: random-direction correction, matched magnitude (mechanism ablation). \textbf{mppi}: sampling-based planning using failure head as cost. \textbf{steering} (ours): full PULSE pipeline.
 
 \paragraph{Controller.} $\alpha{=}0.2$, $\beta{=}0.3$, $c_{\max}{=}0.004$\,m, $\tau_c{=}0.003$\,m, $\tau_f{=}0.6$, MPPI: 64 samples, $\sigma{=}0.003$\,m.
 
@@ -16,6 +16,6 @@
 
 \paragraph{Physical robot evaluation.}
 \label{sec:physical_setup}
-We evaluate on SO-101 robot arms (6-DoF, open-source) with multiple LeRobot VLAs, testing whether the latent safety signal transfers from sim to real. The safety probe is trained on simulation hidden states and deployed without fine-tuning. Tasks: tabletop pick-and-place. Modes: vanilla, steering, latent stop. 50 episodes per mode per task, blind success labeling. Safety interlocks: workspace bounding, velocity saturation, and e-stop. Measures: success rate, failure AUC on real trajectories, intervention rate.
+We evaluate on SO-101 robot arms (6-DoF, open-source) with multiple LeRobot VLAs, testing whether the latent safety signal transfers from sim to real. The safety probe is trained on simulation hidden states and deployed without fine-tuning. Tasks: tabletop pick-and-place. Modes: vanilla, steering, MPPI. 50 episodes per mode per task, blind success labeling. Safety interlocks: workspace bounding, velocity saturation, and e-stop. Measures: success rate, failure AUC on real trajectories, intervention rate.
 
 \paragraph{Compute.} HPC cluster, NVIDIA A100 (40\,GB), $\sim$2,000 GPU-hours total.

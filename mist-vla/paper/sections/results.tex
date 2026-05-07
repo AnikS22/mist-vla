@@ -20,7 +20,7 @@ We train MLP probes on frozen hidden states and evaluate on held-out trajectorie
 
 \input{tables/tab_final_pooled_results}
 
-Across 9,960+ episodes per mode, vanilla 52.1\%, MPPI 52.2\%, steering 51.8\%---TOST equivalent within $\pm$2\,pp ($p{<}0.011$). Steering: 0.9\,ms vs.\ 5.6\,ms for MPPI ($6.1{\times}$ speedup). Detection-only collapses to 24\%. Statistical details in Appendix~\ref{app:stats}.
+Across 9,960+ episodes per mode, vanilla 52.1\%, MPPI 52.2\%, steering 51.8\%---TOST equivalent within $\pm$2\,pp ($p{<}0.011$). Steering: 0.9\,ms vs.\ 5.6\,ms for MPPI ($6.1{\times}$ speedup). Statistical details in Appendix~\ref{app:stats}.
 
 \subsection{Adaptive Gating}
 \label{sec:adaptive_gating}
@@ -41,7 +41,7 @@ Per-task intervention rate correlates at $r{=}{-}0.98$ with vanilla success ($p{
 
 \paragraph{Cross-architecture.}
 \input{tables/tab_cross_arch}
-Both architectures show the same pattern (Table~\ref{tab:cross_arch}): steering preserves success, detection-only degrades it, despite a $16{\times}$ gap.
+Both architectures show the same pattern (Table~\ref{tab:cross_arch}): steering preserves success across a $16{\times}$ dimensionality gap.
 
 \subsection{Mechanism Analysis}
 \label{sec:mechanism}
@@ -70,7 +70,7 @@ We test whether a safety head trained on one architecture detects failure on ano
 \subsection{Physical Robot Evaluation}
 \label{sec:physical_results}
 
-\emph{Planned: Kinova Gen3 Lite and xArm 6 evaluation (Section~\ref{sec:physical_setup}). Results forthcoming.}
+\emph{Physical robot evaluation on SO-101 arms with LeRobot VLAs is in progress (Section~\ref{sec:physical_setup}). Results will be included in the final version.}
 
 \subsection{Hyperparameter Sensitivity}
 

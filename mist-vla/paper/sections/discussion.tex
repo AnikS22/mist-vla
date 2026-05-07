@@ -4,7 +4,7 @@
 The probe achieves AUC 0.83--0.98 and TTF $r{=}0.86$ across a $16{\times}$ dimensionality gap. This extends prior detection-only work by showing the signal is rich enough to extract temporal and spatial structure, not just binary failure labels.
 
 \paragraph{Detection is the operative mechanism.}
-The jiggle ablation is the most informative result: matched-magnitude random corrections perform comparably to learned corrections. Any bounded perturbation gated by the failure signal prevents the policy from committing to catastrophic trajectories. This means safety adapters should prioritize failure detection over correction-direction learning---a simpler design than previously assumed.
+The jiggle ablation is the most informative result: matched-magnitude random corrections perform comparably to learned corrections. Any bounded perturbation timed by the failure signal works comparably. This means safety adapters should prioritize failure detection over correction-direction learning---a simpler design than previously assumed.
 
 \paragraph{Adaptive gating is emergent.}
 The $r{=}{-}0.98$ correlation ($p{<}10^{-6}$) between intervention rate and difficulty arises without explicit difficulty signal. The double-gating mechanism naturally modulates intervention density based on latent-state uncertainty.
