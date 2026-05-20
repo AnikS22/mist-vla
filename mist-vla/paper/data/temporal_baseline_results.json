@@ -1,0 +1,141 @@
+{
+  "seed": 42,
+  "per_corpus": {
+    "openvla": [
+      {
+        "model": "linear",
+        "feature": "raw",
+        "n_train_steps": 76421,
+        "n_test_steps": 10054,
+        "n_test_failure_steps": 7920,
+        "r_all": 0.9406927450472552,
+        "r2_all": 0.8845307059932517,
+        "r_failure_only": 1.0,
+        "r2_failure_only": 0.9751672622560816
+      },
+      {
+        "model": "poly2",
+        "feature": "raw",
+        "n_train_steps": 76421,
+        "n_test_steps": 10054,
+        "n_test_failure_steps": 7920,
+        "r_all": 0.9438429717686342,
+        "r2_all": 0.8904043782677126,
+        "r_failure_only": 0.9975483042736611,
+        "r2_failure_only": 0.9684942667184171
+      },
+      {
+        "model": "poly3",
+        "feature": "raw",
+        "n_train_steps": 76421,
+        "n_test_steps": 10054,
+        "n_test_failure_steps": 7920,
+        "r_all": 0.946756769196591,
+        "r2_all": 0.8958675290194797,
+        "r_failure_only": 0.9962339387248207,
+        "r2_failure_only": 0.9665217401450429
+      },
+      {
+        "model": "linear",
+        "feature": "norm",
+        "n_train_steps": 76421,
+        "n_test_steps": 10054,
+        "n_test_failure_steps": 7920,
+        "r_all": 0.6941162710598354,
+        "r2_all": 0.4804017121252816,
+        "r_failure_only": 0.9999999999999997,
+        "r2_failure_only": 0.8543006176493165
+      },
+      {
+        "model": "poly2",
+        "feature": "norm",
+        "n_train_steps": 76421,
+        "n_test_steps": 10054,
+        "n_test_failure_steps": 7920,
+        "r_all": 0.6941236048496938,
+        "r2_all": 0.4804162733456441,
+        "r_failure_only": 0.9999936092249735,
+        "r2_failure_only": 0.854247914820564
+      },
+      {
+        "model": "poly3",
+        "feature": "norm",
+        "n_train_steps": 76421,
+        "n_test_steps": 10054,
+        "n_test_failure_steps": 7920,
+        "r_all": 0.6941346782930278,
+        "r2_all": 0.48043150042705884,
+        "r_failure_only": 0.9999769098119595,
+        "r2_failure_only": 0.8542376578685031
+      }
+    ],
+    "act": [
+      {
+        "model": "linear",
+        "feature": "raw",
+        "n_train_steps": 157228,
+        "n_test_steps": 22235,
+        "n_test_failure_steps": 17400,
+        "r_all": 0.9461520419589269,
+        "r2_all": 0.8930318507503336,
+        "r_failure_only": 1.0,
+        "r2_failure_only": 0.9589641472613392
+      },
+      {
+        "model": "poly2",
+        "feature": "raw",
+        "n_train_steps": 157228,
+        "n_test_steps": 22235,
+        "n_test_failure_steps": 17400,
+        "r_all": 0.9468392068516482,
+        "r2_all": 0.8942810650618618,
+        "r_failure_only": 0.9959719931650383,
+        "r2_failure_only": 0.9454985473285096
+      },
+      {
+        "model": "poly3",
+        "feature": "raw",
+        "n_train_steps": 157228,
+        "n_test_steps": 22235,
+        "n_test_failure_steps": 17400,
+        "r_all": 0.94915850553311,
+        "r2_all": 0.8987975242234614,
+        "r_failure_only": 0.9940798450956041,
+        "r2_failure_only": 0.9436049273468513
+      },
+      {
+        "model": "linear",
+        "feature": "norm",
+        "n_train_steps": 157228,
+        "n_test_steps": 22235,
+        "n_test_failure_steps": 17400,
+        "r_all": 0.6882521300037138,
+        "r2_all": 0.4605794796965932,
+        "r_failure_only": 1.0,
+        "r2_failure_only": 0.6810393363165494
+      },
+      {
+        "model": "poly2",
+        "feature": "norm",
+        "n_train_steps": 157228,
+        "n_test_steps": 22235,
+        "n_test_failure_steps": 17400,
+        "r_all": 0.688259600720334,
+        "r2_all": 0.4605846246150468,
+        "r_failure_only": 0.9999862878704802,
+        "r2_failure_only": 0.6810056553093322
+      },
+      {
+        "model": "poly3",
+        "feature": "norm",
+        "n_train_steps": 157228,
+        "n_test_steps": 22235,
+        "n_test_failure_steps": 17400,
+        "r_all": 0.6882696712335566,
+        "r2_all": 0.4605999211425448,
+        "r_failure_only": 0.9999623988600834,
+        "r2_failure_only": 0.681001704570499
+      }
+    ]
+  }
+}

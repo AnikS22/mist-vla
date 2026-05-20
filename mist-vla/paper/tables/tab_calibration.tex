@@ -1,0 +1,18 @@
+\begin{table}[t]
+\centering
+\caption{\textbf{Calibration of the PULSE failure head.} Expected Calibration Error (ECE, 15 bins) and Brier score on the same trajectory-disjoint test set as Table~\ref{tab:safety_head_metrics} and Table~\ref{tab:threshold_operating}. ECE measures the average gap between predicted probability and empirical positive rate; lower is better. A well-calibrated probe has ECE $\lesssim 0.05$. \emph{Fraction $\sigma{\ge}0.99$} is the fraction of test steps where the failure-head's sigmoid output is at or above $0.99$ for either class---high values indicate a saturated, bimodal posterior that does not respond to threshold tuning. \textbf{Reading:} ACT's failure head is moderately calibrated and respects the operating curve; OpenVLA's is poorly calibrated despite strong ranking (AUC $0.83$) and would benefit from post-hoc Platt scaling or temperature calibration before any deployed system relies on the absolute probability.}
+\label{tab:calibration}
+\begin{tabular}{lcc}
+\toprule
+Metric & OpenVLA (4096-d) & ACT (256-d) \\
+\midrule
+Failure AUC (from Table~\ref{tab:safety_head_metrics})       & 0.832 & 0.889 \\
+\midrule
+ECE (15 bins) ↓                                              & \textbf{0.223} & \textbf{0.094} \\
+Brier score ↓                                                & 0.222 & 0.097 \\
+Mean predicted $p$                                           & 0.325 & 0.689 \\
+Median predicted $p$                                         & $\sim$0.00 & 0.997 \\
+Fraction of steps with $\sigma{\ge}0.99$                     & 32\% & 55\% \\
+\bottomrule
+\end{tabular}
+\end{table}

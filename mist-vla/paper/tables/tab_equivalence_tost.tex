@@ -1,6 +1,6 @@
 \begin{table}[t]
 \centering
-\caption{TOST equivalence tests ($\pm$2\,pp margin) on paper-curated pool. Equivalence established if $p_{\mathrm{TOST}} < 0.05$.}
+\caption{TOST equivalence tests ($\pm$2\,pp margin) on paper-curated pool. Equivalence established if $p_{\mathrm{TOST}} < 0.05$. \textbf{Choice of $\pm$2\,pp:} at the $\sim$52\% base success rate this corresponds to $\le$4\% relative change, which matches the smallest difference our pooled sample size ($n{\approx}10{,}000$ per mode) is powered to detect at $\alpha{=}0.05$ with $\ge$80\% power under a two-proportion test --- it is the tightest \emph{honest} equivalence claim our data support.}
 \label{tab:equivalence_tost}
 \begin{tabular}{lccc}
 \toprule
@@ -9,6 +9,9 @@ Comparison & $\Delta$ (pp) & $p_{\mathrm{TOST}}$ & Equivalent? \\
 Steering vs MPPI & -0.38 & 0.01093 & Yes \\
 Steering vs Vanilla & -0.31 & 0.008384 & Yes \\
 MPPI vs Vanilla & +0.07 & 0.003149 & Yes \\
+Steering vs Latent Jiggle & -1.16 & 0.1192 & No \\
+MPPI vs Latent Jiggle & -0.78 & 0.04331 & Yes \\
+Vanilla vs Latent Jiggle & -0.85 & 0.05315 & No \\
 \bottomrule
 \end{tabular}
 \end{table}

@@ -17,9 +17,9 @@ Holm-adjusted *p*-values are reported for these three z-tests only (see `STAT_TE
 - We do **not** claim statistically significant success-rate **lift** of steering over vanilla/MPPI unless the pooled tests reject the null at the stated α after multiplicity control.  
 - We **do** report runtime (apply-time) advantages and regime-stratified qualitative patterns elsewhere in the paper where supported by data.
 
-## Embodied / Yahboom
+## Embodied / SO-101 (post-submission)
 
-Physical-robot **task-completion** claims are **out of scope** for this submission track; any hardware text should be limited to infrastructure notes or deferred to future work (see plan: hardware deferred).
+Physical-robot **task-completion** claims are **out of scope** for this submission track. Post-submission validation will use the SO-101 pipeline under `mist-vla/scripts/so101/` (Pi0 backbone); the prior Yahboom prototype is retired. Any hardware text in this submission is limited to infrastructure notes or deferred to future work (see plan: hardware deferred, conclusion item (i)).
 
 ## Regeneration
 

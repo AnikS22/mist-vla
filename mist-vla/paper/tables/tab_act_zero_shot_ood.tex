@@ -1,19 +1,23 @@
 \begin{table}[t]
 \centering
-\caption{ACT strict zero-shot OOD runs (train-task/test-task splits with disturbance stress).}
+\caption{\textbf{ACT strict zero-shot OOD runs} (train-task/test-task splits with disturbance stress). Per-run cells are success rate (\%). \emph{Mean of percentages} averages the six per-run percentages (i.e., treats each run as one observation). \emph{Pooled} sums successes and episodes across all six runs ($n{=}280$ episodes per controller) and is the input to the two-proportion $z$-test in the bottom row. Steering vs.\ Vanilla is statistically indistinguishable in this regime ($+0.71$\,pp pooled, $z{=}0.17$, $p{=}0.86$); Latent Stop is degenerate (zero success because the strict split holds out tasks).}
 \label{tab:act_zero_shot_ood}
+\resizebox{\linewidth}{!}{%
 \begin{tabular}{lccccc}
 \toprule
 Run & Vanilla & Latent Stop & MPPI & Steering & $\Delta$(Steering$-$Vanilla) \\
 \midrule
-zs\_act\_ood\_s42\_tA01234567\_tB89 & 35.0 & 0.0 & 37.5 & 30.0 & -5.0 \\
-zs\_act\_ood\_s43\_tA01234567\_tB89 & 25.0 & 0.0 & 35.0 & 35.0 & +10.0 \\
-zs\_act\_ood\_s44\_tA01234567\_tB89 & 37.5 & 0.0 & 42.5 & 35.0 & -2.5 \\
-zs\_act\_ood\_s42\_tA23456789\_tB01 & 52.5 & 0.0 & 52.5 & 55.0 & +2.5 \\
-zs\_act\_ood\_s42\_tA012345\_tB6789 & 40.0 & 0.0 & 37.5 & 38.8 & -1.2 \\
-zs\_act\_ood\_stop\_tA01234567\_tB89 & 32.5 & 0.0 & 40.0 & 35.0 & +2.5 \\
+T0--7 train / T8--9 test, seed s42 & 35.0 & 0.0 & 37.5 & 30.0 & -5.0 \\
+T0--7 train / T8--9 test, seed s43 & 25.0 & 0.0 & 35.0 & 35.0 & +10.0 \\
+T0--7 train / T8--9 test, seed s44 & 37.5 & 0.0 & 42.5 & 35.0 & -2.5 \\
+T2--9 train / T0--1 test, seed s42 & 52.5 & 0.0 & 52.5 & 55.0 & +2.5 \\
+T0--5 train / T6--9 test, seed s42 & 40.0 & 0.0 & 37.5 & 38.8 & -1.2 \\
+T0--7 train / T8--9 test, stop cfg  & 32.5 & 0.0 & 40.0 & 35.0 & +2.5 \\
 \midrule
-Aggregate (completed) & 37.1 & 0.0 & 40.8 & 38.1 & +1.05 \\
+Mean of run percentages & 37.1 & 0.0 & 40.8 & 38.1 & +1.05 \\
+Pooled (successes / $n{=}280$) & 105/280 (37.50) & 0/280 (0.00) & 113/280 (40.36) & 107/280 (38.21) & +0.71 \\
+\multicolumn{6}{l}{\quad Steering vs.\ Vanilla pooled: $z{=}0.17$, $p{=}0.862$ (two-proportion); Wilson 95\% CIs $[32.7,44.0]$ vs.\ $[32.0,43.3]$.} \\
 \bottomrule
-\end{tabular}
+\end{tabular}%
+}
 \end{table}

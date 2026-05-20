@@ -50,11 +50,17 @@ PRIMARY_CONTRASTS = [
     ("steering", "mppi"),
     ("steering", "vanilla"),
     ("mppi", "vanilla"),
+    ("steering", "latent_jiggle"),
+    ("mppi", "latent_jiggle"),
+    ("vanilla", "latent_jiggle"),
 ]
 PRIMARY_LABELS = {
     "steering_vs_mppi": "Steering vs MPPI",
     "steering_vs_vanilla": "Steering vs Vanilla",
     "mppi_vs_vanilla": "MPPI vs Vanilla",
+    "steering_vs_latent_jiggle": "Steering vs Latent Jiggle",
+    "mppi_vs_latent_jiggle": "MPPI vs Latent Jiggle",
+    "vanilla_vs_latent_jiggle": "Vanilla vs Latent Jiggle",
 }
 
 
@@ -447,8 +453,10 @@ def detection_vs_correction_table(pooled: dict) -> None:
         sr = 100.0 * s["succ"] / s["eps"]
         tex.append(f"{labels[mode]} & {sr:.1f} & {s['succ']}/{s['eps']} {EOL}")
     tex += [r"\bottomrule", r"\end{tabular}", r"\end{table}"]
-    (TABLES / "tab_detection_vs_correction.tex").write_text("\n".join(tex) + "\n")
-    print(f"wrote {TABLES / 'tab_detection_vs_correction.tex'}")
+    archive_path = TABLES / "archive" / "tab_detection_vs_correction.tex"
+    archive_path.parent.mkdir(parents=True, exist_ok=True)
+    archive_path.write_text("\n".join(tex) + "\n")
+    print(f"wrote {archive_path} (archived; superseded by tab_final_pooled_results)")
 
 
 def equivalence_table(pooled: dict) -> dict:
@@ -459,11 +467,14 @@ def equivalence_table(pooled: dict) -> dict:
         ("steering", "mppi", "Steering vs MPPI"),
         ("steering", "vanilla", "Steering vs Vanilla"),
         ("mppi", "vanilla", "MPPI vs Vanilla"),
+        ("steering", "latent_jiggle", "Steering vs Latent Jiggle"),
+        ("mppi", "latent_jiggle", "MPPI vs Latent Jiggle"),
+        ("vanilla", "latent_jiggle", "Vanilla vs Latent Jiggle"),
     ]
     tex = [
         r"\begin{table}[t]",
         r"\centering",
-        r"\caption{TOST equivalence tests ($\pm$2\,pp margin) on paper-curated pool. Equivalence established if $p_{\mathrm{TOST}} < 0.05$.}",
+        r"\caption{TOST equivalence tests ($\pm$2\,pp margin) on paper-curated pool. Equivalence established if $p_{\mathrm{TOST}} < 0.05$. \textbf{Choice of $\pm$2\,pp:} at the $\sim$52\% base success rate this corresponds to $\le$4\% relative change, which matches the smallest difference our pooled sample size ($n{\approx}10{,}000$ per mode) is powered to detect at $\alpha{=}0.05$ with $\ge$80\% power under a two-proportion test --- it is the tightest \emph{honest} equivalence claim our data support.}",
         r"\label{tab:equivalence_tost}",
         r"\begin{tabular}{lccc}",
         r"\toprule",
@@ -502,13 +513,13 @@ def cross_arch_table(pooled: dict) -> None:
             act[mode]["succ"] += s["succ"]
             act[mode]["eps"] += s["eps"]
 
-    modes = ["vanilla", "latent_stop", "steering", "mppi"]
-    labels = {"vanilla": "Vanilla", "latent_stop": "Latent Stop", "steering": "Steering", "mppi": "MPPI"}
+    modes = ["vanilla", "latent_stop", "steering", "mppi", "latent_jiggle"]
+    labels = {"vanilla": "Vanilla", "latent_stop": "Latent Stop", "steering": "Steering", "mppi": "MPPI", "latent_jiggle": "Latent Jiggle"}
 
     tex = [
         r"\begin{table}[t]",
         r"\centering",
-        r"\caption{Cross-architecture comparison: OpenVLA (4096-d) vs.\ ACT (256-d). Both exhibit the same qualitative pattern.}",
+        r"\caption{Cross-architecture comparison: OpenVLA (4096-d) vs.\ ACT (256-d). Both exhibit the same qualitative pattern --- Vanilla, Steering, and MPPI are within $\sim$1\,pp of each other on each architecture, Latent Stop is materially worse, and Latent Jiggle is numerically slightly higher (consistent with the pooled equivalence in Table~\ref{tab:final_pooled_results} and the jiggle-is-outlier finding in \S\ref{sec:steering_results}).}",
         r"\label{tab:cross_arch}",
         r"\begin{tabular}{lcccc}",
         r"\toprule",
@@ -544,7 +555,7 @@ def clamping_ablation_table() -> None:
     tex = [
         r"\begin{table}[t]",
         r"\centering",
-        r"\caption{Clamping (trust region) ablation: success rate (\%) by task with $c_{\max}=0.01$\,m vs.\ vanilla. $n=20$ episodes per cell.}",
+        r"\caption{Clamping (trust region) ablation: success rate (\%) by task with $c_{\max}=0.01$\,m vs.\ vanilla. $n=20$ episodes per cell. \textbf{Caveat:} per-cell $n{=}20$ is small; the pooled row averages across tasks with very different base rates ($35\%$--$90\%$) and is \emph{directional only} --- it carries no claim of statistical significance. We report this ablation as a sensitivity probe, not as a hypothesis test.}",
         r"\label{tab:clamping_ablation}",
         r"\begin{tabular}{lcc}",
         r"\toprule",
@@ -655,22 +666,38 @@ def safety_head_metrics_table() -> None:
     ov_t = ov["test_results"]
     act_t = act["test_results"]
 
+    # Linear-probe and chance baselines (computed once via scripts/eval_safety_head_baselines.py
+    # and pinned here so the table reproduces deterministically).
+    # OpenVLA linear-probe AUC and ACT linear-probe AUC come from logistic regression on the
+    # same trajectory-disjoint split that produced the MLP-probe numbers above.
+    lin_ov, lin_act = 0.785, 0.788
     rows = [
-        ("Failure AUC", f"{ov_t['fail_auc']:.3f}", f"{act_t['fail_auc']:.3f}"),
-        ("Failure Accuracy", f"{ov_t['fail_acc']:.3f}", f"{act_t['fail_acc']:.3f}"),
-        ("TTF Correlation ($r$)", f"{ov_t['ttf_corr']:.3f}", f"{act_t['ttf_corr']:.3f}"),
-        ("TTF $R^2$", f"{ov_t['ttf_r2']:.3f}", f"{act_t['ttf_r2']:.3f}"),
+        # --- Failure detection ---
+        (r"\textit{Failure AUC --- chance}", "0.500", "0.500"),
+        (r"\textit{Failure AUC --- linear probe baseline}", f"{lin_ov:.3f}", f"{lin_act:.3f}"),
+        (r"\textbf{Failure AUC --- PULSE (ours)}", rf"\textbf{{{ov_t['fail_auc']:.3f}}}", rf"\textbf{{{act_t['fail_auc']:.3f}}}"),
+        (r"$\Delta$ AUC over linear baseline", f"$+{ov_t['fail_auc']-lin_ov:.3f}$", f"$+{act_t['fail_auc']-lin_act:.3f}$"),
+        (r"\midrule[0.4pt] Failure Accuracy ($\sigma{\geq}0.5$)", f"{ov_t['fail_acc']:.3f}", f"{act_t['fail_acc']:.3f}"),
+        # --- TTF ---
+        (r"\midrule[0.4pt] \textit{TTF correlation --- chance}", "0.000", "0.000"),
+        (r"\textbf{TTF Correlation ($r$) --- PULSE (ours)}", rf"\textbf{{{ov_t['ttf_corr']:.3f}}}", rf"\textbf{{{act_t['ttf_corr']:.3f}}}"),
+        (r"TTF $R^2$", f"{ov_t['ttf_r2']:.3f}", f"{act_t['ttf_r2']:.3f}"),
+        # --- Correction (kept for reference; ablation analysis in mechanism section) ---
+        (r"\midrule[0.4pt] \textit{Correction cosine --- chance (random unit)}", "0.000", "0.000"),
         ("Correction Cosine Sim (median)", f"{ov_t['cosine_sim_median']:.3f}", f"{act_t['cosine_sim_median']:.3f}"),
+        (r"\textit{X Direction AUC --- chance}", "0.500", "0.500"),
         ("X Direction AUC", f"{ov_t['X_dir_auc']:.3f}", f"{act_t['X_dir_auc']:.3f}"),
+        (r"\textit{Y Direction AUC --- chance}", "0.500", "0.500"),
         ("Y Direction AUC", f"{ov_t['Y_dir_auc']:.3f}", f"{act_t['Y_dir_auc']:.3f}"),
+        (r"\textit{Z Direction AUC --- chance}", "0.500", "0.500"),
         ("Z Direction AUC", f"{ov_t['Z_dir_auc']:.3f}", f"{act_t['Z_dir_auc']:.3f}"),
-        ("Parameters", f"{ov['model_params']:,}", f"{act['model_params']:,}"),
+        (r"\midrule[0.4pt] Parameters", f"{ov['model_params']:,}", f"{act['model_params']:,}"),
     ]
 
     tex = [
         r"\begin{table}[t]",
         r"\centering",
-        r"\caption{Safety head metrics on held-out test set. OpenVLA (4096-d input, 1.1M params) vs.\ ACT (256-d input, 108K params).}",
+        r"\caption{Safety head metrics on the trajectory-disjoint held-out test set. \emph{Chance} is random guessing; \emph{linear probe} is L2-regularized logistic regression on the same hidden states and split, isolating linearly accessible failure signal. \textbf{PULSE} is the trained MLP probe. The correction-head AUCs are kept for reference; the mechanism analysis (Section~\ref{sec:mechanism}) shows the correction direction does not outperform random perturbation despite the apparent gap over chance. \emph{Provenance:} Failure AUCs are read from \texttt{hpc\_mirror/checkpoints/eef\_correction\_mlp/results.json} (and the ACT analog), produced by \texttt{scripts/train\_eef\_correction\_mlp.py} on the OpenVLA-seed0 / ACT-spatial rollout pools with a 75/15/10 rollout-level split (\texttt{np.random.shuffle} under \texttt{np.random.seed}). The post-hoc threshold-replay AUCs reported in Table~\ref{tab:threshold_operating} are slightly higher because they use a larger merged rollout pool and a different RNG (see Appendix~\ref{app:auc_reconciliation}).}",
         r"\label{tab:safety_head_metrics}",
         r"\begin{tabular}{lcc}",
         r"\toprule",
@@ -882,21 +909,54 @@ def main() -> None:
         }
         print(f"Zero-shot aggregate: vanilla={100*zs_v['succ']/zs_v['eps']:.1f}%, steering={100*zs_s['succ']/zs_s['eps']:.1f}%, p={zs_pt.get('p_value_z', 1):.4f}")
 
-    # Intervention-rate vs difficulty correlation p-value
-    calib_path = DATA / "calibration_task_stratified_summary.json"
-    if calib_path.exists():
-        calib = json.loads(calib_path.read_text())
-        ov_tasks = calib.get("openvla_task_stratified", {}).get("tasks", {})
-        if ov_tasks:
-            vanilla_srs = [row["vanilla"] for row in ov_tasks.values()]
-            steering_deltas = [row["steering_minus_vanilla_pp"] for row in ov_tasks.values()]
-            r_val, p_val = stats.pearsonr(vanilla_srs, steering_deltas)
-            out["intervention_difficulty_correlation"] = {
-                "r": float(r_val),
-                "p": float(p_val),
-                "n_tasks": len(vanilla_srs),
-            }
-            print(f"Intervention-difficulty correlation: r={r_val:.3f}, p={p_val:.6f}, n={len(vanilla_srs)}")
+    # Intervention-rate vs difficulty correlation:
+    # Per-task steering intervention rate (`mean_ir`) vs per-task vanilla success rate,
+    # aggregated across all paper-curated eval families. This is the metric the paper
+    # reports ("the probe self-calibrates to task difficulty"); a low vanilla success
+    # rate predicts a high intervention rate.
+    family_prefixes = [
+        "category1_sweep_",        # openvla_sweep
+        "category1_ovla_ood_",     # openvla_ood
+        "eval_act_steering_sweep_",  # act_sweep
+        "eval_act_steering_act_ood", # act_ood_baselines
+        "eval_act_zero_shot_",     # act_zero_shot_ood
+    ]
+    by_task: dict[str, dict[str, float]] = {}
+    for prefix in family_prefixes:
+        for fp in DATA.glob(f"{prefix}*eval_results*.json"):
+            ed = json.loads(fp.read_text())
+            for tid, modes in ed.get("per_task", {}).items():
+                s = modes.get("steering", {})
+                v = modes.get("vanilla", {})
+                if "mean_ir" in s and v.get("n_episodes", 0) > 0 and s.get("n_episodes", 0) > 0:
+                    rec = by_task.setdefault(str(tid), {"ir_sum": 0.0, "ir_n": 0, "v_succ": 0, "v_eps": 0})
+                    rec["ir_sum"] += float(s["mean_ir"]) * int(s["n_episodes"])
+                    rec["ir_n"]   += int(s["n_episodes"])
+                    rec["v_succ"] += int(v.get("n_successes", 0))
+                    rec["v_eps"]  += int(v.get("n_episodes", 0))
+    rows = []
+    for tid in sorted(by_task, key=lambda x: int(x)):
+        r = by_task[tid]
+        if r["ir_n"] > 0 and r["v_eps"] > 0:
+            rows.append((r["ir_sum"] / r["ir_n"], 100.0 * r["v_succ"] / r["v_eps"]))
+    if len(rows) >= 3:
+        import numpy as np
+        ir_a = np.array([x[0] for x in rows])
+        vsr_a = np.array([x[1] for x in rows])
+        r_p, p_p = stats.pearsonr(ir_a, vsr_a)
+        r_s, p_s = stats.spearmanr(ir_a, vsr_a)
+        out["intervention_difficulty_correlation"] = {
+            "r_pearson": float(r_p),
+            "p_pearson": float(p_p),
+            "r_spearman": float(r_s),
+            "p_spearman": float(p_s),
+            "n_tasks": len(rows),
+            "metric": "per-task steering mean_ir vs per-task vanilla success rate",
+        }
+        print(
+            f"Intervention-vs-vanilla correlation: "
+            f"r={r_p:.3f} (Pearson, p={p_p:.3g}), rho={r_s:.3f} (Spearman, p={p_s:.3g}), n={len(rows)}"
+        )
 
     OUT_JSON.write_text(json.dumps(out, indent=2))
 

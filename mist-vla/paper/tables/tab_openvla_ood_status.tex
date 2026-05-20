@@ -1,12 +1,16 @@
 \begin{table}[t]
 \centering
-\caption{OpenVLA OOD baseline campaign status (completed seeds only).}
+\caption{\textbf{OpenVLA OOD baseline campaign on hard tasks 8--9} (seeds s42, s43, s44; $20$ episodes/task; OpenVLA-7B + OOD push). Each cell reports success rate (\%) and successes/episodes across the two hard tasks for that seed. The aggregate row pools all three seeds ($n{=}120$ per controller). All three seeds are complete.}
 \label{tab:openvla_ood_status}
 \begin{tabular}{lcccc}
 \toprule
-Run & Vanilla & Latent Stop & MPPI & Steering \\
+Seed & Vanilla & Latent Stop & MPPI & Steering \\
 \midrule
-\texttt{PENDING: seeds s42/s43/s44 still running} & -- & -- & -- & -- \\
+\texttt{s42} & 52.5 (21/40) & 42.5 (17/40) & 52.5 (21/40) & 55.0 (22/40) \\
+\texttt{s43} & 52.5 (21/40) & 42.5 (17/40) & 55.0 (22/40) & 45.0 (18/40) \\
+\texttt{s44} & 55.0 (22/40) & 45.0 (18/40) & 57.5 (23/40) & 62.5 (25/40) \\
+\midrule
+Aggregate (s42--s44) & 53.3 (64/120) & 43.3 (52/120) & 55.0 (66/120) & 54.2 (65/120) \\
 \bottomrule
 \end{tabular}
 \end{table}

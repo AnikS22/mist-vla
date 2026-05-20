@@ -1,0 +1,28 @@
+\begin{table}[t]
+\centering
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{lllcccc}
+\toprule
+Corpus & Model & Feature & $r$ (all) & $R^2$ (all) & $r$ (fail) & $R^2$ (fail) \\
+\midrule
+OPENVLA & linear & raw $t$ & 0.941 & 0.885 & 1.000 & 0.975 \\
+OPENVLA & poly2 & raw $t$ & 0.944 & 0.890 & 0.998 & 0.968 \\
+OPENVLA & poly3 & raw $t$ & 0.947 & 0.896 & 0.996 & 0.967 \\
+OPENVLA & linear & $t/(T{-}1)$ (oracle) & 0.694 & 0.480 & 1.000 & 0.854 \\
+OPENVLA & poly2 & $t/(T{-}1)$ (oracle) & 0.694 & 0.480 & 1.000 & 0.854 \\
+OPENVLA & poly3 & $t/(T{-}1)$ (oracle) & 0.694 & 0.480 & 1.000 & 0.854 \\
+ACT & linear & raw $t$ & 0.946 & 0.893 & 1.000 & 0.959 \\
+ACT & poly2 & raw $t$ & 0.947 & 0.894 & 0.996 & 0.945 \\
+ACT & poly3 & raw $t$ & 0.949 & 0.899 & 0.994 & 0.944 \\
+ACT & linear & $t/(T{-}1)$ (oracle) & 0.688 & 0.461 & 1.000 & 0.681 \\
+ACT & poly2 & $t/(T{-}1)$ (oracle) & 0.688 & 0.461 & 1.000 & 0.681 \\
+ACT & poly3 & $t/(T{-}1)$ (oracle) & 0.688 & 0.461 & 1.000 & 0.681 \\
+\midrule
+\textbf{OPENVLA} & \textbf{PULSE} & \textbf{hidden states (4096-d / 256-d)} & \textbf{0.863} & -- & \textbf{0.863} & -- \\
+\textbf{ACT} & \textbf{PULSE} & \textbf{hidden states (4096-d / 256-d)} & \textbf{0.862} & -- & \textbf{0.862} & -- \\
+\bottomrule
+\end{tabular}%
+}
+\caption{\textbf{Step-index-only TTF baselines vs.\ the PULSE hidden-state head.} Baselines regress functions of the step index onto the same TTF target; train/val/test split is rollout-disjoint (75/15/10). \emph{Raw} $t$ is the raw step counter (deployable). \emph{Oracle} $t/(T{-}1)$ requires knowing the episode length $T$ at test time and is reported for completeness. On LIBERO-Spatial the raw-$t$ baseline matches PULSE on TTF correlation ($r{\approx}1.0$ failure-only vs.\ PULSE $0.86$) because failure rollouts almost always run to the fixed 300-step maximum, making the failure-only TTF target a near-deterministic linear function of $t$. The substantive C1 contribution is the \emph{failure-detection AUC} ($0.83$/$0.89$, $+0.05$/$+0.10$ over a linear baseline), which is independent of episode timing.}
+\label{tab:temporal_baseline}
+\end{table}

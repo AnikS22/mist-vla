@@ -1,6 +1,6 @@
 \begin{table}[t]
 \centering
-\caption{Cross-architecture comparison: OpenVLA (4096-d) vs.\ ACT (256-d). Both exhibit the same qualitative pattern.}
+\caption{Cross-architecture comparison: OpenVLA (4096-d) vs.\ ACT (256-d). Both exhibit the same qualitative pattern --- Vanilla, Steering, and MPPI are within $\sim$1\,pp of each other on each architecture, Latent Stop is materially worse, and Latent Jiggle is numerically slightly higher (consistent with the pooled equivalence in Table~\ref{tab:final_pooled_results} and the jiggle-is-outlier finding in \S\ref{sec:steering_results}).}
 \label{tab:cross_arch}
 \begin{tabular}{lcccc}
 \toprule
@@ -9,8 +9,10 @@
 Mode & Success (\%) & $n$ & Success (\%) & $n$ \\
 \midrule
 Vanilla & 54.2 & 2754/5080 & 49.8 & 2451/4920 \\
+Latent Stop & 43.3 & 52/120 & 20.7 & 124/600 \\
 Steering & 54.1 & 2748/5080 & 49.3 & 2426/4920 \\
 MPPI & 54.0 & 2742/5080 & 50.2 & 2470/4920 \\
+Latent Jiggle & 54.5 & 2770/5080 & 51.1 & 2372/4640 \\
 \bottomrule
 \end{tabular}
 \end{table}

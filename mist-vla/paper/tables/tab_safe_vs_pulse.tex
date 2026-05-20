@@ -1,0 +1,35 @@
+\begin{table}[t]
+\centering
+\caption{\textbf{PULSE vs.\ SAFE~\citep{safe_paper} along four axes.} SAFE is the closest prior work on the detection side; the contributions are complementary, not redundant. PULSE could in principle wrap SAFE's conformal calibration, and SAFE could adopt our TTF head. \textbf{Provenance:} all PULSE numbers in this table are from this paper (Tables~\ref{tab:safety_head_metrics}, \ref{tab:threshold_operating}, \ref{tab:calibration}, \ref{tab:final_pooled_results}); all SAFE descriptions are qualitative summaries reproduced from \citet{safe_paper} --- \emph{we did not re-run SAFE on our LIBERO-Spatial benchmark}, so this is a qualitative comparison, not a head-to-head numeric benchmark. A direct numeric comparison would require re-implementing SAFE on our rollout corpus, which we leave to future work.}
+\label{tab:safe_vs_pulse}
+\small
+\begin{tabular}{p{0.20\linewidth} p{0.32\linewidth} p{0.38\linewidth}}
+\toprule
+\textbf{Axis} & \textbf{SAFE~\citep{safe_paper}} & \textbf{PULSE (this paper)} \\
+\midrule
+\textbf{Output type}        &
+Binary failure flag (single classification head).        &
+Three heads on a shared bottleneck: failure logit, time-to-failure (TTF, continuous), and Cartesian correction. \emph{The correction head is included for transparency; the mechanism analysis (§\ref{sec:mechanism}) shows it does not outperform random perturbation, so it is reported as a diagnostic ablation, not a usable signal.} TTF achieves $r{=}0.86$ on both architectures. \\
+\midrule
+\textbf{Calibration}        &
+Conformal coverage guarantee on the binary detection (set-valued prediction with provable coverage). &
+Raw sigmoid + threshold operating points (Table~\ref{tab:threshold_operating}) + ECE/Brier (Table~\ref{tab:calibration}). \emph{No conformal wrapping.} ACT's head is moderately calibrated (ECE $0.09$); OpenVLA's is severely overconfident (ECE $0.22$). Post-hoc Platt scaling is left to future work. \\
+\midrule
+\textbf{Use of signal}      &
+Abstain / detect-and-stop. The detector is consumed by a downstream selective-execution policy. &
+Use the failure logit as a planner cost in two ways: a K-sample MPPI baseline that queries the head $K$ times per step, and direct single-step gating that queries it once. The signal is used \emph{continuously} as a planner cost, not as an abstain decision. The headline comparison (single-step gating vs.\ K-sample MPPI search over the same head) is a planning-horizon ablation, not a comparison against a separately-engineered hand-designed cost. \\
+\midrule
+\textbf{Control signal exploited} &
+Binary abstention only; no continuous correction channel. &
+\textbf{Temporal} (magnitude-gated intervention timing) / \textbf{spatial decoupled} in closed loop under time-matched labels (latent jiggle $\approx$ steering; \S\ref{sec:mechanism}). Offline directional AUC reflects label alignment, not episode success. \\
+\midrule
+\textbf{Deployment latency} &
+Not reported (one-shot classifier; latency depends on the host pipeline). &
+$0.9$\,ms/step closed-loop on a single GPU --- $6.1\times$ faster than running the same PULSE failure head inside a K-sample MPPI search ($5.6$\,ms). The latency claim is the strongest part of this paper; the success-rate claim is equivalence to vanilla / K-sample MPPI on this benchmark, not improvement over them. \\
+\midrule
+\textbf{Architectures probed} &
+VLA(s) within one family.                  &
+OpenVLA-7B ($4096$-d) and ACT ($256$-d); same probe architecture, no per-policy tuning. Cross-family generalization is shown for two families on one simulator, not validated more broadly. \\
+\bottomrule
+\end{tabular}
+\end{table}

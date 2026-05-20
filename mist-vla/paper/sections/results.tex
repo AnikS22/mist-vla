@@ -1,97 +1,99 @@
 \section{Results}
 \label{sec:results}
 
-\subsection{Hidden States Encode Safety}
+\subsection{Hidden States Encode Failure Risk}
 \label{sec:safety_encoding}
-
-\input{tables/tab_safety_head_metrics}
-
-We train MLP probes on frozen hidden states and evaluate on held-out trajectories (Table~\ref{tab:safety_head_metrics}). Both achieve strong failure detection (AUC 0.83 OpenVLA, 0.89 ACT), TTF prediction ($r{=}0.86$, $R^2{=}0.74$), and per-axis correction (direction AUC 0.66--0.88). The pattern holds across a $16{\times}$ dimensionality gap.
 
 \begin{figure}[t]
     \centering
-    \begin{subfigure}[t]{0.48\linewidth}
+    \begin{subfigure}[t]{0.47\linewidth}
         \includegraphics[width=\linewidth]{figures/17_latent_pca_success_failure.png}
-        \caption{PCA of OpenVLA hidden states. Success/failure separate in the first two principal components.}
+        \caption{PCA of OpenVLA hidden states. Success and failure separate along the first two principal components.}
         \label{fig:latent_pca}
     \end{subfigure}
     \hfill
-    \begin{subfigure}[t]{0.48\linewidth}
+    \begin{subfigure}[t]{0.47\linewidth}
         \includegraphics[width=\linewidth]{figures/24_safety_head_auc.png}
-        \caption{Probe metrics across architectures. Detection and TTF are strong on both; correction direction weaker on ACT.}
+        \caption{Probe AUC across architectures. Failure detection is strong on both; correction AUC is weaker on ACT, foreshadowing \S\ref{sec:mechanism}.}
         \label{fig:safety_head_auc}
     \end{subfigure}
-    \caption{Evidence that hidden states encode safety signals.}
+    \caption{\textbf{Failure risk is nonlinearly encoded in hidden states.} The MLP probe gains $+0.05$/$+0.10$ AUC over a linear baseline on OpenVLA/ACT despite a $16{\times}$ feature-dimensionality gap.}
+    \label{fig:encoding}
 \end{figure}
 
-\subsection{Steering Results}
-\label{sec:steering_results}
-
-\input{tables/tab_final_pooled_results}
-
-Across 9,960+ episodes per mode, vanilla 52.1\%, MPPI 52.2\%, steering 51.8\%---TOST equivalent within $\pm$2\,pp ($p{<}0.011$). Steering: 0.9\,ms vs.\ 5.6\,ms for MPPI ($6.1{\times}$ speedup). Statistical details in Appendix~\ref{app:stats}.
-
-\subsection{Adaptive Gating}
-\label{sec:adaptive_gating}
-
-Per-task intervention rate correlates at $r{=}{-}0.98$ with vanilla success ($p{=}8{\times}10^{-7}$, Pearson; $\rho{=}{-}0.98$, Spearman; $n{=}10$ tasks): hard tasks get dense intervention, easy tasks almost none, without explicit difficulty signal.
+\input{tables/tab_safety_head_metrics}
 
 \begin{figure}[t]
     \centering
-    \begin{subfigure}[t]{0.48\linewidth}
-        \includegraphics[width=\linewidth]{figures/23_intervention_vs_difficulty.png}
-        \caption{Intervention rate vs.\ task difficulty ($r{=}{-}0.98$, $p{<}10^{-6}$).}
-        \label{fig:intervention_vs_difficulty}
-    \end{subfigure}
-    \hfill
-    \begin{subfigure}[t]{0.48\linewidth}
-        \includegraphics[width=\linewidth]{figures/09_latency_speedup_ood.png}
-        \caption{Controller latency: steering vs.\ MPPI ($6.1{\times}$ speedup).}
-        \label{fig:latency}
-    \end{subfigure}
-    \caption{Left: the probe self-calibrates to task difficulty. Right: steering matches MPPI at $6{\times}$ lower latency.}
+    \includegraphics[width=\linewidth]{figures/28_success_failure_rollout.png}
+    \caption{\textbf{Success (green) vs.\ failure (red) rollout filmstrips} on LIBERO-Spatial Task~0. Each row is a recorded policy rollout replayed from its own logged simulator state. The success row picks the \texttt{akita\_black\_bowl} and places it on \texttt{plate\_1}; the failure row approaches the bowls but does not complete the placement.}
+    \label{fig:rollout_filmstrip}
 \end{figure}
 
-\subsection{Generalization}
-\label{sec:generalization}
+MLP probes trained on frozen hidden states achieve failure-detection AUC $0.83$ (OpenVLA) and $0.89$ (ACT), gaining $+0.05$/$+0.10$ over a linear-probe baseline (Table~\ref{tab:safety_head_metrics}, Fig.~\ref{fig:encoding}). The same probe template trains from scratch on both architectures with no modification, despite the $16{\times}$ dimensionality gap. The TTF head reaches $r{=}0.86$ on both; on LIBERO-Spatial, a raw step-counter baseline matches PULSE on TTF (Appendix~\ref{app:temporal_baseline})---failure rollouts run to a fixed 300-step length---so the clock-free contribution is the failure-detection AUC. Correction-head AUCs (0.78--0.88 on OpenVLA; 0.58--0.70 on ACT) foreshadow the mechanism result in \S\ref{sec:mechanism}.
 
-\paragraph{Zero-shot.} Train on 8 tasks, eval on 2 held-out with OOD push: vanilla parity (37.1\% vs.\ 38.1\%, $p{=}0.86$). Per-seed details in Appendix~\ref{app:zero_shot}.
+\subsection{Inference Optimization: Single-Step Gating Matches $K$-Sample Search at $6.1\times$ Lower Latency}
+\label{sec:steering_results}
 
-\paragraph{Cross-architecture.}
-\input{tables/tab_cross_arch}
-Both architectures show the same pattern (Table~\ref{tab:cross_arch}): steering preserves success across a $16{\times}$ dimensionality gap.
+\begin{figure}[t]
+    \centering
+    \begin{subfigure}[t]{0.47\linewidth}
+        \includegraphics[width=\linewidth]{figures/09_latency_speedup_ood.png}
+        \caption{Per-step apply time: single-step gating ($0.9$\,ms) vs.\ K-sample MPPI ($5.6$\,ms). Speedup holds across OOD disturbance levels.}
+        \label{fig:latency_bar}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[t]{0.47\linewidth}
+        \includegraphics[width=\linewidth]{figures/10_final_pooled_success.png}
+        \caption{Pooled success rates. Vanilla, MPPI, and single-step gating are TOST-equivalent (${\pm}2$\,pp); latent jiggle is the outlier (\S\ref{sec:mechanism}).}
+        \label{fig:pooled_success}
+    \end{subfigure}
+    \caption{\textbf{Same success, $6.1{\times}$ lower latency.} The speedup is inference optimization: one probe query per step vs.\ $K{=}16$ on the same failure head, not a new task cost or certified safety layer.}
+    \label{fig:latency_result}
+\end{figure}
 
-\subsection{Mechanism Analysis}
+\input{tables/tab_final_pooled_results}
+
+Table~\ref{tab:final_pooled_results} reports pooled success across all completed runs ($n{=}10{,}000$ per mode for vanilla, MPPI, and single-step gating). All three primary pairwise $z$-tests are non-significant after Holm correction. TOST equivalence confirms statistical indistinguishability: vanilla ($52.05\%$) $\equiv$ K-sample MPPI ($52.12\%$) $\equiv$ single-step gating ($51.74\%$), all pairwise $p_{\mathrm{TOST}} \le 0.011$ at ${\pm}2$\,pp. Single-step gating achieves this at $0.9$\,ms vs.\ $5.6$\,ms per step ($6.1{\times}$ speedup, pooled over all runs; Appendix~\ref{app:latency_secondary} reports a benchmark-job crosscheck at $6.47{\times}$), enabling sub-millisecond safety decisions in closed-loop control (Fig.~\ref{fig:latency_result}). \textbf{The headline result is latency reduction, not success-rate lift}: all controllers sit at the base policy's ceiling on LIBERO-Spatial.
+
+\subsection{Mechanism: Spatial--Control Decoupling}
 \label{sec:mechanism}
 
-The jiggle baseline uses random correction direction at matched magnitude. \textbf{Result:} no significant difference from steering. The failure-detection head---not the correction direction---is the operative mechanism. Safety adapters should prioritize detection over correction direction.
+To isolate what drives the latency result, we run \emph{latent jiggle}: the same MLP forward pass and magnitude gate as single-step gating, but the applied direction is a random unit vector at matched norm. Jiggle achieves $52.90\%$ pooled success vs.\ $51.74\%$ for learned steering; TOST equivalence at ${\pm}2$\,pp fails ($p_{\mathrm{TOST}}{=}0.119$; the small gap numerically favors jiggle). \textbf{Under time-matched labels on LIBERO-Spatial, temporal gating (when and how much to nudge) carries the closed-loop payload; learned spatial direction does not add a reliable success lift over random aim at the same magnitude.}
 
-\subsection{Stronger OOD Evaluation}
-\label{sec:stronger_ood}
+\paragraph{Spatial--control decoupling.}
+Our finding that latent jiggle ties or numerically exceeds learned direction reveals a critical decoupling between offline ranking metrics and closed-loop episode success (\emph{spatial--control decoupling}). Strong offline directional scores (Table~\ref{tab:safety_head_metrics}) coexist with no reliable episode-level gain over jiggle (Table~\ref{tab:final_pooled_results}). This stems from three distinct system constraints:
+\begin{enumerate}[leftmargin=1.4em, topsep=2pt, itemsep=2pt]
+    \item[\textbf{(i) Scale mismatch.}] The probe tracks directional labels well offline (e.g., OpenVLA axis AUCs $0.85$/$0.88$/$0.78$), but the deployed controller clamps EEF adjustments to $\sim$3\,mm and rescales into action space---perturbations small enough that LIBERO's binary success predicate is largely insensitive to compass bearing.
+    \item[\textbf{(ii) Shared magnitude gate.}] Jiggle is not a no-probe baseline: it preserves the MLP's predicted correction \emph{magnitude} and the same magnitude threshold. What is randomized is direction only. The operative bottleneck signal is therefore primarily \emph{temporal}---whether and how strongly to intervene---not the spatial vector returned by the correction head.
+    \item[\textbf{(iii) Label vs.\ recovery.}] Targets $\Delta\mathbf{p}_t = \mathbf{p}^{\mathrm{succ}}_t - \mathbf{p}^{\mathrm{fail}}_t$ from time-index-matched nearest-neighbor trajectories optimize sequence matching, not recovery in an unfolding MDP. High offline AUC means the head learned the \emph{labeling convention}; it does not imply that label is an optimal closed-loop control direction.
+\end{enumerate}
+We caution against using offline spatial AUC or axis correlation as a proxy for deployable steering gain without closed-loop ablations on the target benchmark.
 
-\input{tables/tab_stronger_ood}
+The decoupling is compatible with---not contradictory to---the directionality probe (Appendix~\ref{app:spatial_failure}): hidden states encode failure direction in the first $25\%$ of failure trajectories (displacement error $8.7{\to}7.6$\,cm on OpenVLA), but standard magnitude gating fires later, after proprioception catches up. The latent carries spatial information; under current labels and gating it is not translated into success lift. Recovery-conditioned demonstrations and earlier-firing thresholds (Appendix~\ref{app:threshold_sweep}) are the natural paths to re-couple spatial readout to control.
 
-Under $2{-}5{\times}$ baseline disturbance on the four hardest tasks (Table~\ref{tab:stronger_ood}), steering shows $+3.7$\,pp at $3{\times}$ push ($p{=}0.11$) but the pooled effect ($+0.6$\,pp, $p{=}0.42$) is not significant. Jiggle degrades more than steering at the strongest levels, consistent with the mechanism analysis.
+\subsection{Adaptive Gating and Generalization}
+\label{sec:adaptive_gating}
 
-\subsection{Cross-Model Transfer}
-\label{sec:transfer}
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.65\linewidth]{figures/23_intervention_vs_difficulty.png}
+    \caption{\textbf{Difficulty-responsive intervention.} Per-task intervention rate correlates at $r{=}{-}0.98$ ($p{<}10^{-6}$, $n{=}10$) with vanilla success---hard tasks receive dense intervention, easy tasks almost none, without any explicit difficulty signal.}
+    \label{fig:intervention}
+\end{figure}
 
-Linear transfer fails: ACT$\to$OpenVLA AUC = 0.27 (native 0.70); OpenVLA$\to$ACT = 0.42 (native 0.94). The safety signal exists in both architectures but the coordinate systems are not linearly alignable. Nonlinear transfer is future work.
+\paragraph{Difficulty-responsive intervention.} Per-task intervention rate correlates at $r{=}{-}0.981$ ($p{=}5.2{\times}10^{-7}$; Spearman $\rho{=}{-}0.988$; $n{=}10$) with vanilla task success (Fig.~\ref{fig:intervention}). Pooled mean rate is $40\%$ of timesteps (median $37\%$; range $10$--$66\%$).
+
+\paragraph{Zero-shot generalization.} Training on 8 tasks and evaluating on 2 held-out tasks with OOD push yields vanilla parity ($37.5\%$ vs.\ $38.2\%$, $p{=}0.86$): the probe does not hurt on unseen tasks.
+
+\paragraph{Cross-architecture.} The same qualitative pattern holds on OpenVLA and ACT: vanilla, MPPI, and single-step gating stay within ${\sim}1$\,pp on each architecture (full table in Appendix~\ref{app:stats}). Linear cross-architecture transfer fails (ACT${\to}$OpenVLA AUC $0.27$; OpenVLA${\to}$ACT $0.42$)---the probe template is reusable but safety directions are architecture-specific and must be retrained per policy family.
+
+\paragraph{OOD robustness.} Under $2$--$5{\times}$ baseline disturbance on the four hardest ACT tasks, the pooled single-step gating advantage ($+0.6$\,pp, $p{=}0.42$) is not significant. K-sample MPPI leads single-step gating by $3.0$\,pp on the hard ACT OOD sub-pool ($n{=}80$; not significant after Holm correction), suggesting MPPI's search advantage may emerge at extreme disturbance at the cost of $6{\times}$ latency---an engineering trade-off worth monitoring on harder benchmarks (Appendix~\ref{app:stats}).
 
 \subsection{Physical Robot Evaluation}
 \label{sec:physical_results}
 
 {\color{blue}
-\begin{figure}[t]
-    \centering
-    \fbox{\parbox{0.7\linewidth}{\centering\vspace{2cm}\textbf{SO-101 Robot Setup Photo}\\\vspace{0.3cm}\small Placeholder: insert photo of SO-101 arm with tabletop task setup, camera, and workspace.\vspace{2cm}}}
-    \caption{Physical evaluation setup: SO-101 arm (6-DoF) with wrist-mounted camera performing tabletop pick-and-place. The safety probe is trained on simulation hidden states and deployed without fine-tuning.}
-    \label{fig:robot_setup}
-\end{figure}
-
-\emph{Physical robot evaluation on SO-101 arms with LeRobot VLAs is planned (Section~\ref{sec:physical_setup}). The key question: does the sim-trained probe detect real-world failures (target AUC $>$ 0.7)?}
+Physical evaluation on SO-101 arms is in progress (protocol in \S\ref{sec:physical_protocol}). The primary metric is zero-shot failure-detection AUC on real hardware (target ${>}0.70$); secondary metrics are per-task success rate for vanilla vs.\ single-step gating ($N{=}50$\,ep/mode/task) and closed-loop latency on the embedded compute. Results will replace this placeholder for the camera-ready version.
 }
 
-\subsection{Hyperparameter Sensitivity}
-
-Clamping and gating ablations (Appendix~\ref{app:sensitivity}) confirm moderate $c_{\max}$ and $\tau_f$ are critical.

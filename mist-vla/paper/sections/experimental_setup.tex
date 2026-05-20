@@ -1,21 +1,14 @@
 \section{Experimental Setup}
+\label{sec:experimental_setup}
 
-\paragraph{Benchmark.} LIBERO-Spatial~\cite{libero_paper}: 10 tabletop manipulation tasks, MuJoCo with EGL rendering, 300-timestep episodes, binary success.
+\paragraph{Benchmark.} LIBERO-Spatial~\citep{libero_paper}: 10 tabletop manipulation tasks in MuJoCo, 300-step episodes, binary success (goal predicate fires $\Rightarrow$ success). Success and failure rollouts are shown in Fig.~\ref{fig:rollout_filmstrip}.
 
-\paragraph{Base policies.} (i) \textbf{OpenVLA-7B OFT}: autoregressive VLA, 4096-d hidden states, one action per step. (ii) \textbf{ACT}: CVAE action-chunking, 256-d hidden states, 8-step chunks.
+\paragraph{Policies.} \textbf{OpenVLA-7B OFT}~\citep{openvla_paper}: autoregressive VLA, 4096-d last-token hidden state. \textbf{ACT}~\citep{act_paper}: CVAE action-chunking, 256-d encoder hidden state, 8-step chunks; the correction is applied to the first chunk action.
 
-\paragraph{Safety probe.} 3${\times}$256 hidden layers, GELU, Dropout 0.3, LayerNorm input. 108K params (ACT) / 1.1M (OpenVLA). AdamW, early stopping on val AUC.
+\paragraph{Data.} OpenVLA pool: 200 success / 374 failure trajectories (19{,}440 / 82{,}280 steps). ACT pool: 499 success / 500 failure trajectories (59{,}328 / 150{,}000 steps). Trajectory-level 75/15/10 train/val/test split, stratified by task and label (\texttt{np.random.seed(42)}); all probe metrics on the trajectory-disjoint test set.
 
-\paragraph{Modes.} Each task: $N{=}20$ episodes per mode. \textbf{vanilla}: unmodified. \textbf{latent\_jiggle}: random-direction correction, matched magnitude (mechanism ablation). \textbf{mppi}: sampling-based planning using failure head as cost. \textbf{steering} (ours): full PULSE pipeline.
+\paragraph{Controller modes.} $N{=}20$ episodes/mode/task. \textbf{Vanilla}: unmodified base policy. \textbf{K-sample MPPI}: $K{=}16$ feature-space perturbations scored by the PULSE failure head (softmin $\tau{=}5.0$, $\sigma{=}0.01$). \textbf{Single-step gating (Ours)}: one failure-head query per step. \textbf{Latent Jiggle}: identical to single-step gating but with correction direction replaced by a random unit vector at matched magnitude---isolates the contribution of the correction head (\S\ref{sec:mechanism}). Hyperparameters swept: $\alpha \in \{0.10, 0.12, 0.15, 0.18\}$, $c_{\max} \in \{0.003, 0.0035, 0.004\}$\,m, $\tau_f \in \{0.55, 0.60, 0.65\}$; pooled table averages over sweep (modal: $\alpha{=}0.12$, $c_{\max}{=}0.003$\,m, $\tau_f{=}0.65$).
 
-\paragraph{Controller.} $\alpha{=}0.2$, $\beta{=}0.3$, $c_{\max}{=}0.004$\,m, $\tau_c{=}0.003$\,m, $\tau_f{=}0.6$, MPPI: 64 samples, $\sigma{=}0.003$\,m.
+\paragraph{Statistics.} Two-proportion $z$-tests and TOST equivalence (${\pm}2$\,pp), Holm-corrected over the primary contrast family \{single-step vs.\ MPPI, single-step vs.\ vanilla, MPPI vs.\ vanilla\}. Wilson 95\% CIs in Table~\ref{tab:final_pooled_results}. All $p$-values two-sided. Pearson and Spearman correlations reported for the adaptive-gating analysis.
 
-\paragraph{Generalization.} Strict zero-shot (train 8 tasks, eval 2 held-out) and disturbance OOD (push magnitude 0.08).
-
-\paragraph{Statistics.} Two-proportion z-tests, Fisher exact, TOST ($\pm$2\,pp), Holm correction, Pearson/Spearman correlations. All $p$-values two-sided.
-
-\paragraph{Physical robot evaluation.}
-\label{sec:physical_setup}
-{\color{blue}We evaluate on SO-101 robot arms (6-DoF, open-source) with multiple LeRobot VLAs, testing whether the latent safety signal transfers from sim to real. The safety probe is trained on simulation hidden states and deployed without fine-tuning. Tasks: tabletop pick-and-place. Modes: vanilla, steering, MPPI. 50 episodes per mode per task, blind success labeling. Safety interlocks: workspace bounding, velocity saturation, and e-stop. Measures: success rate, failure AUC on real trajectories, intervention rate.}
-
-\paragraph{Compute.} HPC cluster, NVIDIA A100 (40\,GB), $\sim$2,000 GPU-hours total.
+\paragraph{Compute.} NVIDIA A100 (40\,GB), ${\approx}2{,}000$ GPU-hours total for rollout collection, probe training, and controller evaluation.

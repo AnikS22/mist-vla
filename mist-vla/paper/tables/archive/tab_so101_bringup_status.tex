@@ -1,0 +1,20 @@
+\begin{table}[t]
+\centering
+\caption{SO-101 physical-robot bring-up status (\emph{placeholder}). Checks below are the gates the SO-101 pipeline in \texttt{mist-vla/scripts/so101/} runs before any autonomous evaluation. All outcomes remain \emph{pending} for this submission and will be filled in from \texttt{research\_data/rollouts/so101/eval/<run\_tag>/summary.json} once hardware sessions are run.}
+\label{tab:so101_bringup_status}
+\begin{tabular}{p{0.55\linewidth}cc}
+\toprule
+Check & Outcome & Evidence \\
+\midrule
+USB enumeration (leader + follower on /dev/ttyACM*) & TODO-SO101-USB & \texttt{ls /dev/ttyACM*} \\
+LeRobot calibration (per-arm, per-port) & TODO-SO101-CAL & \texttt{scripts/so101/calibrate.py} log \\
+Pi0 weight load + hidden-state hook fires (dry-run) & TODO-SO101-PI0 & \texttt{scripts/so101/collect\_rollouts.py --dry-run} \\
+Wrist + scene camera enumerate at $\geq 30$\,Hz & TODO-SO101-CAM & \texttt{v4l2-ctl --list-devices} \\
+Workspace clamp + SIGINT e-stop verified & TODO-SO101-SAFE & \texttt{scripts/so101/common.py} unit checks \\
+Teleop episode round-trip ($\geq 5$ episodes saved) & TODO-SO101-TELEOP & \texttt{raw\_ep*.pkl} on disk \\
+Probe trained on real teleop data (AUC $> $ chance) & TODO-SO101-PROBE & \texttt{best\_model.pt} + \texttt{results.json} \\
+Autonomous pick/place under \texttt{vanilla} controller & TODO-SO101-AUTO & \texttt{eval\_realtime.py} \texttt{summary.json} \\
+Autonomous pick/place under \texttt{pulse\_cost} controller & TODO-SO101-PULSE & \texttt{eval\_realtime.py} \texttt{summary.json} \\
+\bottomrule
+\end{tabular}
+\end{table}

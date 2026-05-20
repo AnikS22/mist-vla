@@ -1,0 +1,22 @@
+\begin{table}[t]
+\centering
+\caption{\textbf{Threshold operating points for the PULSE failure head.} Precision, recall, F1, and accuracy at three sigmoid-probability cutoffs ($\sigma{=}0.50$ default; $\sigma{=}0.80$ conservative; $\sigma{=}0.99$ near-certain). Computed by replaying the canonical trained checkpoints (\texttt{research\_data/checkpoints/eef\_correction\_mlp/best\_model.pt} and the ACT analog) on the same per-architecture rollout pools and trajectory-disjoint test fold the trainer used (75/15/10 split, \texttt{np.random.seed(42)+np.random.shuffle}; see \texttt{scripts/eval\_safety\_head\_thresholds.py}). The AUC headline for these checkpoints lives in Table~\ref{tab:safety_head_metrics}; this table reports the precision-recall trade-off only. \textit{Fire rate} is the fraction of test steps at which the head's probability exceeds the threshold. Both architectures show a clean precision/recall trade-off here --- the saturated-sigmoid degeneracy that the earlier merged-pool replay exhibited on OpenVLA (recall pinned at 1.000) is not present on the per-architecture test fold.}
+\label{tab:threshold_operating}
+\begin{tabular}{lccccc}
+\toprule
+Setting & Threshold & Precision & Recall & F1 & Accuracy \\
+\midrule
+\multicolumn{6}{l}{\textbf{OpenVLA (4096-d)} \quad test pos rate $=0.751$, fire rate at $\sigma{\ge}0.50$ $=65.7\%$} \\
+\midrule
+Default          & $\sigma\ge0.50$ & 0.944 & 0.826 & 0.881 & 0.833 \\
+Conservative     & $\sigma\ge0.80$ & 0.944 & 0.817 & 0.876 & 0.826 \\
+Near-certain     & $\sigma\ge0.99$ & 0.952 & 0.795 & 0.866 & 0.816 \\
+\midrule
+\multicolumn{6}{l}{\textbf{ACT (256-d)} \quad test pos rate $=0.662$, fire rate at $\sigma{\ge}0.50$ $=49.5\%$} \\
+\midrule
+Default          & $\sigma\ge0.50$ & 0.959 & 0.717 & 0.821 & 0.792 \\
+Conservative     & $\sigma\ge0.80$ & 0.982 & 0.663 & 0.792 & 0.769 \\
+Near-certain     & $\sigma\ge0.99$ & 0.996 & 0.565 & 0.721 & 0.710 \\
+\bottomrule
+\end{tabular}
+\end{table}

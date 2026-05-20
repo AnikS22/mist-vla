@@ -1,13 +1,14 @@
 \section{Discussion}
+\label{sec:discussion}
 
-\paragraph{Detection is strong and cross-architectural.}
-The probe achieves strong failure detection and TTF prediction across a $16{\times}$ dimensionality gap. This extends prior detection-only work by showing the signal is rich enough to extract temporal structure, not just binary failure labels.
+\paragraph{PULSE as inference optimization, not a safety adapter.}
+The primary deployable contribution is \textbf{query amortization}: practitioners who want to use a hidden-state failure logit as a closed-loop controller cost need not run $K{=}16$ forward evaluations per step. Single-step gating is TOST-equivalent to $K$-sample search on LIBERO-Spatial at $6.1{\times}$ lower latency. We explicitly do \emph{not} claim certified safe operation, harm reduction, or conformal coverage on control---those require separate calibration (Platt scaling for OpenVLA probabilities; \texttt{platt\_calibrate\_failure\_head.py}) and, for spatial corrections, better supervision than progress-aligned teleportation labels (\texttt{recovery\_conditioned\_labels.py}).
 
-\paragraph{The correction direction does not help.}
-The jiggle ablation is the most important result in this paper, and it is a negative one: matched-magnitude random corrections perform comparably to our learned corrections. In plain terms, the MLP learns \emph{when} the robot is in trouble but not \emph{which direction} to push it. A random nudge timed by the failure signal works just as well as the learned correction vector. This does not mean the system is useless---the detection timing is genuinely valuable (AUC 0.83--0.98)---but the correction head needs fundamental improvement before steering can outperform vanilla execution. We attempted continuous spatial correction and it did not succeed; improving correction fidelity is the primary direction for future work.
+\paragraph{Spatial--control decoupling.}
+The \emph{spatial--control decoupling} in \S\ref{sec:mechanism} is a methodological lesson: offline directional AUC on time-matched labels must not be read as closed-loop steering performance---latent jiggle preserves magnitude gating and matches learned direction on episode success. On LIBERO-Spatial, the failure head alone suffices for the latency result; the correction head is a diagnostic under the current label regime.
 
-\paragraph{Adaptive gating is emergent.}
-The $r{=}{-}0.98$ correlation ($p{<}10^{-6}$) between intervention rate and difficulty arises without explicit difficulty signal. The double-gating mechanism naturally modulates intervention density based on latent-state uncertainty.
+\paragraph{Correction labels and calibration.}
+The directionality analysis (Appendix~\ref{app:spatial_failure}) shows hidden states encode failure geometry early in rollouts, but teleportation labels $\Delta\mathbf{p}_t = \mathbf{p}^{\mathrm{succ}}_t - \mathbf{p}^{\mathrm{fail}}_t$ at matched progress fractions do not translate into control gain. \textbf{Recovery-conditioned matching} (monotonic forward nearest point on a success reference path) replaces that supervision; retraining with \texttt{--label-mode recovery} is the intended path to re-couple spatial readout to control. OpenVLA's raw sigmoid is overconfident (ECE $0.22$); affine Platt scaling on logits is monotone and preserves AUC while collapsing calibration error on the held-out test fold.
 
 \paragraph{Limitations.}
-Pooled success differences are not significant---steering does not improve over vanilla. Correction direction $\approx$ random. OOD effect is modest. Gating correlation is on $n{=}10$ tasks. All current results are in simulation; {\color{blue}physical robot validation on SO-101 arms is planned.}
+All quantitative controller results are on LIBERO-Spatial. Cross-architecture linear transfer fails. SO-101 hardware validates whether sim-trained probes and the latency advantage survive real control loops and variable-length failures. Head-to-head comparison with FIPER and FAIL-Detect on our rollout pool remains open.

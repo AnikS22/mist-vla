@@ -1,16 +1,12 @@
 \section{Related Work}
 
 \paragraph{Failure detection from policy representations.}
-Recent work has shown that learned policy features encode failure signals. SAFE~\citep{safe_paper} trains MLP classifiers on VLA hidden states for binary failure prediction with conformal guarantees. FAIL-Detect~\citep{fail_detect} uses OOD detection in the policy's embedding space without labeled failure data. FIPER~\citep{fiper} combines random network distillation with action-chunk entropy. Our work extends detection to include temporal prediction (TTF) and correction estimation. The mechanism analysis reveals that detection timing---not correction direction---is the operative component.
+SAFE~\citep{safe_paper} trains MLP classifiers on VLA hidden states for binary failure prediction with conformal coverage guarantees. FAIL-Detect~\citep{fail_detect} scores failure risk via OOD detection without requiring labeled failure data. FIPER~\citep{fiper} combines random network distillation with action-chunk entropy to flag imminent failure at inference time. PULSE extends SAFE along three dimensions: (i)~a richer probe output whose failure-detection AUC improves over a linear probe on the same hidden states, with TTF and correction heads reported as ablations (\S\ref{sec:mechanism}, Appendix~\ref{app:temporal_baseline}); (ii)~direct use as a controller cost rather than an abstain trigger; (iii)~explicit latency characterization at $0.9$\,ms/step. FIPER and FAIL-Detect are related work and not evaluated baselines in this submission; porting both to our rollout pool is a clear next step.
 
-\paragraph{Inference-time steering in LLMs.}
-Representation engineering~\citep{repr_engineering} and activation steering~\citep{activation_steering} show that LLM hidden states encode controllable safety directions. We extend this to robotics: policy hidden states encode spatial safety signals that can be acted on in real time, though correction fidelity remains a bottleneck.
+\input{tables/tab_safe_vs_pulse}
 
-\paragraph{Latent activation editing for robots.}
-Concurrent work on latent activation editing~\citep{lae_paper} modifies intermediate policy activations for collision avoidance in navigation. Mechanistic interpretability for VLAs~\citep{mech_interp_vla} identifies sparse semantic directions causally linked to action selection. Our approach differs: we probe post-hoc rather than editing activations, and focus on manipulation safety rather than navigation.
+\paragraph{Inference-time steering and latent editing.}
+Representation engineering~\citep{repr_engineering} and activation steering~\citep{activation_steering} demonstrate that LLM hidden states encode controllable directions. Latent activation editing~\citep{lae_paper} modifies policy activations for navigation collision avoidance. Mechanistic interpretability on VLAs~\citep{mech_interp_vla} identifies sparse semantic directions in policy features. PULSE probes post-hoc rather than editing in-place, targeting tabletop manipulation rather than navigation or language generation.
 
-\paragraph{Classical safety filters.}
-CBFs~\citep{cbf_paper}, shielded RL~\citep{shielded_rl}, and MPPI~\citep{mppi_paper} operate in state/action space with hand-designed or learned constraints. Our probe accesses the policy's internal representations directly, achieving MPPI-equivalent success at $6{\times}$ lower latency.
-
-\paragraph{Foundation robot policies.}
-VLA systems~\citep{openvla_paper, octo_paper} and imitation learners such as ACT~\citep{act_paper} and Diffusion Policy~\citep{dp_paper} enable broad manipulation but lack deployment-time safety guarantees. PULSE attaches to any frozen policy without modifying weights.
+\paragraph{Classical safety filters and foundation policies.}
+Control barrier functions~\citep{cbf_paper} and shielded RL~\citep{shielded_rl} enforce safety constraints in state/action space but require explicit dynamics or safety specifications. MPPI~\citep{mppi_paper} samples trajectories for cost-minimizing control at the expense of inference latency. Foundation policies~\citep{openvla_paper, octo_paper, act_paper, dp_paper} lack built-in failure detection; PULSE attaches as a post-hoc adapter to any frozen policy without modifying weights or requiring a dynamics model.

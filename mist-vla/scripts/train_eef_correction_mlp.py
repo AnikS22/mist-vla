@@ -19,6 +19,7 @@ Output: {
 """
 
 import pickle
+import sys
 import numpy as np
 import torch
 import torch.nn as nn
@@ -32,6 +33,9 @@ from scipy.interpolate import interp1d
 import argparse
 import json
 import time
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(REPO_ROOT))
 
 DIM_NAMES_EEF = ["X", "Y", "Z"]
 CORRECTION_THRESHOLD_M = 0.01  # 1cm — meaningful correction threshold
@@ -122,9 +126,19 @@ def compute_eef_corrections(fail_rollout, succ_rollout):
     return corrections
 
 
+def compute_eef_corrections_for_mode(fail_rollout, succ_rollout, label_mode: str = "teleport"):
+    """Dispatch correction labels: ``teleport`` (progress-aligned) or ``recovery``."""
+    if label_mode == "teleport":
+        return compute_eef_corrections(fail_rollout, succ_rollout)
+    if label_mode == "recovery":
+        from scripts.recovery_conditioned_labels import compute_recovery_corrections
+        return compute_recovery_corrections(fail_rollout, succ_rollout)
+    raise ValueError(f"Unknown label_mode={label_mode!r}; use 'teleport' or 'recovery'")
+
+
 # ─── Sample Preparation ──────────────────────────────────────────────────
 
-def prepare_samples(rollouts, success_by_task, subsample_chunks=False):
+def prepare_samples(rollouts, success_by_task, subsample_chunks=False, label_mode="teleport"):
     """Build per-step samples with Cartesian EEF correction labels.
 
     Args:
@@ -164,7 +178,7 @@ def prepare_samples(rollouts, success_by_task, subsample_chunks=False):
         if is_fail:
             match = match_failure_to_success(r, success_by_task)
             if match is not None:
-                corrections = compute_eef_corrections(r, match)
+                corrections = compute_eef_corrections_for_mode(r, match, label_mode)
                 if corrections is None:
                     n_unmatched += 1
                     continue
@@ -706,6 +720,13 @@ def main():
     parser.add_argument("--zero-shot-test-tasks", type=int, nargs="+",
                         help="Explicit unseen test task IDs for strict "
                              "zero-shot generalization (Task B).")
+    parser.add_argument(
+        "--label-mode",
+        choices=("teleport", "recovery"),
+        default="teleport",
+        help="Correction supervision: progress-aligned teleport (default) or "
+             "monotonic recovery-conditioned match (see recovery_conditioned_labels.py).",
+    )
     args = parser.parse_args()
 
     np.random.seed(args.seed)
@@ -716,7 +737,9 @@ def main():
 
     print("=" * 70)
     print("CARTESIAN EEF CORRECTION MLP")
-    print("correction[t] = EEF_success(t) - EEF_failed(t)  [meters]")
+    print(f"  Label mode: {args.label_mode}")
+    print("  teleport: progress-aligned EEF_success(t) - EEF_failed(t)")
+    print("  recovery: monotonic forward match on success polyline")
     print("Cross-embodiment generalizable — 'move hand Xcm left'")
     print("=" * 70)
     print(f"  Architecture v4 (shortcut-learning fix):")
@@ -801,8 +824,13 @@ def main():
         print("\nPreparing samples (chunk-subsampled — unique features only)...")
     else:
         print("\nPreparing samples (EEF trajectory matching + Cartesian alignment)...")
-    all_samples = prepare_samples(all_rollouts, succ_by_task,
-                                  subsample_chunks=args.subsample_chunks)
+    print(f"  Label mode: {args.label_mode}")
+    all_samples = prepare_samples(
+        all_rollouts,
+        succ_by_task,
+        subsample_chunks=args.subsample_chunks,
+        label_mode=args.label_mode,
+    )
     n = len(all_samples["labels"])
     nf = all_samples["labels"].sum()
     print(f"  Total: {n} samples ({nf:.0f} failure, {n-nf:.0f} success)")

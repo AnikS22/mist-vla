@@ -105,7 +105,7 @@ for mode in ['vanilla', 'mppi', 'steering', 'latent_jiggle', 'noise', 'latent_st
 table = [
     r"\begin{table}[t]",
     r"\centering",
-    r"\caption{Final pooled results across completed runs (OpenVLA sweep+OOD and ACT sweep+OOD+zero-shot OOD).}",
+    r"\caption{\textbf{Final pooled results across completed runs} (OpenVLA sweep+OOD and ACT sweep+OOD+zero-shot OOD). \emph{Canonical latency reference for this paper.} Mean apply-time measured on the same NVIDIA A100 (40\,GB) HPC node used for all evaluation, averaged over every per-step controller call across the pooled run set (warmup excluded; values match the abstract/introduction headline of $6.1\times$). A secondary ACT-only benchmark-job measurement is reported in Appendix Table~\ref{tab:latency} for transparency; that measurement uses a fresh process, smaller scope, and is \emph{not} the headline number. \emph{Latent Jiggle} (PULSE gating, random-direction correction at matched magnitude; $n{=}9{,}720$) and \emph{Random Noise} (Gaussian action-space $\sigma{=}0.05$, no gating, OpenVLA-only $n{=}5{,}080$) are perturbation baselines defined in \S\ref{sec:experimental_setup}.}",
     r"\label{tab:final_pooled_results}",
     r"\begin{tabular}{lccc}",
     r"\toprule",
@@ -163,7 +163,11 @@ for mode in ['vanilla', 'mppi', 'steering', 'latent_jiggle', 'noise', 'latent_st
         continue
     ov_table.append(f"{mode.replace('_', ' ').title()} & {pct(s):.2f} & {s['succ']}/{s['eps']} {EOL}")
 ov_table += [r"\bottomrule", r"\end{tabular}", r"\end{table}"]
-write('tab_openvla_final_pooled.tex', ov_table)
+# Per-architecture pooled tables are superseded by tab_final_pooled_results.tex;
+# emit to archive so the canonical pooled table stays the only \input.
+(TABLES / "archive").mkdir(parents=True, exist_ok=True)
+(TABLES / "archive" / "tab_openvla_final_pooled.tex").write_text("\n".join(ov_table) + "\n")
+print(f"wrote {TABLES / 'archive' / 'tab_openvla_final_pooled.tex'} (archived)")
 
 # ---------------------------------------------------------------------
 # Table 3: ACT final pooled
@@ -194,7 +198,9 @@ for mode in ['vanilla', 'mppi', 'steering', 'latent_jiggle', 'latent_stop']:
     ms_txt = f"{ms:.3f}" if ms is not None else "--"
     act_table.append(f"{mode.replace('_', ' ').title()} & {pct(s):.2f} & {s['succ']}/{s['eps']} & {ms_txt} {EOL}")
 act_table += [r"\bottomrule", r"\end{tabular}", r"\end{table}"]
-write('tab_act_final_pooled.tex', act_table)
+(TABLES / "archive").mkdir(parents=True, exist_ok=True)
+(TABLES / "archive" / "tab_act_final_pooled.tex").write_text("\n".join(act_table) + "\n")
+print(f"wrote {TABLES / 'archive' / 'tab_act_final_pooled.tex'} (archived)")
 
 # ---------------------------------------------------------------------
 # Table: Wilson 95% CIs (paper-curated family) from stat_tests_summary.json
@@ -207,7 +213,7 @@ if st_path.exists():
         wtab = [
             r"\begin{table}[t]",
             r"\centering",
-            r"\caption{Wilson 95\% score intervals for success rate (\%) on the paper-curated LIBERO pool (same counts as Table~\ref{tab:final_pooled_results}).}",
+            r"\caption{Wilson 95\% score intervals for success rate (\%) on the paper-curated LIBERO pool (same counts as Table~\ref{tab:final_pooled_results}). \emph{Random Noise} is the Gaussian action-space-noise baseline ($\sigma{=}0.05$, no gating; defined in \S\ref{sec:experimental_setup}); it was run only on OpenVLA, hence the smaller $n{=}5{,}080$. \emph{Latent Jiggle} is the PULSE-gated random-direction baseline with $n{=}9{,}720$ (280 episodes short of the $10{,}000$ headline pool because three early sweep configs ran 160 episodes/mode before jiggle was added to the runner; see DATA\_AUDIT\_REPORT.md).}",
             r"\label{tab:wilson_paper_curated}",
             r"\begin{tabular}{lccc}",
             r"\toprule",

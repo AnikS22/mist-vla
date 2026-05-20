@@ -1,0 +1,16 @@
+\begin{table}[t]
+\centering
+\caption{\textbf{Source of the $\sim$40\% intervention-rate claim in \S\ref{sec:method_training}.} Pooled distribution of \texttt{mean\_ir} (fraction of timesteps at which the double gate fires) across every per-task steering-mode entry in \texttt{paper/data/*eval\_results*.json}. $n$ is the number of (run, task) cells. The mean is the number quoted in the Method section; the spread covers easy tasks (low intervention) and hard tasks (high intervention), consistent with the self-calibration result in Section~\ref{sec:adaptive_gating}.}
+\label{tab:intervention_rate}
+\begin{tabular}{lc}
+\toprule
+Statistic & Value \\
+\midrule
+Mean intervention rate & \textbf{39.6\%} \\
+Median intervention rate & 36.9\% \\
+Standard deviation & 28.8\,pp \\
+5th--95th percentile & [0.0\%, 80.7\%] \\
+$n$ (run-task cells) & 558 \\
+\bottomrule
+\end{tabular}
+\end{table}

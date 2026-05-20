@@ -1,18 +1,57 @@
 \appendix
 
+\section{LIBERO-Spatial Benchmark Tasks}
+\label{app:libero_tasks}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\linewidth]{figures/30_libero_spatial_gallery.png}
+    \caption{All 10 LIBERO-Spatial tasks (T0--T9, agentview). Each task varies the spatial position of the \texttt{akita\_black\_bowl} relative to landmark objects; the goal predicate is identical across tasks (place bowl on plate). Tasks T0--T7 are used for training; T8--T9 are held out for zero-shot OOD evaluation (\S\ref{sec:adaptive_gating}).}
+    \label{fig:libero_tasks}
+\end{figure}
+
+\section{Temporal Baseline for TTF}
+\label{app:temporal_baseline}
+
+\input{tables/tab_temporal_baseline}
+
+We trained step-index-only regressors on the same rollout pool, with the same TTF target and rollout-disjoint 75/15/10 split as the PULSE head, and report results in Table~\ref{tab:temporal_baseline}. On LIBERO-Spatial the raw-$t$ linear baseline matches or exceeds the PULSE head on TTF correlation ($r{\approx}1.0$ vs.\ PULSE $0.86$, both on the failure-only test subset) because failure rollouts in this benchmark almost always run to a constant maximum episode length, making the failure-only TTF target a near-deterministic linear function of $t$. We report this honestly and reframe C1: the substantive contribution is the failure-detection AUC (Table~\ref{tab:safety_head_metrics}), which the step counter cannot reproduce. Real-hardware data where failures occur at variable lengths is the cleanest setting in which to validate the hidden-state TTF claim and is listed as future work in the conclusion.
+
+\section{Spatial Failure-Location Prediction (Directionality)}
+\label{app:spatial_failure}
+
+\input{tables/tab_spatial_failure}
+
+Section~\ref{sec:mechanism} shows that injecting the probe's predicted correction direction into the controller does not outperform a random-direction injection at matched magnitude. Two interpretations are consistent with that result: (a)~the latent does not encode failure direction beyond what the failure logit already exposes, or (b)~the latent does encode direction but the controller's intervention threshold fires after the directional signal has already become trivially explainable from kinematics. Table~\ref{tab:spatial_failure} disentangles these by replaying the same rollouts as a pure linear-probe regression on $\Delta\mathbf{p} = \mathbf{p}_{\mathrm{term}} - \mathbf{p}_t$ and comparing the hidden state to a 3-d current-EEF baseline.
+
+The evidence favors (b). Pooled over all failure steps, hidden-state and current-EEF features are statistically indistinguishable ($\pm 0.1$\,cm in mean Euclidean displacement error and $\pm 0.03$ in per-axis sign AUC on both OpenVLA and ACT). On the early-rollout slice (first $25\%$ of each failure trajectory), the hidden state pulls ahead: displacement error drops from $8.7\to 7.6$\,cm on OpenVLA and $9.4\to 7.7$\,cm on ACT, and OpenVLA's X-axis sign AUC rises from $0.76\to 0.87$. Concatenating the EEF position with the hidden state does not add further headroom in either slice, which is consistent with the hidden state already containing the pose information.
+
+We read this as a complement to the C1 contribution: the latent encodes the spatial direction of failure before the arm visibly commits to it, but on LIBERO-Spatial the closed-loop controller's gating fires after the proprioceptive signal has caught up, which is why latent jiggle (gated correctly, directionless) ties or beats single-step gating (gated and directional). Variable-geometry physical hardware---where the failure direction varies trial-to-trial and where the early-rollout signal would be most useful---is the cleanest setting in which to retest whether the directional latent translates into a usable correction. Physical evaluation on SO-101 arms is listed as future work in the conclusion.
+
+\section{Difficulty-Responsive Intervention}
+\label{app:intervention}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.6\linewidth]{figures/23_intervention_vs_difficulty.png}
+    \caption{\textbf{Difficulty-responsive intervention.} Per-task intervention rate correlates at $r{=}{-}0.98$ ($p{=}5.2{\times}10^{-7}$, $n{=}10$) with vanilla success---hard tasks receive dense intervention, easy tasks almost none, with no explicit difficulty signal (\S\ref{sec:adaptive_gating}).}
+    \label{fig:intervention}
+\end{figure}
+
 \section{Hyperparameter Sensitivity}
 \label{app:sensitivity}
 
 \input{tables/tab_clamping_ablation}
 \input{tables/tab_gating_ablation}
 
-Moderate clamping ($c_{\max}{=}0.01$\,m) preserves base-policy success on easy tasks (Table~\ref{tab:clamping_ablation}). Moderate gating thresholds perform best ($n{=}5$ per cell; Table~\ref{tab:gating_ablation}).
+Moderate clamping ($c_{\max}{=}0.01$\,m) preserves base-policy success on easy tasks (Table~\ref{tab:clamping_ablation}). Moderate gating thresholds perform best ($n{=}5$ per cell; Table~\ref{tab:gating_ablation}). Per-cell $n{=}5$ is directional only; pooled results ($N{=}10{,}000$) are in Table~\ref{tab:final_pooled_results}.
 
 \section{Statistical Details}
 \label{app:stats}
 
 \input{tables/tab_stat_tests}
 \input{tables/tab_equivalence_tost}
+\input{tables/tab_wilson_paper_curated}
 \input{tables/tab_stratified_difficulty}
 
 \begin{figure}[h]
@@ -21,11 +60,25 @@ Moderate clamping ($c_{\max}{=}0.01$\,m) preserves base-policy success on easy t
     \caption{Pooled success rates across all completed runs.}
 \end{figure}
 
+\section{Closed-Loop Noise Robustness (Diagnostic, Not a Safety Controller)}
+\label{app:noise_diagnostic}
+
+\input{tables/tab_noise_robustness_diagnostic}
+
+Ungated noise-injection baselines test how a frozen LIBERO-Spatial policy responds to closed-loop perturbation, independent of the PULSE failure logit. Random Gaussian action-space noise ($\sigma{=}0.05$) and EMA-only smoothing are useful diagnostics for closed-loop noise tolerance but are not deployable safety controllers: both inject perturbation unconditionally, which violates action-space safety constraints under disturbance and provides no abstention signal. The pooled-text comparison in Table~\ref{tab:final_pooled_results} therefore reports only gated controllers (Vanilla, MPPI, single-step gating, Latent Jiggle, Latent Stop); Random Noise and EMA-only are surfaced here for completeness.
+
 \section{Zero-Shot and OOD Details}
 \label{app:zero_shot}
 
 \input{tables/tab_act_zero_shot_ood}
 \input{tables/tab_act_ood_baselines}
+
+\subsection{OpenVLA OOD baseline campaign (s42--s44)}
+\label{app:openvla_ood}
+
+\input{tables/tab_openvla_ood_status}
+
+Three OpenVLA OOD seeds (s42, s43, s44) on hard tasks 8--9 are reported in Table~\ref{tab:openvla_ood_status}. Aggregated across seeds ($n{=}120$ episodes per controller), MPPI ($55.0\%$) and single-step gating ($54.2\%$) are within a single percentage point of each other and of Vanilla ($53.3\%$); Latent Stop is materially worse ($43.3\%$), consistent with the main pool. We pool all 240 OOD episodes (3 seeds $\times$ 2 tasks $\times$ 4 controllers $\times$ 20 ep) into the OpenVLA portion of the canonical pool reported in Table~\ref{tab:final_pooled_results}.
 
 \begin{figure}[h]
     \centering
@@ -34,6 +87,7 @@ Moderate clamping ($c_{\max}{=}0.01$\,m) preserves base-policy success on easy t
 \end{figure}
 
 \section{Cross-Model Transfer Details}
+\label{app:transfer}
 
 \begin{figure}[h]
     \centering
@@ -43,6 +97,7 @@ Moderate clamping ($c_{\max}{=}0.01$\,m) preserves base-policy success on easy t
 \end{figure}
 
 \section{OOD Push Sweep Details}
+\label{app:ood_push}
 
 \begin{figure}[h]
     \centering
@@ -50,6 +105,18 @@ Moderate clamping ($c_{\max}{=}0.01$\,m) preserves base-policy success on easy t
     \caption{Left: success rate under increasing OOD disturbance. Right: steering advantage by push magnitude.}
 \end{figure}
 
+\section{Gating-Threshold Sweep}
+\label{app:threshold_sweep}
+
+{\color{blue}[PLACEHOLDER: Gating-threshold ablation ($\tau_f \in \{0.50, 0.55, 0.60, 0.65, 0.70\}$) on two hard tasks, $N{=}100$ episodes/cell. Reports pooled success, intervention rate, and mean firing-step-index per threshold; tests whether lower thresholds fire inside the anticipatory window identified in Appendix~\ref{app:spatial_failure} while preserving success. Table inserted before camera-ready.]}
+
+\section{Secondary Latency Measurement}
+\label{app:latency_secondary}
+
+\input{tables/tab_latency}
+
+The headline latency claim ($6.1\times$, $5.6$\,ms vs.\ $0.9$\,ms) is the pooled measurement reported in Table~\ref{tab:final_pooled_results} of the main text. Table~\ref{tab:latency} reports an independent ACT-only benchmark-job measurement on the same hardware that yields a slightly larger speedup ($6.47\times$ mean, $10.14\times$ P95) because the benchmark job excludes OOD/sweep overhead. We report the pooled (more conservative) number as the headline. The ACT-OOD baseline campaign latencies in Table~\ref{tab:act_ood_baselines} (aggregate $3.442$\,ms MPPI vs.\ $0.645$\,ms single-step gating, $\approx 5.34\times$) cover a different, harder subset and are reported for completeness; the speedup holds qualitatively across all three slicings, and the absolute ms values shift with sample composition.
+
 \section{Reproducibility}
 
-All metrics map to stored JSON outputs indexed by deterministic run tags. Code, SLURM configs, evaluation pipelines, and safety probe checkpoints for both architectures will be released. Tables regenerate from frozen data via \texttt{run\_stat\_tests.py} and \texttt{generate\_tables.py}.
+All metrics map to stored JSON outputs indexed by deterministic run tags. Code, SLURM configs, evaluation pipelines, and safety probe checkpoints for both architectures will be released. Tables regenerate from frozen data via \texttt{run\_stat\_tests.py} and \texttt{generate\_tables.py}. Post-hoc Platt parameters and recovery-label utilities: \texttt{platt\_calibrate\_failure\_head.py}, \texttt{recovery\_conditioned\_labels.py}.

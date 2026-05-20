@@ -1,0 +1,16 @@
+\begin{table}[h]
+\centering
+\small
+\caption{\textbf{Closed-loop noise-robustness diagnostic (not deployable safety controllers).} Ungated noise-injection baselines on the OpenVLA-only sub-pool, with the OpenVLA-only PULSE row added for like-for-like comparison. \emph{Random Noise} injects Gaussian action-space noise ($\sigma{=}0.05$) every step with no gating; \emph{EMA-only} applies a smoothed correction every step with no gating. Both violate action-space safety constraints under disturbance and are reported as closed-loop noise probes only, not as candidates for deployment. The Random Noise row's headline number is on $n{=}5{,}080$ OpenVLA-only episodes; the pooled main-text PULSE results (Table~\ref{tab:final_pooled_results}) span $n{=}10{,}000$ episodes across both OpenVLA and ACT.}
+\label{tab:noise_robustness_diagnostic}
+\setlength{\tabcolsep}{6pt}
+\begin{tabular}{lccc}
+\toprule
+Method (OpenVLA-only sub-pool) & $\hat p$ (\%) & 95\% Wilson CI (\%) & $n$ (succ/total) \\
+\midrule
+PULSE single-step gating (OpenVLA, same pool) & \texttt{TODO} & \texttt{TODO} & \texttt{TODO}/5080 \\
+Random Noise ($\sigma{=}0.05$, no gating) & 53.98 & [52.60,\,55.34] & 2742/5080 \\
+EMA-only (no gating, no logit) & 3.82 & [3.33,\,4.38] & 194/5080 \\
+\bottomrule
+\end{tabular}
+\end{table}

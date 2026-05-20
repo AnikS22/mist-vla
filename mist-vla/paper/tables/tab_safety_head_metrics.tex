@@ -1,20 +1,29 @@
 \begin{table}[t]
 \centering
-\caption{Safety head metrics on held-out test set. OpenVLA (4096-d input, 1.1M params) vs.\ ACT (256-d input, 108K params).}
+\small
+\caption{\textbf{Probe metrics on the trajectory-disjoint test set.} \textit{Linear probe} is L2-regularized logistic regression on the same hidden states and split. PULSE gains $+0.05$/$+0.10$ AUC over the linear baseline across a $16{\times}$ feature-dimensionality gap. Correction-head AUCs are reported for completeness. \textbf{Note:} high offline directional AUC represents step-level alignment with time-indexed labeling conventions on held-out logs; as shown in \S\ref{sec:mechanism}, this does not guarantee episode-level success-rate gains during closed-loop deployment due to the low-gain nature of the controller adjustments ($\sim$3\,mm EEF clamp on LIBERO-Spatial).}
 \label{tab:safety_head_metrics}
+\setlength{\tabcolsep}{5pt}
 \begin{tabular}{lcc}
 \toprule
-Metric & OpenVLA (4096-d) & ACT (256-d) \\
+\textbf{Metric} & \textbf{OpenVLA (4096-d)} & \textbf{ACT (256-d)} \\
 \midrule
-Failure AUC & 0.832 & 0.889 \\
-Failure Accuracy & 0.773 & 0.793 \\
-TTF Correlation ($r$) & 0.863 & 0.862 \\
-TTF $R^2$ & 0.741 & 0.739 \\
-Correction Cosine Sim (median) & 0.794 & 0.565 \\
-X Direction AUC & 0.851 & 0.578 \\
-Y Direction AUC & 0.880 & 0.696 \\
-Z Direction AUC & 0.779 & 0.657 \\
-Parameters & 1,099,397 & 108,677 \\
+\multicolumn{3}{l}{\textit{Failure detection}} \\
+\quad Chance & 0.500 & 0.500 \\
+\quad Linear probe & 0.785 & 0.788 \\
+\quad \textbf{PULSE (ours)} & \textbf{0.832} & \textbf{0.889} \\
+\quad $\Delta$ over linear & $+0.047$ & $+0.101$ \\
+\quad Accuracy ($\sigma{\ge}0.5$) & 0.773 & 0.793 \\
+\midrule
+\multicolumn{3}{l}{\textit{Time-to-failure} (clock-equivalent on LIBERO; see App.~\ref{app:temporal_baseline})} \\
+\quad TTF correlation $r$ & 0.863 & 0.862 \\
+\quad TTF $R^2$ & 0.741 & 0.739 \\
+\midrule
+\multicolumn{3}{l}{\textit{Correction direction} (directional, not exploitable; \S\ref{sec:mechanism})} \\
+\quad Cosine similarity (median) & 0.794 & 0.565 \\
+\quad X / Y / Z AUC & 0.85 / 0.88 / 0.78 & 0.58 / 0.70 / 0.66 \\
+\midrule
+Parameters & 1.1M & 108K \\
 \bottomrule
 \end{tabular}
 \end{table}

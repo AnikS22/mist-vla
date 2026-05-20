@@ -1,5 +1,12 @@
 # Physical Robot Evaluation Proposal — PULSE
 
+> **Status (2026-05):** Sim-only submission. Post-submission physical-robot validation is the conclusion's open question (i) and will run on the SO-101 pipeline under `mist-vla/scripts/so101/` (Pi0 backbone, follower+leader teleop, on-device probe inference). The earlier Yahboom 7-DoF prototype is retired; SO-101 is the deployment path for the paper. Two placeholder paper tables are kept in `paper/tables/archive/` until real episodes arrive:
+>
+> - [`tab_so101_plan_placeholder.tex`](tables/archive/tab_so101_plan_placeholder.tex) — the slot for the eventual SO-101 results table.
+> - [`tab_so101_bringup_status.tex`](tables/archive/tab_so101_bringup_status.tex) — the slot for the eventual SO-101 hardware bring-up status table.
+>
+> When real episodes arrive, populate the `TODO-SO101-*` cells from `research_data/rollouts/so101/eval/<run_tag>/summary.json`, then re-`\input{}` the tables in `sections/appendix.tex` (the cut entry in `cut_content.tex` documents the original locations). The remainder of this document describes a fallback Kinova/xArm + OpenVLA plan kept for reference if the SO-101 pipeline cannot run; it is not the primary path.
+
 ## Goal
 
 Test whether the latent safety manifold discovered in simulation transfers to real-world robot manipulation. The safety probe is trained exclusively on LIBERO simulation hidden states and deployed on a physical arm without fine-tuning.
@@ -87,7 +94,7 @@ Each task has a binary success criterion: block placed within 2cm of target zone
 
 1. Set up arm communication (Kinova SDK / xArm Python SDK)
 2. Mount camera, calibrate workspace bounds
-3. Deploy OpenVLA-7B on GPU server, verify action conditioning on real camera input (this was the Yahboom blocker — test thoroughly)
+3. Deploy OpenVLA-7B on GPU server, verify action conditioning on real camera input (this was the prior-prototype blocker — test thoroughly)
 4. Load safety probe checkpoint + scaler, verify probe runs <1ms
 5. Build 3 physical tasks with blocks and printed mat
 6. Run 5 pilot episodes per mode to verify pipeline end-to-end

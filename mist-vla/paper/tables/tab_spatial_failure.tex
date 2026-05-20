@@ -1,0 +1,32 @@
+\begin{table}[t]
+\centering
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{llccc}
+\toprule
+Corpus & Features & Sign AUC X / Y / Z & $\Delta\mathbf{p}$ err.\ (cm) & $\mathbf{p}_{\mathrm{term}}$ err.\ (cm) \\
+\midrule
+OPENVLA & Current EEF only & 0.80 / 0.88 / 0.85 & 5.8 & 5.8 \\
+OPENVLA & Hidden state & 0.79 / 0.84 / 0.86 & 6.2 & 6.0 \\
+OPENVLA & Hidden + EEF & 0.79 / 0.84 / 0.86 & 6.0 & 6.0 \\
+OPENVLA & \textit{Constant-mean baseline} & 0.50 / 0.50 / 0.50 & 13.7 & 6.5 \\
+\midrule
+ACT & Current EEF only & 0.77 / 0.86 / 0.91 & 6.1 & 6.1 \\
+ACT & Hidden state & 0.76 / 0.83 / 0.91 & 5.7 & 5.7 \\
+ACT & Hidden + EEF & 0.76 / 0.83 / 0.91 & 5.7 & 5.7 \\
+ACT & \textit{Constant-mean baseline} & 0.50 / 0.50 / 0.50 & 13.7 & 5.6 \\
+\midrule
+\multicolumn{5}{l}{\textit{Early-rollout slice (first 25\% of each failure trajectory): does the latent see further than the current pose?}} \\
+\midrule
+OPENVLA & Current EEF only & 0.76 / 0.90 / 0.87 & 8.7 & -- \\
+OPENVLA & Hidden state & 0.87 / 0.89 / 0.87 & 7.6 & -- \\
+OPENVLA & Hidden + EEF & 0.88 / 0.89 / 0.87 & 7.5 & -- \\
+\midrule
+ACT & Current EEF only & 0.90 / 0.97 / 0.97 & 9.4 & -- \\
+ACT & Hidden state & 0.90 / 0.99 / 0.98 & 7.7 & -- \\
+ACT & Hidden + EEF & 0.90 / 0.99 / 0.98 & 7.7 & -- \\
+\bottomrule
+\end{tabular}%
+}
+\caption{\textbf{Where will the rollout fail?} For each failure rollout in the same trajectory-disjoint test split used by Tables~\ref{tab:safety_head_metrics} and \ref{tab:temporal_baseline}, a ridge-regularized linear probe is fit on (i)~the current EEF position alone (a 3-d feature), (ii)~the policy hidden state alone, or (iii)~their concatenation, and used to predict the displacement to the rollout's terminal EEF position, $\Delta\mathbf{p} = \mathbf{p}_{\mathrm{term}} - \mathbf{p}_t$ (directional target), and the absolute terminal position $\mathbf{p}_{\mathrm{term}}$ itself (workspace target). Sign AUC columns are computed on $\Delta\mathbf{p}$. The constant-mean row predicts the train-set average. \textbf{Read.} On the all-step pool (upper block) the hidden state and the current EEF position are within $\pm 0.1$\,cm and $\pm 0.03$ sign AUC of one another --- late in a failure rollout the arm has already drifted toward the terminal pose, so proprioception alone explains most of the spatial signal, and both features shrink the displacement error from the $\sim 13.7$\,cm constant-mean baseline to $\sim 6$\,cm. The \emph{early-rollout slice} (first 25\% of each failure trajectory; arm has not yet committed to a failure mode) is where the latent shows real anticipation: the hidden state cuts the displacement error from $8.7\to 7.6$\,cm (OpenVLA) and $9.4\to 7.7$\,cm (ACT) and lifts the OpenVLA X-axis sign AUC from $0.76\to 0.87$ relative to EEF-only. We interpret this as: the latent encodes \emph{where} a failure is heading before the kinematics commit to it; on LIBERO-Spatial that anticipation is concentrated in the first quarter of the rollout. A cleaner spatial test would use variable-geometry real hardware (SO-101, future work).}
+\label{tab:spatial_failure}
+\end{table}

@@ -35,7 +35,7 @@ python3 scripts/generate_visuals.py
 Notes:
 - Some visuals are generated from completed run JSONs.
 - Some are intentionally synthetic placeholders and are labeled as such in captions.
-- Yahboom embodied-track sections are intentionally placeholder-complete; fill only from completed hardware trials.
+- SO-101 embodied-track sections are intentionally placeholder-complete (`paper/tables/archive/tab_so101_*.tex`); fill only from completed hardware trials.
 
 ## Build PDF (tectonic)
 ```bash
@@ -50,4 +50,4 @@ tectonic --keep-logs --keep-intermediates main.tex
 
 ## Camera-Ready Checklist
 Search for `TODO-` in `sections/` and resolve each item only with completed evidence.
-Search for `TODO-YB-` and `TODO-YBA-` for Yahboom-specific embodied placeholders.
+Search for `TODO-SO101-` for SO-101 physical-robot placeholders (paper/tables/archive/tab_so101_*.tex).

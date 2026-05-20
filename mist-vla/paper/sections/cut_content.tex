@@ -27,46 +27,28 @@
 % Experiment B (~1 GPU-day) would train this projection and measure AUC transfer.
 
 % ----------------------------------------------------------------------------
-% CUT 2: Yahboom Bring-Up Checklist (was Appendix and Experimental Setup)
-% Reason: No autonomous task-completion results. Infrastructure status is not
-% a research contribution. Will be relevant when real robot arm results arrive.
+% CUT 2: Physical-robot deployment checklist (was Appendix and Experimental Setup)
+% Reason: No autonomous task-completion results for this submission.
+% Infrastructure status is not a research contribution. Post-submission this
+% will be filled in from the SO-101 pipeline (scripts/so101/); the historical
+% Yahboom prototype is retired and is no longer the deployment path.
 % ----------------------------------------------------------------------------
 
-% \section{Yahboom Embodied Deployment Checklist}
-% \begin{table}[h]
-% \centering
-% \caption{Embodied bring-up status on Yahboom 7-DoF + Jetson Orin.}
-% \begin{tabular}{lcc}
-% \toprule
-% Component & Status & Evidence \\
-% \midrule
-% SSH + network & \checkmark & Passwordless SSH configured \\
-% CUDA + PyTorch & \checkmark & 4-GPU sharding verified \\
-% Camera stream & \checkmark & 640$\times$480 @ 30fps \\
-% Arm API (status/home/angles) & \checkmark & REST API tested \\
-% Gripper open/close & \checkmark & Tested via API \\
-% OpenVLA inference (sharded) & \checkmark & $\sim$12s load, $\sim$2s/step \\
-% Safety MLP inference & \checkmark & $<$1ms on CUDA \\
-% Workspace bounding & \checkmark & $\pm$50mm XY, $\pm$30mm Z \\
-% Saturation detection & \checkmark & L$\infty > 0.95$ triggers freeze \\
-% Stuck-action termination & \checkmark & 4-step identical $\Rightarrow$ abort \\
-% Camera quality diagnostics & \checkmark & Brightness/contrast/focus verified \\
-% VLA action-conditioning diagnostics & Partial & Variance acceptable; conditioning under review \\
-% Autonomous pick/place benchmark & Pending & Blocked on conditioning fix \\
-% Safety steering evaluation & Pending & Requires autonomous baseline \\
-% \bottomrule
-% \end{tabular}
-% \end{table}
+% \section{SO-101 Physical Deployment Checklist (placeholder)}
+% \input{tables/archive/tab_so101_bringup_status}  % archived 2026-05; not in compile
 
-% Embodied platform subsection from experimental_setup.tex:
-% \subsection{Embodied Platform: Yahboom 7-DoF + Jetson Orin}
-% \paragraph{Hardware.} Yahboom 7-DoF arm with parallel gripper, connected via serial
-% to a Jetson Orin (JetPack 6.x, 4x GPU, 44GB combined).
-% \paragraph{Policy inference.} OpenVLA-7B loaded with device_map=auto across 4 GPUs.
-% \paragraph{Safety interlocks.} Workspace bounding, velocity saturation detection,
-% repeated-action detection, human-reachable emergency stop.
-% \paragraph{Acceptance diagnostics.} vla_control_diagnostics.py verifies action
-% standard deviation, prompt-conditioned delta, frame-conditioned delta, gripper variance.
+% Embodied platform subsection (former Yahboom prototype, now superseded by SO-101):
+% \subsection{Embodied Platform: SO-101 (post-submission)}
+% \paragraph{Hardware.} 2x Hiwonder SO-101 arms (leader + follower) on a single
+% BusLinker board; wrist + scene cameras; bench workspace ~30cm. See
+% mist-vla/scripts/so101/README.md for the full pipeline. The earlier Yahboom 7-DoF
+% prototype is retired; SO-101 + Pi0 (LeRobot) is the post-submission deployment path.
+% \paragraph{Policy inference.} Pi0 backbone from LeRobot 0.4.2 (auto-downloaded).
+% \paragraph{Safety interlocks.} Workspace clamp (x in [0.05,0.45]m, |y|<=0.30m,
+% z in [0,0.40]m), SIGINT e-stop, repeated-action detection.
+% \paragraph{Acceptance diagnostics.} dry-run hidden-state hook + teleop round-trip
+% (scripts/so101/collect_rollouts.py --dry-run), then >=5 teleop episodes before
+% any autonomous controller is enabled.
 
 % ----------------------------------------------------------------------------
 % CUT 3: Figures 15-20 (qualitative filler)
@@ -109,14 +91,14 @@
 % Reason: No autonomous task-completion data. Bring-up status is not a result.
 % ----------------------------------------------------------------------------
 
-% \subsection{Embodied Bring-Up (Yahboom + Jetson)}
-% \input{tables/tab_yahboom_bringup_status}
+% \subsection{Embodied Bring-Up (SO-101, post-submission)}
+% \input{tables/archive/tab_so101_bringup_status}  % archived 2026-05; not in compile
 % \textbf{Scope:} This submission prioritizes LIBERO simulation evidence...
-% Physical deployment is summarized only as infrastructure bring-up...
+% Physical deployment is summarized only as infrastructure bring-up (SO-101 + Pi0)...
 
 % ----------------------------------------------------------------------------
-% CUT 7: OpenVLA OOD status table (was "PENDING")
-% Reason: Placeholder with no data.
+% CUT 7 (REVERSED 2026-05-15): OpenVLA OOD status table
+% All three seeds (s42, s43, s44) are complete in paper/data/; the table
+% has been regenerated by paper/scripts/build_openvla_ood_table.py and
+% \input{}'d in sections/appendix.tex under app:openvla_ood.
 % ----------------------------------------------------------------------------
-
-% \input{tables/tab_openvla_ood_status}

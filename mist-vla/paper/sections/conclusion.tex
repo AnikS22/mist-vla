@@ -1,20 +1,6 @@
 \section{Conclusion}
 
-We probe the hidden states of two architecturally distinct robot policies and show they encode failure risk and temporal urgency---extending detection-only approaches like SAFE~\citep{safe_paper} to include time-to-failure prediction and correction estimation. We attempted to use these signals for continuous spatial steering, but found that the learned correction direction does not outperform random perturbation. The detection timing is what matters: knowing \emph{when} to intervene is the operative mechanism, not \emph{where} to push.
+We presented PULSE, a lightweight MLP probe that reads failure risk directly from frozen robot policy hidden states. The same probe template trains from scratch on OpenVLA-7B (4096-d) and ACT (256-d), a $16\times$ feature-dimensionality gap, with identical hyperparameters. On LIBERO-Spatial, the probe achieves AUC $0.83$/$0.89$ on OpenVLA/ACT ($+0.05$/$+0.10$ over a linear probe) and enables single-step gating---TOST-equivalent to $K$-sample MPPI at $6.1{\times}$ lower per-step latency. The \emph{spatial--control decoupling} analysis (\S\ref{sec:mechanism}) is an explicit methodological lesson: under time-matched labels, timing and magnitude-gated intervention carry the closed-loop payload, and offline directional AUC must not be treated as a proxy for deployable steering gain without latent-jiggle-style ablations.
 
-PULSE reads these signals with a lightweight probe at $6{\times}$ lower latency than MPPI, self-calibrating to difficulty and generalizing zero-shot. The jiggle ablation simplifies the safety-adapter design space and identifies correction fidelity as the clear bottleneck.
-
-\paragraph{Improving the correction head.}
-Three directions may address the correction bottleneck:
-\begin{enumerate}[leftmargin=1.5em, topsep=2pt, itemsep=1pt]
-    \item \textbf{Recovery-conditioned labels.} Current labels use nearest-neighbor trajectory matching ($\Delta\mathbf{p}_t = \mathbf{p}^{\mathrm{succ}}_t - \mathbf{p}^{\mathrm{fail}}_t$). Training on demonstrations that \emph{recovered from near-failure} would provide cleaner directional signal.
-    \item \textbf{Multi-step correction planning.} Single-step Cartesian deltas cannot capture multi-step recovery. A sequence model over hidden states could plan corrective trajectories.
-    \item \textbf{Task-specific correction heads.} Training on failure modes of specific tasks and embodiments rather than a universal head.
-\end{enumerate}
-
-\paragraph{Additional future work.}
-{\color{blue}(i) Physical robot validation on SO-101 arms with multiple LeRobot VLAs.}
-(ii) Nonlinear cross-model transfer.
-(iii) Integration with conformal prediction guarantees for calibrated failure detection.
-
-All code, data, checkpoints, and evaluation scripts will be released.
+\paragraph{Recovery-conditioned labels and hardware.}
+The directionality probe shows the latent encodes failure geometry in the first $25\%$ of failure rollouts; re-coupling that signal to control requires (i)~recovery-conditioned correction labels from human or scripted recoveries rather than time-index-matched trajectory differences, and (ii)~earlier gating thresholds (Appendix~\ref{app:threshold_sweep}) so interventions fire inside the anticipatory window. SO-101 deployment is the cleanest testbed: variable-length failures can validate the TTF head beyond a step counter, and real hardware can test whether spatial readout translates to success once labels and gating are fixed. Head-to-head comparison with FIPER and FAIL-Detect on our rollout pool remains open. Code, data, and checkpoints will be released.

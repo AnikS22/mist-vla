@@ -1,0 +1,27 @@
+\begin{table}[t]
+\centering
+\caption{SO-101 physical-robot evaluation plan and placeholder result slots. \emph{Post-submission}: experiments are deferred until after submission and will use the pipeline in \texttt{mist-vla/scripts/so101/} (Pi0 backbone, leader/follower teleop, on-device probe inference). All TODO-SO101-* slots stay empty until real rollouts are collected and labeled.}
+\label{tab:so101_plan}
+\begin{tabular}{ll}
+\toprule
+Field & Planned / Placeholder \\
+\midrule
+Platform & 2$\times$ Hiwonder SO-101 arms (leader + follower) via BusLinker board \\
+Backbone policy & TODO-SO101-POL (Pi0 from LeRobot 0.4.2; weights cached on first run) \\
+Sensors & Wrist camera (480p) + scene camera (1080p); proprio from LeRobot driver \\
+Control rate & TODO-SO101-CTRL-HZ (paced by \texttt{--fps}; nominal $\sim 30$\,Hz) \\
+Safety limits & Workspace clamp ($x{\in}[0.05,0.45]$\,m, $|y|{\leq}0.30$\,m, $z{\in}[0,0.40]$\,m); SIGINT e-stop \\
+Tasks & TODO-SO101-TASKS (initial set: pick black bowl $\to$ place on plate) \\
+Modes & Vanilla (Pi0 alone) / PULSE-as-cost / Steering / Latent Stop \\
+Trials per condition & TODO-SO101-N (target: 20 episodes/mode/task) \\
+Obstacle protocol & TODO-SO101-OBS (post-bringup: scripted scene perturbations) \\
+Primary metric & Success rate (\%) under blind annotator labeling \\
+Secondary metrics & Intervention rate, correction norm, per-step latency \\
+Latency metrics & Policy ms, probe ms, end-to-end control ms \\
+Result slot 1 & TODO-SO101-R1 (Vanilla) \\
+Result slot 2 & TODO-SO101-R2 (Latent Stop) \\
+Result slot 3 & TODO-SO101-R3 (PULSE-as-cost) \\
+Result slot 4 & TODO-SO101-R4 (Steering) \\
+\bottomrule
+\end{tabular}
+\end{table}

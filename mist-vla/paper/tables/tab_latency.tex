@@ -1,6 +1,6 @@
 \begin{table}[t]
 \centering
-\caption{Controller apply-time latency on ACT benchmark job (GPU).}
+\caption{\textbf{Secondary latency measurement: ACT benchmark job} (NVIDIA A100, single process, fresh warm cache, restricted to the ACT controller). Reported here for transparency; the canonical paper-headline latency (used in the abstract, introduction, results, and discussion) is the pooled-run measurement in Table~\ref{tab:final_pooled_results} (K-sample MPPI $5.545$\,ms, single-step steering $0.902$\,ms, $6.15\times$). Both controllers use the same PULSE failure head as cost; the latency gap is from running the head once (steering) vs.\ $K{=}16$ times (MPPI). This benchmark-job run yields slightly faster absolute times for both methods because it omits the OOD/sweep overhead, and the relative speedup ($6.47\times$ mean, $10.14\times$ P95) is therefore an upper bound; we report the pooled (more conservative) number as the headline.}
 \label{tab:latency}
 \begin{tabular}{lcc}
 \toprule

@@ -1,41 +1,52 @@
 \section{Method}
 
-We hypothesize that frozen robot policies encode latent safety signals---failure risk, temporal urgency, and corrective geometry readable from hidden states. To test this, we train a lightweight MLP probe that reads these signals and produces corrective steering outputs. The only assumption is access to per-step hidden states.
+PULSE attaches to any frozen policy as a post-hoc probe: during deployment, the policy runs unmodified, and PULSE reads per-step hidden states to produce a failure-risk score used for low-latency intervention. No dynamics model, reward function, or policy modification is required.
 
 \begin{figure}[t]
     \centering
-    \includegraphics[width=0.85\linewidth]{figures/27_pipeline_overview.png}
-    \caption{\textbf{PULSE pipeline.} Top: offline training from paired success/failure rollouts. Bottom: online deployment---the frozen policy produces hidden states, the probe predicts risk and corrections, double gating ensures sparse intervention.}
+    \includegraphics[width=\linewidth]{figures/27_pipeline_overview.png}
+    \caption{\textbf{PULSE overview.} \textit{Offline (top):} the probe is trained on hidden states from frozen-policy rollouts, using LIBERO success/failure labels and nearest-neighbor correction labels. \textit{Online (bottom):} the frozen policy runs at full speed; PULSE reads $\mathbf{h}_t$ and fires a correction only when both the failure probability and correction magnitude exceed thresholds.}
     \label{fig:pipeline}
 \end{figure}
 
 \subsection{Problem Formulation}
-At each control step $t$, a frozen policy emits hidden state $\mathbf{h}_t \in \mathbb{R}^m$ and action $\mathbf{a}_t \in \mathbb{R}^d$. We learn a \textbf{latent safety controller}:
-\begin{equation}
-f_\theta(\mathbf{h}_t) = \bigl\{\hat{y}^{\mathrm{fail}}_t,\;\hat{\tau}_t,\;\widehat{\Delta\mathbf{p}}_t\bigr\},
-\end{equation}
-where $\hat{y}^{\mathrm{fail}}_t$ is the failure logit, $\hat{\tau}_t$ is time-to-failure, and $\widehat{\Delta\mathbf{p}}_t = (\Delta x, \Delta y, \Delta z)$ is a Cartesian correction vector.
 
-\subsection{Architecture}
-The safety probe is a compact MLP (108K params for ACT 256-d; 1.1M for OpenVLA 4096-d):
-\begin{itemize}[leftmargin=1.2em, topsep=2pt, itemsep=1pt]
-    \item \textbf{Input:} LayerNorm on the policy's hidden state (any dimension $m$).
-    \item \textbf{Encoder:} Bottleneck: $m \to 256 \to 128 \to 64$, GELU, LayerNorm, Dropout(0.3).
-    \item \textbf{Three heads:} Linear projections from 64-d to failure logit, TTF scalar, 3-D correction.
-\end{itemize}
+At each control step $t$, a frozen policy emits hidden state $\mathbf{h}_t \in \mathbb{R}^m$ and action $\mathbf{a}_t \in \mathbb{R}^d$. We learn a probe $f_\theta : \mathbb{R}^m \to \{\hat{y}^{\mathrm{fail}}_t,\, \hat{\tau}_t,\, \widehat{\Delta\mathbf{p}}_t\}$, where $\hat{y}^{\mathrm{fail}}_t$ is a failure logit, $\hat{\tau}_t$ is predicted time-to-failure, and $\widehat{\Delta\mathbf{p}}_t \in \mathbb{R}^3$ is a Cartesian correction vector.
+
+\subsection{Probe Architecture}
+
+The safety probe is a compact MLP: \textbf{Input} LayerNorm on $\mathbf{h}_t$ (last transformer token for OpenVLA; CVAE encoder output for ACT). \textbf{Encoder} $m \to 256 \to 128 \to 64$ with GELU activations, LayerNorm, and Dropout ($p{=}0.3$). \textbf{Three heads} project the 64-d bottleneck to a scalar failure logit, a scalar TTF, and a 3-d Cartesian correction---108K parameters on ACT (256-d input) and 1.1M on OpenVLA (4096-d input). The same template trains from scratch on both architectures without modification. The TTF and correction heads are retained for architectural completeness; their contributions are reported as ablations (Appendix~\ref{app:temporal_baseline}, \S\ref{sec:mechanism}), not as headline claims.
 
 \subsection{Training}
-\begin{equation}
-\mathcal{L} = \lambda_f \,\mathrm{BCE}(\hat{y}^{\mathrm{fail}}, y;\; w^+) + \lambda_\tau \,\mathrm{Huber}(\hat{\tau}, \tau) + \lambda_c \,\mathrm{Huber}(\widehat{\Delta\mathbf{p}}, \Delta\mathbf{p}).
-\end{equation}
-Labels come from paired success/failure trajectories: $\Delta\mathbf{p}_t = \mathbf{p}^{\mathrm{succ}}_t - \mathbf{p}^{\mathrm{fail}}_t$ in Cartesian EEF space (Figure~\ref{fig:pipeline}, top). The MLP sees only hidden states; EEF positions are used only for training labels.
 
-\subsection{Inference-Time Steering}
-At deployment, corrections are smoothed, clamped, and gated:
+The probe is trained on frozen-policy rollouts with the composite loss:
+\begin{equation}
+\mathcal{L} = \lambda_f\,\mathrm{BCE}(\hat{y}^{\mathrm{fail}}, y;\, w^+) + \lambda_\tau\,\mathrm{Huber}(\hat{\tau}, \tau) + \lambda_c\,\mathrm{Huber}(\widehat{\Delta\mathbf{p}}, \Delta\mathbf{p}),
+\label{eq:loss}
+\end{equation}
+with $\lambda_f{=}1.0$, $\lambda_\tau{=}0.5$, $\lambda_c{=}0.5$. The binary target $y$ is LIBERO's goal-predicate label. \textbf{Correction labels (default: teleport).} $\Delta\mathbf{p}_t = \mathbf{p}^{\mathrm{succ}}_t - \mathbf{p}^{\mathrm{fail}}_t$ from time-index-matched nearest-neighbor success trajectories (progress-aligned resampling). \textbf{Recovery-conditioned alternative.} $\Delta\mathbf{p}_t = \mathbf{p}^{\mathrm{succ}}[s_t] - \mathbf{p}^{\mathrm{fail}}_t$ where $s_t$ is the closest index on the success EEF polyline with $s_t \ge s_{t-1}$ (\texttt{recovery\_conditioned\_labels.py}; train with \texttt{--label-mode recovery}). EEF positions are label-only, not probe inputs. \textbf{Post-hoc calibration.} OpenVLA failure logits use optional Platt scaling $p{=}\sigma(a\ell{+}b)$ fit on the validation fold (\texttt{platt\_calibrate\_failure\_head.py}). All three heads are trained jointly with AdamW ($\mathrm{lr}{=}3{\times}10^{-4}$, early stopping on val AUC).
+
+\subsection{Inference-Time Controller}
+
+At deployment, the predicted correction is smoothed, clamped, and gated before application:
 \begin{align}
-\tilde{\Delta\mathbf{p}}_t &= \beta\,\tilde{\Delta\mathbf{p}}_{t-1} + (1{-}\beta)\,\widehat{\Delta\mathbf{p}}_t, \label{eq:ema} \\
-\bar{\Delta\mathbf{p}}_t &= \mathrm{ClampNorm}(\tilde{\Delta\mathbf{p}}_t,\; c_{\max}), \label{eq:clamp} \\
-\mathbb{I}_t &= \mathbb{1}[\|\bar{\Delta\mathbf{p}}_t\| > \tau_c] \cdot \mathbb{1}[\sigma(\hat{y}^{\mathrm{fail}}_t) \ge \tau_f], \label{eq:gate} \\
-\mathbf{a}^{xyz}_t &\leftarrow \mathbf{a}^{xyz}_t + \alpha\,\mathbb{I}_t\,\bar{\Delta\mathbf{p}}_t / s_a. \label{eq:apply}
+\tilde{\Delta\mathbf{p}}_t &= \beta\,\tilde{\Delta\mathbf{p}}_{t-1} + (1{-}\beta)\,\widehat{\Delta\mathbf{p}}_t \label{eq:ema}\\
+\bar{\Delta\mathbf{p}}_t &= \mathrm{ClampNorm}(\tilde{\Delta\mathbf{p}}_t,\, c_{\max}) \label{eq:clamp}\\
+\mathbb{I}_t &= \mathbb{1}\bigl[\sigma(\hat{y}^{\mathrm{fail}}_t) \ge \tau_f\bigr] \cdot \mathbb{1}\bigl[\|\bar{\Delta\mathbf{p}}_t\| > \tau_c\bigr] \label{eq:gate}\\
+\mathbf{a}^{xyz}_t &\leftarrow \mathbf{a}^{xyz}_t + \alpha\,\mathbb{I}_t\,\bar{\Delta\mathbf{p}}_t\,/\,s_a. \label{eq:apply}
 \end{align}
-\textbf{Double gating} (Eq.~\ref{eq:gate}): corrections fire only when both correction magnitude and failure probability exceed thresholds, ensuring sparse intervention ($\sim$46\% of timesteps). \textbf{Clamping} (Eq.~\ref{eq:clamp}) acts as a trust region.
+\textbf{Double gating} (Eq.~\ref{eq:gate}) fires a correction only when failure probability \emph{and} correction magnitude both exceed their respective thresholds ($\tau_f$, $\tau_c$), producing sparse and self-calibrating intervention (\S\ref{sec:adaptive_gating}). \textbf{Clamping} (Eq.~\ref{eq:clamp}) bounds each correction to a trust radius $c_{\max}$. We evaluate two controller modes that differ only in \emph{how many times} the failure head is queried per step: \textbf{K-sample MPPI} queries it $K{=}16$ times (once per feature-space-perturbed candidate, softmin selection) and \textbf{single-step gating} (ours) queries it once.
+
+\subsection{Physical Evaluation Protocol}
+\label{sec:physical_protocol}
+
+{\color{blue}
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.50\linewidth]{figures/robot_setup_watch.jpg}
+    \caption{SO-101 arm used for planned physical evaluation. The sim-trained PULSE probe is deployed zero-shot; success is labeled blind by a second observer.}
+    \label{fig:robot_setup}
+\end{figure}
+
+\noindent The key open question is whether the sim-trained failure head generalises to real-world failures (target AUC ${>}0.70$) when the probe is deployed zero-shot on hardware. We plan $50$\,episodes/mode/task on SO-101 arms running LeRobot VLAs, with blind success labeling and standard safety interlocks (workspace bounding, velocity saturation, e-stop). Pipeline implemented under \texttt{scripts/so101/}; bring-up in progress.
+}

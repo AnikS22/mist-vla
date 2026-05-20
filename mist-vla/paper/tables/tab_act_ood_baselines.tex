@@ -1,7 +1,8 @@
 \begin{table}[t]
 \centering
-\caption{ACT OOD baseline campaign on hard tasks (completed seeds).}
+\caption{\textbf{ACT OOD baseline campaign on hard tasks} (completed seeds, NVIDIA A100). ``MPPI'' is K-sample MPPI search over the PULSE failure head; ``Steering'' is single-step gating on the same head (see \S\ref{sec:experimental_setup}). Latency columns are restricted to the OOD-only run set on the two hardest ACT tasks (tasks 8/9 with OOD push) and are \emph{not} the canonical paper headline; see Table~\ref{tab:final_pooled_results} for the pooled measurement that the $6.1\times$ figure traces to. We report these latencies for completeness so readers can verify that the speedup holds qualitatively across slicings of the data even when the absolute ms values shift with sample composition.}
 \label{tab:act_ood_baselines}
+\resizebox{\linewidth}{!}{%
 \begin{tabular}{lcccccc}
 \toprule
 Run & Vanilla & Latent Stop & MPPI & Steering & MPPI ms & Steering ms \\
@@ -11,5 +12,6 @@ act\_ood\_t89\_s43 & 27.5 & 32.5 & 35.0 & 35.0 & 3.915 & 0.676 \\
 \midrule
 Aggregate (completed) & 41.0 & 39.2 & 45.5 & 42.5 & 3.442 & 0.645 \\
 \bottomrule
-\end{tabular}
+\end{tabular}%
+}
 \end{table}
