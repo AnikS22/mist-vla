@@ -1,29 +1,28 @@
 \begin{table}[t]
 \centering
-\small
-\caption{\textbf{Probe metrics on the trajectory-disjoint test set.} \textit{Linear probe} is L2-regularized logistic regression on the same hidden states and split. PULSE gains $+0.05$/$+0.10$ AUC over the linear baseline across a $16{\times}$ feature-dimensionality gap. Correction-head AUCs are reported for completeness. \textbf{Note:} high offline directional AUC represents step-level alignment with time-indexed labeling conventions on held-out logs; as shown in \S\ref{sec:mechanism}, this does not guarantee episode-level success-rate gains during closed-loop deployment due to the low-gain nature of the controller adjustments ($\sim$3\,mm EEF clamp on LIBERO-Spatial).}
+\caption{Safety head metrics on the trajectory-disjoint held-out test set. \emph{Chance} is random guessing; \emph{linear probe} is L2-regularized logistic regression on the same hidden states and split, isolating linearly accessible failure signal. \textbf{PULSE} is the trained MLP probe. The correction-head AUCs are kept for reference; the mechanism analysis (Section~\ref{sec:mechanism}) shows the correction direction does not outperform random perturbation despite the apparent gap over chance. \emph{Provenance:} Failure AUCs are read from \texttt{hpc\_mirror/checkpoints/eef\_correction\_mlp/results.json} (and the ACT analog), produced by \texttt{scripts/train\_eef\_correction\_mlp.py} on the OpenVLA-seed0 / ACT-spatial rollout pools with a 75/15/10 rollout-level split (\texttt{np.random.shuffle} under \texttt{np.random.seed}). The post-hoc threshold-replay AUCs reported in Table~\ref{tab:threshold_operating} are slightly higher because they use a larger merged rollout pool and a different RNG (see Appendix~\ref{app:auc_reconciliation}).}
 \label{tab:safety_head_metrics}
-\setlength{\tabcolsep}{5pt}
 \begin{tabular}{lcc}
 \toprule
-\textbf{Metric} & \textbf{OpenVLA (4096-d)} & \textbf{ACT (256-d)} \\
+Metric & OpenVLA (4096-d) & ACT (256-d) \\
 \midrule
-\multicolumn{3}{l}{\textit{Failure detection}} \\
-\quad Chance & 0.500 & 0.500 \\
-\quad Linear probe & 0.785 & 0.788 \\
-\quad \textbf{PULSE (ours)} & \textbf{0.832} & \textbf{0.889} \\
-\quad $\Delta$ over linear & $+0.047$ & $+0.101$ \\
-\quad Accuracy ($\sigma{\ge}0.5$) & 0.773 & 0.793 \\
-\midrule
-\multicolumn{3}{l}{\textit{Time-to-failure} (clock-equivalent on LIBERO; see App.~\ref{app:temporal_baseline})} \\
-\quad TTF correlation $r$ & 0.863 & 0.862 \\
-\quad TTF $R^2$ & 0.741 & 0.739 \\
-\midrule
-\multicolumn{3}{l}{\textit{Correction direction} (directional, not exploitable; \S\ref{sec:mechanism})} \\
-\quad Cosine similarity (median) & 0.794 & 0.565 \\
-\quad X / Y / Z AUC & 0.85 / 0.88 / 0.78 & 0.58 / 0.70 / 0.66 \\
-\midrule
-Parameters & 1.1M & 108K \\
+\textit{Failure AUC --- chance} & 0.500 & 0.500 \\
+\textit{Failure AUC --- linear probe baseline} & 0.785 & 0.788 \\
+\textbf{Failure AUC --- PULSE (ours)} & \textbf{0.832} & \textbf{0.889} \\
+$\Delta$ AUC over linear baseline & $+0.047$ & $+0.101$ \\
+\midrule[0.4pt] Failure Accuracy ($\sigma{\geq}0.5$) & 0.773 & 0.793 \\
+\midrule[0.4pt] \textit{TTF correlation --- chance} & 0.000 & 0.000 \\
+\textbf{TTF Correlation ($r$) --- PULSE (ours)} & \textbf{0.863} & \textbf{0.862} \\
+TTF $R^2$ & 0.741 & 0.739 \\
+\midrule[0.4pt] \textit{Correction cosine --- chance (random unit)} & 0.000 & 0.000 \\
+Correction Cosine Sim (median) & 0.794 & 0.565 \\
+\textit{X Direction AUC --- chance} & 0.500 & 0.500 \\
+X Direction AUC & 0.851 & 0.578 \\
+\textit{Y Direction AUC --- chance} & 0.500 & 0.500 \\
+Y Direction AUC & 0.880 & 0.696 \\
+\textit{Z Direction AUC --- chance} & 0.500 & 0.500 \\
+Z Direction AUC & 0.779 & 0.657 \\
+\midrule[0.4pt] Parameters & 1,099,397 & 108,677 \\
 \bottomrule
 \end{tabular}
 \end{table}

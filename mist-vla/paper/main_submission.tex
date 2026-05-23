@@ -1,0 +1,53 @@
+% CoRL submission build: 8-page main text + references (appendix → supplementary).
+% Compile: tectonic main_submission.tex
+\documentclass{article}
+
+\usepackage{corl_2026}
+
+\usepackage{amsmath,amssymb}
+\usepackage{bm}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{multirow}
+\usepackage{xcolor}
+\usepackage{enumitem}
+
+\title{PULSE: Probing Underlying Latent Safety Embeddings\\in Robot Foundation Policies}
+
+\author{
+  Anik Sahai \\
+  Florida Atlantic University \\
+  \texttt{asahai2021@fau.edu} \\
+  \And
+  Mehrdad Nojoumian \\
+  Florida Atlantic University \\
+  \texttt{mnojoumian@fau.edu} \\
+  \And
+  William Hahn \\
+  Florida Atlantic University \\
+  \texttt{whahn@fau.edu}
+}
+
+\begin{document}
+\maketitle
+
+\input{sections/abstract}
+
+\keywords{failure detection, latent representations, robot policy probing, inference-time intervention, imitation learning safety}
+
+\input{sections/introduction}
+\input{sections/related_work}
+\input{sections/method}
+\input{sections/experimental_setup}
+\input{sections/results}
+\input{sections/discussion}
+\input{sections/conclusion}
+
+\input{sections/appendix_label_stubs}
+
+\bibliography{references}
+
+% Appendix: compile main.tex (full) or submit sections/appendix.pdf as supplementary.
+
+\end{document}

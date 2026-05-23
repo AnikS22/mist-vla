@@ -3429,7 +3429,7 @@
       "mppi_vs_latent_jiggle",
       "vanilla_vs_latent_jiggle"
     ],
-    "git_head": "8f6eda58df1a1f4cab2842e6d2a3092048b589d9",
+    "git_head": "04cbf6f16b54d15a42b3b8a23f1c41498aa8191b",
     "holm_adjusted_p_z_paper_curated": {
       "steering_vs_mppi": 1.0,
       "steering_vs_vanilla": 1.0,
